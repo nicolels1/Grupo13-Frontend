@@ -1,20 +1,33 @@
 import { useState } from 'react'
-import { Navigate, useLocation, useNavigate } from 'react-router'
+import { Link, Navigate, useLocation, useNavigate } from 'react-router'
 import { cn } from 'cn'
 
 import { useAuth } from '@/auth/contexto'
 import { Aviso } from '@/components/Estados'
-import { Button } from '@/components/ui/button'
+import { Logo } from '@/components/Logo'
+import { Button, buttonVariants } from '@/components/ui/button'
 import { Input, Label } from '@/components/ui/input'
+import { api } from '@/lib/api'
+
+const ROTULO = 'text-xs font-normal uppercase tracking-[0.12em] text-muted-foreground'
+const BOTAO = 'h-12 w-full uppercase tracking-[0.12em]'
+
+// moldura das telas de conta: logo no topo e o cartão no meio
+function MolduraConta({ children }) {
+  return (
+    <main className="flex min-h-svh flex-col items-center bg-superficie px-4 py-10">
+      <Logo para="/loja" className="mb-10 text-2xl" />
+      <div className="w-full max-w-md bg-background p-8 shadow-sm sm:p-10">{children}</div>
+    </main>
+  )
+}
 
 // entrada única: o tipo de conta decide a plataforma depois do login (case, seção 5).
-// Cliente entra com e-mail ou CPF; funcionário, com o e-mail corporativo.
-// Base funcional: o visual final segue o Figma (cartão da tela de login).
+// Um campo só: com "@" entra por e-mail; senão, pelo CPF (só contas de cliente têm CPF).
 export function Entrar() {
   const { sessao, entrarComEmail, entrarComCpf } = useAuth()
   const navegar = useNavigate()
   const local = useLocation()
-  const [modo, setModo] = useState('email')
   const [identificacao, setIdentificacao] = useState('')
   const [senha, setSenha] = useState('')
   const [erro, setErro] = useState(null)
@@ -28,7 +41,7 @@ export function Entrar() {
     setErro(null)
     setEnviando(true)
     try {
-      if (modo === 'email') await entrarComEmail(identificacao, senha)
+      if (identificacao.includes('@')) await entrarComEmail(identificacao, senha)
       else await entrarComCpf(identificacao, senha)
       navegar(voltarPara, { replace: true })
     } catch (falha) {
@@ -38,69 +51,133 @@ export function Entrar() {
     }
   }
 
-  function trocarModo(novo) {
-    setModo(novo)
-    setIdentificacao('')
-    setErro(null)
-  }
-
   return (
-    <main className="flex min-h-svh items-center justify-center bg-muted/30 p-4">
-      <form onSubmit={enviar} className="w-full max-w-sm space-y-5 rounded-xl border bg-background p-6 shadow-sm">
-        <div className="space-y-1">
-          <h1 className="font-heading text-xl font-semibold">Casa Lorenzi</h1>
-          <p className="text-sm text-muted-foreground">Entre na sua conta</p>
-        </div>
-
-        <div role="tablist" aria-label="Entrar com" className="grid grid-cols-2 gap-1 rounded-lg bg-muted p-1">
-          {[['email', 'E-mail'], ['cpf', 'CPF']].map(([valor, rotulo]) => (
-            <button
-              key={valor}
-              type="button"
-              role="tab"
-              aria-selected={modo === valor}
-              onClick={() => trocarModo(valor)}
-              className={cn(
-                'rounded-md py-1.5 text-sm transition-colors',
-                modo === valor ? 'bg-background font-medium shadow-sm' : 'text-muted-foreground',
-              )}
-            >
-              {rotulo}
-            </button>
-          ))}
-        </div>
-
+    <MolduraConta>
+      <form onSubmit={enviar} className="space-y-6">
+        <h1 className="font-heading text-xl uppercase tracking-[0.1em]">Entrar</h1>
         <div className="space-y-2">
-          <Label htmlFor="identificacao">{modo === 'email' ? 'E-mail' : 'CPF'}</Label>
+          <Label htmlFor="identificacao" className={ROTULO}>E-mail ou CPF</Label>
           <Input
             id="identificacao"
-            type={modo === 'email' ? 'email' : 'text'}
-            inputMode={modo === 'cpf' ? 'numeric' : undefined}
-            autoComplete={modo === 'email' ? 'email' : 'username'}
-            placeholder={modo === 'email' ? 'voce@exemplo.com' : '000.000.000-00'}
+            autoComplete="username"
             value={identificacao}
             onChange={(e) => setIdentificacao(e.target.value)}
+            className="h-11"
             required
           />
         </div>
         <div className="space-y-2">
-          <Label htmlFor="senha">Senha</Label>
+          <Label htmlFor="senha" className={ROTULO}>Senha</Label>
           <Input
             id="senha"
             type="password"
             autoComplete="current-password"
             value={senha}
             onChange={(e) => setSenha(e.target.value)}
+            className="h-11"
             required
           />
         </div>
 
         {erro && <Aviso mensagem={erro} />}
 
-        <Button type="submit" size="lg" className="w-full" disabled={enviando}>
+        <Button type="submit" size="lg" className={BOTAO} disabled={enviando}>
           {enviando ? 'Entrando...' : 'Entrar'}
         </Button>
+
+        <div className="space-y-3 border-t pt-6">
+          <p className="text-sm">Ainda não tem conta?</p>
+          <Link to="/cadastro" state={local.state} className={cn(buttonVariants({ variant: 'outline', size: 'lg' }), BOTAO)}>
+            Criar conta
+          </Link>
+        </div>
       </form>
-    </main>
+    </MolduraConta>
+  )
+}
+
+// cadastro de cliente: o backend cria o login e a conta (POST /clientes); depois entra direto
+export function Cadastro() {
+  const { sessao, entrarComEmail } = useAuth()
+  const navegar = useNavigate()
+  const local = useLocation()
+  const [form, setForm] = useState({ nome: '', email: '', cpf: '', senha: '' })
+  const [erro, setErro] = useState(null)
+  const [enviando, setEnviando] = useState(false)
+  const voltarPara = local.state?.voltarPara ?? '/loja'
+
+  if (sessao) return <Navigate to={voltarPara} replace />
+
+  async function enviar(evento) {
+    evento.preventDefault()
+    setErro(null)
+    setEnviando(true)
+    try {
+      await api('/clientes', { metodo: 'POST', corpo: form, autenticado: false })
+      await entrarComEmail(form.email, form.senha)
+      navegar(voltarPara, { replace: true })
+    } catch (falha) {
+      setErro(falha.message)
+    } finally {
+      setEnviando(false)
+    }
+  }
+
+  const mudar = (campo) => (e) => setForm({ ...form, [campo]: e.target.value })
+
+  return (
+    <MolduraConta>
+      <form onSubmit={enviar} className="space-y-5">
+        <div className="space-y-1">
+          <h1 className="font-heading text-xl uppercase tracking-[0.1em]">Criar conta</h1>
+          <p className="text-sm text-muted-foreground">Com a conta, você acompanha seus chamados e compras.</p>
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="nome" className={ROTULO}>Nome completo</Label>
+          <Input id="nome" autoComplete="name" value={form.nome} onChange={mudar('nome')} minLength={2} maxLength={150} className="h-11" required />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="email" className={ROTULO}>E-mail</Label>
+          <Input id="email" type="email" autoComplete="email" value={form.email} onChange={mudar('email')} className="h-11" required />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="cpf" className={ROTULO}>CPF</Label>
+          <Input
+            id="cpf"
+            inputMode="numeric"
+            placeholder="000.000.000-00"
+            value={form.cpf}
+            onChange={mudar('cpf')}
+            className="h-11"
+            required
+          />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="nova-senha" className={ROTULO}>Senha</Label>
+          <Input
+            id="nova-senha"
+            type="password"
+            autoComplete="new-password"
+            value={form.senha}
+            onChange={mudar('senha')}
+            minLength={6}
+            maxLength={72}
+            className="h-11"
+            aria-describedby="dica-senha"
+            required
+          />
+          <p id="dica-senha" className="text-xs text-muted-foreground">Pelo menos 6 caracteres.</p>
+        </div>
+
+        {erro && <Aviso mensagem={erro} />}
+
+        <Button type="submit" size="lg" className={BOTAO} disabled={enviando}>
+          {enviando ? 'Criando...' : 'Criar conta'}
+        </Button>
+        <p className="text-center text-sm">
+          Já tem conta? <Link to="/entrar" state={local.state} className="underline underline-offset-2">Entrar</Link>
+        </p>
+      </form>
+    </MolduraConta>
   )
 }
