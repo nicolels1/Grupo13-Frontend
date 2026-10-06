@@ -1,4 +1,4 @@
-import { LoaderCircle, TriangleAlert } from 'lucide-react'
+import { CircleCheck, LoaderCircle, TriangleAlert } from 'lucide-react'
 
 export function Carregando({ texto = 'Carregando...' }) {
   return (
@@ -20,5 +20,20 @@ export function Aviso({ titulo, mensagem, children }) {
         {children}
       </div>
     </div>
+  )
+}
+
+// lista sem itens
+export function Vazio({ children }) {
+  return <p className="border-y py-10 text-center text-sm text-muted-foreground">{children}</p>
+}
+
+// confirmação curta depois de salvar
+export function Sucesso({ children }) {
+  return (
+    <p role="status" className="flex items-center gap-2 bg-aco/10 px-3 py-2 text-sm text-marinho">
+      <CircleCheck className="size-4 shrink-0 text-aco" aria-hidden="true" />
+      {children}
+    </p>
   )
 }
