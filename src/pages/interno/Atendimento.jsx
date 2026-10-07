@@ -183,6 +183,7 @@ function PainelDoChamado({ chamado: c, historico, aoMudar }) {
   const { perfil } = useAuth()
   const { unidades } = useUnidadeEscolhida()
   const [motivo, setMotivo] = useState('resolvido')
+  const [repassando, setRepassando] = useState(false)
   const { enviar, enviando, erro } = useEnviar()
   const souResponsavel = c.id_responsavel === perfil.id_usuario
   const concluido = c.status === 'concluido'
@@ -238,9 +239,16 @@ function PainelDoChamado({ chamado: c, historico, aoMudar }) {
         </div>
         <div className="flex items-center justify-between gap-3">
           <dt className="text-muted-foreground">Responsável</dt>
-          <dd>{souResponsavel ? 'Você' : c.responsavel ?? <span className="text-muted-foreground">ninguém ainda</span>}</dd>
+          <dd className="flex items-center gap-2">
+            {souResponsavel ? 'Você' : c.responsavel ?? <span className="text-muted-foreground">ninguém ainda</span>}
+            {souResponsavel && !concluido && !repassando && (
+              <button type="button" onClick={() => setRepassando(true)} className="text-aco underline underline-offset-2">Repassar</button>
+            )}
+          </dd>
         </div>
       </dl>
+
+      {repassando && <Repassar chamado={c} aoFechar={() => setRepassando(false)} aoRepassar={() => { setRepassando(false); aoMudar() }} />}
 
       {!c.id_responsavel && !concluido && (
         <Button variant="outline" size="lg" className="h-11 w-full" disabled={enviando} onClick={() => acao('/assumir')}>
@@ -281,6 +289,46 @@ function PainelDoChamado({ chamado: c, historico, aoMudar }) {
         </ul>
       </section>
     </aside>
+  )
+}
+
+// repassar o chamado para outra pessoa que atende chamados (GET /atendimento/equipe lista quem pode;
+// o PATCH confere a mesma regra). Depois do repasse, quem repassou deixa de ser o responsável.
+function Repassar({ chamado: c, aoFechar, aoRepassar }) {
+  const { perfil } = useAuth()
+  const { unidades } = useUnidadeEscolhida()
+  const [destino, setDestino] = useState('')
+  const { enviar, enviando, erro } = useEnviar()
+  const equipe = useCarregar(() => api('/atendimento/equipe'), [])
+  const colegas = (equipe.dados?.items ?? []).filter((p) => p.id_usuario !== perfil.id_usuario)
+
+  async function repassar(evento) {
+    evento.preventDefault()
+    const ok = await enviar(() => api(`/atendimento/chamados/${c.id_chamado}`, { metodo: 'PATCH', corpo: { id_responsavel: destino } }))
+    if (ok) aoRepassar()
+  }
+
+  return (
+    <form onSubmit={repassar} className="space-y-3 border p-3">
+      <Campo id="repassar-para" rotulo="Repassar para">
+        <Select id="repassar-para" value={destino} onChange={(e) => setDestino(e.target.value)} disabled={!equipe.dados} required>
+          <option value="" disabled>{equipe.carregando ? 'Carregando a equipe...' : 'Escolha a pessoa'}</option>
+          {colegas.map((p) => (
+            <option key={p.id_usuario} value={p.id_usuario}>
+              {p.nome}{p.id_unidade ? `, ${nomeUnidade(unidades, p.id_unidade)}` : ''}
+            </option>
+          ))}
+        </Select>
+      </Campo>
+      {equipe.dados && colegas.length === 0 && (
+        <p className="text-xs text-muted-foreground">Ninguém mais da equipe atende chamados agora. Peça ao Admin para dar a permissão a alguém.</p>
+      )}
+      {(equipe.erro || erro) && <Aviso mensagem={equipe.erro || erro} />}
+      <div className="flex justify-end gap-2">
+        <Button type="button" variant="ghost" onClick={aoFechar}>Cancelar</Button>
+        <Button type="submit" variant="outline" disabled={!destino || enviando}>{enviando ? 'Repassando...' : 'Repassar'}</Button>
+      </div>
+    </form>
   )
 }
 
