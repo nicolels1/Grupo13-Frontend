@@ -24,6 +24,13 @@ export const AREAS: Area[] = [
     rotulo: 'Transferências',
     permissoes: ['solicitar_transferencia', 'enviar_transferencia', 'receber_transferencia'],
   },
+  // Caixa é área da barra, não tipo de conta: venda física, troca e devolução no balcão e entrega
+  // de retirada (design, seção Caixa)
+  {
+    caminho: 'caixa',
+    rotulo: 'Caixa',
+    permissoes: ['registrar_venda_fisica', 'registrar_troca_devolucao', 'preparar_entregar_pedido'],
+  },
   {
     caminho: 'pedidos',
     rotulo: 'Pedidos',
