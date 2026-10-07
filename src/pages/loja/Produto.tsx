@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { RefreshCcw, Store, Truck } from 'lucide-react'
-import { Link, useNavigate, useParams } from 'react-router'
+import { Link, useParams } from 'react-router'
 import { cn } from 'cn'
 
 import { Aviso, Carregando } from '@/components/Estados'
@@ -12,6 +12,7 @@ import { coresDoProduto, corDaPeca, ordenarTamanhos } from '@/lib/cores'
 import { moeda } from '@/lib/formato'
 import { useCategorias } from '@/lib/listas'
 import { useCarregar } from '@/lib/useCarregar'
+import { useCarrinho } from './carrinho/contexto'
 import { AvaliacoesDoProduto } from './componentes/Avaliacoes'
 import { fotosDaCor } from './componentes/fotos'
 import { rotuloTamanho } from './componentes/tamanhos'
@@ -40,7 +41,7 @@ export function ProdutoLoja() {
 }
 
 function DetalheProduto({ produto }: { produto: Produto }) {
-  const navegar = useNavigate()
+  const carrinho = useCarrinho()
   const { dados: categorias } = useCategorias()
   const categoria = categorias?.find((c) => c.id_categoria === produto.id_categoria)
   const cores = coresDoProduto(produto)
@@ -60,13 +61,13 @@ function DetalheProduto({ produto }: { produto: Produto }) {
     if (!produto.variantes.some((v) => v.cor === novaCor && v.tamanho === tamanho)) setTamanho(null)
   }
 
-  // o carrinho chega na próxima etapa: por enquanto o botão leva à página dele
+  // adicionar abre a gaveta do carrinho, que é a confirmação (design: sem toast)
   function adicionar() {
     if (!variante) {
       setFaltaTamanho(true)
       return
     }
-    navegar('/loja/carrinho')
+    carrinho.adicionar({ id_variante: variante.id_variante, id_produto: produto.id_produto })
   }
 
   return (
