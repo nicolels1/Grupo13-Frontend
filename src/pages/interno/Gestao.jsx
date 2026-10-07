@@ -236,7 +236,10 @@ function DetalhePessoa({ idUsuario, modelos, unidades, aoFechar, aoMudar }) {
 
   return (
     <Painel titulo={p.nome} aoFechar={aoFechar}>
-      <p className="-mt-3 text-sm text-muted-foreground">{p.email} · {STATUS_CONTA[p.status_conta]}</p>
+      <p className="-mt-3 flex flex-wrap gap-x-4 text-sm text-muted-foreground">
+        <span>{p.email}</span>
+        <span>{STATUS_CONTA[p.status_conta]}</span>
+      </p>
       {p.convite_pendente && (
         <div className="flex flex-wrap items-center justify-between gap-2 border border-input bg-background p-3 text-sm">
           A pessoa ainda não aceitou o convite.
@@ -283,7 +286,7 @@ function DetalhePessoa({ idUsuario, modelos, unidades, aoFechar, aoMudar }) {
                 <li key={perm.codigo} className="flex items-center justify-between gap-2 border-b py-1.5">
                   <span className={cn(efeito && 'font-medium')}>
                     {perm.descricao}
-                    {!efeito && <span className="ml-1 text-xs text-muted-foreground">{temNoModelo ? '· pelo modelo' : ''}</span>}
+                    {!efeito && <span className="ml-1 text-xs text-muted-foreground">{temNoModelo ? '(pelo modelo)' : ''}</span>}
                   </span>
                   <Select
                     aria-label={`Exceção: ${perm.descricao}`}
@@ -357,7 +360,7 @@ function Modelos() {
               >
                 <span className={cn('font-medium', !m.ativo && 'text-muted-foreground line-through')}>{m.nome}</span>
                 <span className="shrink-0 text-xs text-muted-foreground">
-                  {m.eh_admin ? 'todas' : plural(m.permissoes.length, 'permissão', 'permissões')} · {plural(m.pessoas, 'pessoa')}
+                  {m.eh_admin ? 'todas' : plural(m.permissoes.length, 'permissão', 'permissões')}, {plural(m.pessoas, 'pessoa')}
                 </span>
               </button>
             )
@@ -467,7 +470,7 @@ function EditorModelo({ modelo, modelos, permissoes, aoSalvar }) {
         <h2 className="text-2xl font-medium">{novo ? 'Novo modelo' : modelo.nome}</h2>
         {!novo && (
           <p className="text-sm text-muted-foreground">
-            {plural(modelo.pessoas, 'pessoa')} com este modelo{!modelo.ativo && ' · desativado'}. Mudanças valem na hora para todas elas;
+            {plural(modelo.pessoas, 'pessoa')} com este modelo{!modelo.ativo && ' (desativado)'}. Mudanças valem na hora para todas elas;
             as exceções de cada pessoa ficam na conta dela.
           </p>
         )}

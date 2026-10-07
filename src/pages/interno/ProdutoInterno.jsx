@@ -416,7 +416,7 @@ function HistoricoPreco({ idVariante }) {
       {dados.items.map((h) => (
         <li key={h.id_historico_preco} className="flex gap-6">
           <span className="w-36 text-muted-foreground">{dataLonga(h.alterado_em)}</span>
-          <span>{h.preco_anterior === null ? `criada com ${moeda(h.preco_novo)}` : `${moeda(h.preco_anterior)} → ${moeda(h.preco_novo)}`}</span>
+          <span>{h.preco_anterior === null ? `criada com ${moeda(h.preco_novo)}` : `de ${moeda(h.preco_anterior)} para ${moeda(h.preco_novo)}`}</span>
         </li>
       ))}
     </ul>
