@@ -12,7 +12,7 @@ import { Campo, Input, Label, Select } from '@/components/ui/input'
 import { useUnidadeEscolhida } from '@/layouts/unidadeEscolhida'
 import { EmConstrucao } from '@/pages/Basicas'
 import { api, ErroApi } from '@/lib/api'
-import { dataHora, haQuanto, mascaraCpf, METODOS_PAGAMENTO, moeda, plural } from '@/lib/formato'
+import { CANAIS, dataHora, haQuanto, hojeIso, hora, mascaraCpf, METODOS_PAGAMENTO, moeda, plural } from '@/lib/formato'
 import { useCarregar, useEnviar } from '@/lib/useCarregar'
 
 // abas do Caixa e a permissão que cada uma pede (as mesmas das rotas do backend)
@@ -66,8 +66,8 @@ export function Caixa() {
           <Abas rotulo="Caixa" valor={aba} aoMudar={setAba} abas={abas} className="mb-8" />
           {aba === 'nova' && <NovaVenda key={idLoja} loja={loja} />}
           {aba === 'retiradas' && <Retiradas key={idLoja} loja={loja} />}
-          {aba === 'hoje' && <EmConstrucao titulo="Vendas de hoje" />}
-          {aba === 'consultar' && <EmConstrucao titulo="Consultar peça" />}
+          {aba === 'hoje' && <VendasDeHoje key={idLoja} loja={loja} />}
+          {aba === 'consultar' && <ConsultarPeca key={idLoja} loja={loja} />}
           {aba === 'troca' && <EmConstrucao titulo="Troca ou devolução" />}
         </>
       )}
@@ -543,5 +543,264 @@ function EntregarRetirada({ pedido, codigo, aoEntregar }) {
         </Button>
       </div>
     </form>
+  )
+}
+
+// ---------- Vendas de hoje ----------
+
+function VendasDeHoje({ loja }) {
+  const hoje = hojeIso()
+  const lista = useCarregar(
+    () => api('/vendas/pedidos', { params: { canal: 'loja_fisica', id_unidade: loja.id_unidade, de: hoje, ate: hoje, limit: 200 } }),
+    [loja.id_unidade, hoje],
+  )
+  const vendas = lista.dados?.items ?? []
+  const [reimprimindo, setReimprimindo] = useState(null)
+
+  // total recebido por forma de pagamento (só os pagamentos aprovados; estornos ficam de fora)
+  const porMetodo = {}
+  for (const venda of vendas) {
+    for (const p of venda.pagamentos) {
+      if (p.tipo === 'pagamento' && p.status === 'aprovado') porMetodo[p.metodo] = (porMetodo[p.metodo] ?? 0) + Number(p.valor)
+    }
+  }
+  const totalDia = Object.values(porMetodo).reduce((t, v) => t + v, 0)
+
+  // a notinha só existe no papel: monta, abre a impressão e desmonta
+  useEffect(() => {
+    if (!reimprimindo) return undefined
+    const espera = setTimeout(() => {
+      window.print()
+      setReimprimindo(null)
+    }, 0)
+    return () => clearTimeout(espera)
+  }, [reimprimindo])
+
+  return (
+    <div className="grid gap-10 lg:grid-cols-[1fr_18rem]">
+      <div className="min-w-0">
+        {lista.erro && <Aviso mensagem={lista.erro} />}
+        {lista.carregando && !lista.dados && <Carregando />}
+        {lista.dados && vendas.length === 0 && <Vazio>Nenhuma venda no caixa hoje.</Vazio>}
+        {lista.dados && lista.dados.total > vendas.length && (
+          <p className="pb-2 text-xs text-muted-foreground">Mostrando as {vendas.length} vendas mais recentes de {lista.dados.total}.</p>
+        )}
+        {vendas.length > 0 && (
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[36rem] text-sm">
+              <thead className="text-left text-xs text-muted-foreground">
+                <tr className="border-b">
+                  <th className="py-2 font-medium">Hora</th>
+                  <th className="font-medium">Venda</th>
+                  <th className="font-medium">Peças</th>
+                  <th className="font-medium">Pagamento</th>
+                  <th className="text-right font-medium">Total</th>
+                  <th />
+                </tr>
+              </thead>
+              <tbody>
+                {vendas.map((v) => (
+                  <tr key={v.id_pedido} className="border-b">
+                    <td className="py-3 tabular-nums">{hora(v.criado_em)}</td>
+                    <td>
+                      <Etiqueta>{v.codigo_venda}</Etiqueta>
+                      {v.cliente && <span className="block pt-1 text-xs text-muted-foreground">{v.cliente}</span>}
+                    </td>
+                    <td>{plural(v.itens.reduce((t, i) => t + i.quantidade, 0), 'peça')}</td>
+                    <td>{[...new Set(v.pagamentos.filter((p) => p.tipo === 'pagamento').map((p) => METODOS_PAGAMENTO[p.metodo] ?? p.metodo))].join(', ')}</td>
+                    <td className="text-right tabular-nums">{moeda(v.valor_total)}</td>
+                    <td className="pl-2 text-right">
+                      <Button type="button" variant="ghost" size="sm" onClick={() => setReimprimindo(v)}>
+                        <Printer aria-hidden="true" /> Reimprimir notinha
+                      </Button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
+      <div className="space-y-3 lg:border-l lg:pl-8">
+        <p className="text-sm text-muted-foreground">{lista.dados ? `${plural(vendas.length, 'venda')} hoje` : 'Vendas de hoje'}</p>
+        <dl className="space-y-2 text-sm">
+          {Object.entries(METODOS_PAGAMENTO).map(([metodo, rotulo]) => (
+            <div key={metodo} className="flex justify-between">
+              <dt>{rotulo}</dt>
+              <dd className="tabular-nums">{moeda(porMetodo[metodo] ?? 0)}</dd>
+            </div>
+          ))}
+          <div className="flex justify-between border-t pt-2 font-medium">
+            <dt>Total</dt>
+            <dd className="tabular-nums">{moeda(totalDia)}</dd>
+          </div>
+        </dl>
+      </div>
+
+      {reimprimindo && (
+        <div className="hidden print:block">
+          <Notinha venda={reimprimindo} troco={null} />
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ---------- Consultar peça ----------
+
+// ordem dos tamanhos nas colunas; os que não estão aqui vão para o fim, em ordem numérica ou alfabética
+const ORDEM_TAMANHOS = ['PP', 'P', 'M', 'G', 'GG', 'XG', 'XGG']
+
+function ordenarTamanhos(tamanhos) {
+  const posicao = (t) => {
+    const i = ORDEM_TAMANHOS.indexOf(t.toUpperCase())
+    return i === -1 ? ORDEM_TAMANHOS.length : i
+  }
+  return [...tamanhos].sort((a, b) => posicao(a) - posicao(b) || a.localeCompare(b, 'pt-BR', { numeric: true }))
+}
+
+// todas as linhas de estoque do produto em todas as unidades; a busca é por parte do nome, então
+// filtra o nome exato no fim
+async function estoqueDoProduto(produto) {
+  const linhas = []
+  for (let offset = 0; ; offset += 200) {
+    const pagina = await api('/balcao/estoque', { params: { busca: produto, limit: 200, offset } })
+    linhas.push(...pagina.items)
+    if (offset + pagina.limit >= pagina.total) break
+  }
+  return linhas.filter((l) => l.produto === produto)
+}
+
+const somaDisponivel = (linhas) => linhas.reduce((t, l) => t + l.disponivel, 0)
+
+function ConsultarPeca({ loja }) {
+  const [termo, setTermo] = useState('')
+  const [produto, setProduto] = useState(null)
+  const [celula, setCelula] = useState(null)
+
+  const achadas = useCarregar(
+    () => (termo.trim().length >= 2 && !produto ? api('/balcao/estoque', { params: { busca: termo.trim(), limit: 200 } }) : null),
+    [termo, produto],
+  )
+  const produtos = [...new Set((achadas.dados?.items ?? []).map((l) => l.produto))].sort((a, b) => a.localeCompare(b, 'pt-BR'))
+
+  const estoque = useCarregar(() => (produto ? estoqueDoProduto(produto) : null), [produto])
+  const linhas = estoque.dados ?? []
+  const cores = [...new Set(linhas.map((l) => l.cor))].sort((a, b) => a.localeCompare(b, 'pt-BR'))
+  const tamanhos = ordenarTamanhos(new Set(linhas.map((l) => l.tamanho)))
+  const doCruzamento = (cor, tamanho) => linhas.filter((l) => l.cor === cor && l.tamanho === tamanho)
+  const nestaLoja = (doCruz) => somaDisponivel(doCruz.filter((l) => l.id_unidade === loja.id_unidade && l.canal === 'loja_fisica'))
+
+  function escolher(nome) {
+    setProduto(nome)
+    setTermo(nome)
+    setCelula(null)
+  }
+
+  const ondeTem = celula ? doCruzamento(celula.cor, celula.tamanho).filter((l) => l.disponivel > 0) : []
+
+  return (
+    <div className="space-y-8">
+      <Campo id="consulta-busca" rotulo="Peça" dica="Mostra o disponível de cada cor e tamanho nesta loja e na rede toda.">
+        <Input
+          id="consulta-busca"
+          value={termo}
+          onChange={(e) => { setTermo(e.target.value); setProduto(null); setCelula(null) }}
+          placeholder="Etiqueta ou nome da peça"
+          autoComplete="off"
+          className="max-w-md"
+        />
+        {!produto && produtos.length > 0 && (
+          <ul className="max-h-72 max-w-md overflow-y-auto border">
+            {produtos.map((nome) => (
+              <li key={nome}>
+                <button type="button" onClick={() => escolher(nome)} className="w-full px-3 py-2 text-left text-sm hover:bg-superficie">
+                  {nome}
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+        {achadas.erro && <Aviso mensagem={achadas.erro} />}
+        {!produto && achadas.dados && produtos.length === 0 && <p className="text-xs text-muted-foreground">Nenhuma peça com esse nome.</p>}
+      </Campo>
+
+      {estoque.erro && <Aviso mensagem={estoque.erro} />}
+      {estoque.carregando && produto && <Carregando />}
+
+      {produto && estoque.dados && (
+        <div className="grid gap-10 lg:grid-cols-[1fr_20rem]">
+          <div className="min-w-0 space-y-3">
+            <h2 className="text-2xl font-medium">{produto}</h2>
+            <div className="overflow-x-auto">
+              <table className="text-sm">
+                <thead className="text-xs text-muted-foreground">
+                  <tr className="border-b">
+                    <th className="py-2 pr-6 text-left font-medium">Cor</th>
+                    {tamanhos.map((t) => <th key={t} className="w-20 px-2 text-center font-medium">{t}</th>)}
+                  </tr>
+                </thead>
+                <tbody>
+                  {cores.map((cor) => (
+                    <tr key={cor} className="border-b">
+                      <th scope="row" className="py-2 pr-6 text-left font-normal">
+                        <NomePeca produto={cor} />
+                      </th>
+                      {tamanhos.map((tamanho) => {
+                        const doCruz = doCruzamento(cor, tamanho)
+                        if (doCruz.length === 0) return <td key={tamanho} className="px-2 text-center text-muted-foreground">—</td>
+                        const ativa = celula?.cor === cor && celula?.tamanho === tamanho
+                        const aqui = nestaLoja(doCruz)
+                        const rede = somaDisponivel(doCruz)
+                        return (
+                          <td key={tamanho} className="p-1">
+                            <button
+                              type="button"
+                              onClick={() => setCelula({ cor, tamanho })}
+                              aria-pressed={ativa}
+                              aria-label={`${cor}, ${tamanho}: ${aqui} aqui, ${rede} na rede`}
+                              className={cn('w-full px-2 py-1.5 text-center hover:bg-superficie', ativa && 'bg-superficie ring-1 ring-foreground')}
+                            >
+                              <span className={cn('block text-base font-medium tabular-nums', aqui === 0 && 'text-muted-foreground')}>{aqui}</span>
+                              <span className="block text-xs text-muted-foreground tabular-nums">rede {rede}</span>
+                            </button>
+                          </td>
+                        )
+                      })}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Em cima, o disponível na loja física da {loja.nome}; embaixo, a soma de todas as unidades e canais.
+            </p>
+          </div>
+
+          <div className="lg:border-l lg:pl-8">
+            {celula ? (
+              <div className="space-y-3">
+                <p className="font-medium">{celula.cor}, {celula.tamanho}</p>
+                {ondeTem.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">Sem peça disponível em nenhuma unidade.</p>
+                ) : (
+                  <ul className="text-sm">
+                    {ondeTem.map((l) => (
+                      <li key={`${l.id_unidade}-${l.canal}`} className={cn('flex justify-between gap-3 border-b py-2', l.id_unidade === loja.id_unidade && 'font-medium')}>
+                        <span>{l.unidade}, {CANAIS[l.canal].toLowerCase()}</span>
+                        <span className="tabular-nums">{l.disponivel}</span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground">Escolha uma cor e tamanho para ver onde tem.</p>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
   )
 }
