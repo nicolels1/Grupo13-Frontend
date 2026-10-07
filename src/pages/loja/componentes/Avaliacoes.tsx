@@ -37,7 +37,8 @@ export function AvaliacoesDoProduto({ idProduto }: { idProduto: number }) {
   const fotosDeClientes = (dados?.items ?? []).flatMap((a) => a.fotos.filter((f) => f.url))
 
   return (
-    <section aria-labelledby="titulo-avaliacoes" className="mt-20 border-t pt-12">
+    // fundo superfície separa as avaliações da peça; a nota média vai num bloco marinho
+    <section aria-labelledby="titulo-avaliacoes" className="mt-20 bg-superficie px-5 py-10 sm:px-10">
       <h2 id="titulo-avaliacoes" className="mb-8 font-titulo text-3xl">Avaliações</h2>
 
       {erro && <Aviso mensagem={erro} />}
@@ -52,13 +53,13 @@ export function AvaliacoesDoProduto({ idProduto }: { idProduto: number }) {
       {dados && totalGeral > 0 && (
         <div className="grid gap-12 lg:grid-cols-[18rem_minmax(0,1fr)]">
           <div className="space-y-6">
-            <div className="flex items-end gap-3">
+            <div className="flex items-end gap-3 bg-marinho p-5 text-white">
               <span className="text-5xl font-medium tabular-nums">
                 {Number(dados.media ?? 0).toLocaleString('pt-BR', { minimumFractionDigits: 1 })}
               </span>
               <div className="space-y-1 pb-1">
-                <Estrelas nota={Number(dados.media ?? 0)} />
-                <p className="text-sm text-muted-foreground">{plural(totalGeral, 'avaliação', 'avaliações')}</p>
+                <Estrelas nota={Number(dados.media ?? 0)} clara />
+                <p className="text-sm text-white/85">{plural(totalGeral, 'avaliação', 'avaliações')}</p>
               </div>
             </div>
 
@@ -66,7 +67,7 @@ export function AvaliacoesDoProduto({ idProduto }: { idProduto: number }) {
               {contagem.map(({ nota, quantidade }) => (
                 <li key={nota} className="flex items-center gap-3 text-sm">
                   <span className="w-16 shrink-0">{plural(nota, 'estrela', 'estrelas')}</span>
-                  <span className="h-2 flex-1 bg-superficie" aria-hidden="true">
+                  <span className="h-2 flex-1 bg-white" aria-hidden="true">
                     <span className="block h-full bg-marinho" style={{ width: `${(quantidade / totalGeral) * 100}%` }} />
                   </span>
                   <span className="w-6 text-right tabular-nums text-muted-foreground">{quantidade}</span>
@@ -84,7 +85,7 @@ export function AvaliacoesDoProduto({ idProduto }: { idProduto: number }) {
                       type="button"
                       onClick={() => setFotoAberta(foto)}
                       aria-label="Ampliar foto de cliente"
-                      className="aspect-square bg-superficie"
+                      className="aspect-square bg-white"
                     >
                       <img src={foto.url ?? ''} alt="" loading="lazy" className="size-full object-cover" />
                     </button>
@@ -196,7 +197,7 @@ function ItemAvaliacao({
               type="button"
               onClick={() => aoAbrirFoto(foto)}
               aria-label="Ampliar foto"
-              className="size-20 bg-superficie"
+              className="size-20 bg-white"
             >
               <img src={foto.url ?? ''} alt="" loading="lazy" className="size-full object-cover" />
             </button>
