@@ -1,14 +1,18 @@
-import { useState } from 'react'
+import { useState, type ReactNode } from 'react'
 import { Check, EyeOff, ThumbsUp } from 'lucide-react'
 
 import { Aviso, Carregando, Sucesso, Vazio } from '@/components/Estados'
 import { Abas, Cabecalho, Paginacao } from '@/components/Navegacao'
 import { Button } from '@/components/ui/button'
 import { Campo, Textarea } from '@/components/ui/input'
-import { api, todasAsPaginas } from '@/lib/api'
+import { api, todasAsPaginas, type Esquema } from '@/lib/api'
 import { dataCurta, dataHora, haQuanto, plural } from '@/lib/formato'
 import { useCarregar, useEnviar } from '@/lib/useCarregar'
 import { Estrelas } from '@/pages/loja/componentes/Estrelas'
+
+type Avaliacao = Esquema<'AvaliacaoSaida'>
+type PaginaAvaliacoes = Esquema<'Pagina_AvaliacaoSaida_'>
+type Denuncia = Esquema<'DenunciaSaida'>
 
 const POR_PAGINA = 20
 
@@ -18,11 +22,11 @@ const POR_PAGINA = 20
 export function Moderacao() {
   const [aba, setAba] = useState('denunciadas')
   const [offset, setOffset] = useState(0)
-  const [feito, setFeito] = useState(null)
+  const [feito, setFeito] = useState<string | null>(null)
   const denunciadas = aba === 'denunciadas'
 
   const avaliacoes = useCarregar(
-    () => api('/moderacao/avaliacoes', {
+    () => api<PaginaAvaliacoes>('/moderacao/avaliacoes', {
       params: denunciadas
         ? { status: 'publicada', com_denuncia_pendente: true, limit: POR_PAGINA, offset }
         : { status: 'oculta', limit: POR_PAGINA, offset },
@@ -30,16 +34,16 @@ export function Moderacao() {
     [aba, offset],
   )
   // os motivos vêm das denúncias pendentes (mais antigas primeiro), agrupadas pela avaliação
-  const denuncias = useCarregar(() => (denunciadas ? todasAsPaginas('/moderacao/denuncias', { status: 'pendente' }) : null), [aba])
+  const denuncias = useCarregar(() => (denunciadas ? todasAsPaginas<Denuncia>('/moderacao/denuncias', { status: 'pendente' }) : null), [aba])
   const contagem = useCarregar(
-    () => api('/moderacao/avaliacoes', { params: { status: 'publicada', com_denuncia_pendente: true, limit: 1 } }).then((r) => r.total),
+    () => api<PaginaAvaliacoes>('/moderacao/avaliacoes', { params: { status: 'publicada', com_denuncia_pendente: true, limit: 1 } }).then((r) => r.total),
     [],
   )
-  const porAvaliacao = {}
+  const porAvaliacao: Record<number, Denuncia[]> = {}
   for (const d of denuncias.dados ?? []) (porAvaliacao[d.id_avaliacao] ??= []).push(d)
   const itens = avaliacoes.dados?.items ?? []
 
-  function aposDecidir(mensagem) {
+  function aposDecidir(mensagem: string) {
     setFeito(mensagem)
     avaliacoes.recarregar()
     denuncias.recarregar()
@@ -88,7 +92,7 @@ export function Moderacao() {
 }
 
 // a avaliação inteira, como o cliente vê na página do produto (fotos só enquanto publicada)
-function CartaoAvaliacao({ avaliacao: a, children }) {
+function CartaoAvaliacao({ avaliacao: a, children }: { avaliacao: Avaliacao; children: ReactNode }) {
   return (
     <article className="space-y-4 border p-5">
       <header className="space-y-1">
@@ -127,12 +131,17 @@ function CartaoAvaliacao({ avaliacao: a, children }) {
 
 // decisão sobre as denúncias pendentes da avaliação (POST /moderacao/denuncias/{id}/analisar):
 // manter = todas improcedentes; ocultar = todas procedentes, a primeira levando o motivo
-function Decisao({ avaliacao: a, denuncias, carregandoDenuncias, aoDecidir }) {
+function Decisao({ avaliacao: a, denuncias, carregandoDenuncias, aoDecidir }: {
+  avaliacao: Avaliacao
+  denuncias: Denuncia[]
+  carregandoDenuncias: boolean
+  aoDecidir: (mensagem: string) => void
+}) {
   const [ocultando, setOcultando] = useState(false)
   const [motivo, setMotivo] = useState('')
   const { enviar, enviando, erro } = useEnviar()
 
-  async function analisarTodas(procedente) {
+  async function analisarTodas(procedente: boolean) {
     const ok = await enviar(async () => {
       for (const [i, d] of denuncias.entries()) {
         await api(`/moderacao/denuncias/${d.id_denuncia}/analisar`, {
