@@ -8,7 +8,7 @@ import { Aviso, Carregando, Vazio } from '@/components/Estados'
 import { Abas, Cabecalho } from '@/components/Navegacao'
 import { Etiqueta, NomePeca } from '@/components/Peca'
 import { Button } from '@/components/ui/button'
-import { Campo, Input, Label, Select } from '@/components/ui/input'
+import { Campo, Input, Select } from '@/components/ui/input'
 import { useUnidadeEscolhida } from '@/layouts/unidadeEscolhida'
 import { api, ErroApi } from '@/lib/api'
 import { CANAIS, dataCurta, dataHora, haQuanto, hojeIso, hora, mascaraCpf, METODOS_PAGAMENTO, moeda, plural } from '@/lib/formato'
@@ -29,37 +29,43 @@ const AVISO_RETIRADA_DIAS = 5
 
 export function Caixa() {
   const { perfil } = useAuth()
-  const { unidade, unidades } = useUnidadeEscolhida()
+  const { unidade, setUnidade, unidades } = useUnidadeEscolhida()
   const lojas = unidades.filter((u) => u.ativo && u.tipo === 'loja')
-  // quem tem unidade vende travado nela; quem não tem (Admin) escolhe a loja, começando pela do topo
+  // a loja do caixa é a unidade do seletor do topo (design: "visível no topo"). Quem tem unidade
+  // abre travado nela; quem não tem (Admin) escolhe a loja antes da primeira venda
   const travada = perfil?.id_unidade ? String(perfil.id_unidade) : null
-  const [escolhida, setEscolhida] = useState(() => (lojas.some((u) => String(u.id_unidade) === unidade) ? unidade : ''))
-  const idLoja = travada ?? escolhida
+  const idLoja = travada ?? unidade
   const loja = unidades.find((u) => String(u.id_unidade) === idLoja)
+
+  // o topo mostra a loja travada mesmo que a pessoa tenha olhado outra unidade em outra área
+  useEffect(() => {
+    if (travada && unidade !== travada) setUnidade(travada)
+  }, [travada, unidade, setUnidade])
 
   const abas = ABAS.filter((a) => a.permissoes.some((codigo) => temPermissao(perfil, codigo)))
   const [aba, setAba] = useState(abas[0]?.valor)
-
-  const subtitulo = loja ? `Vendendo na ${loja.nome}` : 'Escolha a loja para começar'
+  const vendendo = loja?.tipo === 'loja' && loja.ativo
 
   return (
     <>
-      <Cabecalho titulo="Caixa" subtitulo={subtitulo}>
-        {!travada && (
-          <div className="w-56">
-            <Label htmlFor="caixa-loja" className="sr-only">Loja</Label>
-            <Select id="caixa-loja" value={escolhida} onChange={(e) => setEscolhida(e.target.value)}>
-              <option value="" disabled>Escolha a loja</option>
-              {lojas.map((u) => <option key={u.id_unidade} value={u.id_unidade}>{u.nome}</option>)}
-            </Select>
-          </div>
-        )}
-      </Cabecalho>
+      <Cabecalho titulo="Caixa" subtitulo={vendendo ? `Vendendo na ${loja.nome}` : undefined} />
 
-      {loja && loja.tipo !== 'loja' ? (
-        <Aviso titulo="O CD não tem caixa" mensagem="Venda, retirada e troca no balcão acontecem nas lojas." />
-      ) : !loja ? (
-        unidades.length > 0 && <Vazio>Escolha a loja no alto da página para abrir o caixa.</Vazio>
+      {travada && loja && !vendendo ? (
+        <Aviso titulo="Sua unidade não tem caixa" mensagem="Venda, retirada e troca no balcão acontecem nas lojas ativas. Peça ao Admin para revisar a unidade da sua conta." />
+      ) : !vendendo ? (
+        unidades.length > 0 && (
+          <div className="max-w-sm space-y-4">
+            <p className="text-sm text-muted-foreground">
+              {loja ? 'O CD não tem caixa.' : 'O caixa abre numa loja.'} Escolha a loja onde você vai vender; ela fica no seletor do topo.
+            </p>
+            <Campo id="caixa-loja" rotulo="Loja">
+              <Select id="caixa-loja" value="" onChange={(e) => setUnidade(e.target.value)}>
+                <option value="" disabled>Escolha a loja</option>
+                {lojas.map((u) => <option key={u.id_unidade} value={u.id_unidade}>{u.nome}</option>)}
+              </Select>
+            </Campo>
+          </div>
+        )
       ) : (
         <>
           <Abas rotulo="Caixa" valor={aba} aoMudar={setAba} abas={abas} className="mb-8" />
@@ -212,7 +218,7 @@ function FormularioVenda({ loja, aoFinalizar }) {
             </ul>
           )}
           {achadas.erro && <Aviso mensagem={achadas.erro} />}
-          {achadas.dados && linhasAchadas.length === 0 && <p className="text-xs text-muted-foreground">Nenhuma peça com saldo com esse nome.</p>}
+          {achadas.dados && linhasAchadas.length === 0 && <p className="text-xs text-muted-foreground">Nenhuma peça com saldo nesta loja com esse nome. Confira a etiqueta ou veja em Consultar peça.</p>}
         </Campo>
 
         {itens.length === 0 ? (
@@ -378,7 +384,7 @@ function VendaFinalizada({ venda, troco, aoNovaVenda }) {
 
 function Notinha({ venda, troco }) {
   return (
-    <section aria-label="Notinha" className="notinha space-y-4 border bg-white p-5 text-sm text-black">
+    <section aria-label="Notinha" className="notinha space-y-4 border bg-white p-5 text-sm text-foreground">
       <div className="space-y-0.5 text-center">
         <p className="font-logo uppercase tracking-[0.3em]">Casa Lorenzi</p>
         <p>{venda.unidade}</p>
@@ -400,7 +406,7 @@ function Notinha({ venda, troco }) {
           ))}
         </tbody>
       </table>
-      <div className="space-y-1 border-t border-dashed border-black pt-3">
+      <div className="space-y-1 border-t border-dashed border-foreground pt-3">
         <p className="flex justify-between font-medium"><span>Total</span><span className="tabular-nums">{moeda(venda.valor_total)}</span></p>
         {venda.pagamentos.map((p) => (
           <p key={p.id_pagamento} className="flex justify-between">
@@ -492,7 +498,7 @@ function Retiradas({ loja }) {
             onChange={(e) => { setCodigo(e.target.value); setEntregue(null) }}
             placeholder="CL..."
             autoComplete="off"
-            className="max-w-xs uppercase"
+            className="max-w-xs"
           />
         </Campo>
         {escolhido ? (
@@ -500,7 +506,7 @@ function Retiradas({ loja }) {
         ) : (
           lista.dados && prontas.length > 0 && (
             <p className="text-sm text-muted-foreground">
-              {codigoLimpo ? 'Nenhuma retirada pronta nesta loja com esse código.' : 'Digite o código ou escolha o pedido na lista.'}
+              {codigoLimpo ? 'Nenhuma retirada pronta nesta loja com esse código. Confira o código com o cliente ou procure o pedido na lista.' : 'Digite o código ou escolha o pedido na lista.'}
             </p>
           )
         )}
@@ -905,15 +911,14 @@ function TrocaOuDevolucao({ loja }) {
             inputMode={tipoBusca === 'codigo_venda' ? 'text' : 'numeric'}
             placeholder={tipoBusca === 'cpf' ? '000.000.000-00' : undefined}
             autoComplete="off"
-            className={tipoBusca === 'codigo_venda' ? 'uppercase' : undefined}
           />
         </Campo>
-        <Button type="submit" size="lg" className="mb-5 h-9 px-4" disabled={!termoOk || busca.carregando}>Buscar</Button>
+        <Button type="submit" variant="outline" size="lg" className="mb-5 h-9 px-4" disabled={!termoOk || busca.carregando}>Buscar</Button>
       </form>
 
       {busca.erro && <Aviso mensagem={busca.erro} />}
       {busca.carregando && filtro && <Carregando />}
-      {busca.dados && achados.length === 0 && <Vazio>Nenhum pedido entregue nos últimos 30 dias com esse CPF.</Vazio>}
+      {busca.dados && achados.length === 0 && <Vazio>Nenhum pedido entregue nos últimos 30 dias com esse CPF. Tente pelo código da notinha.</Vazio>}
 
       {achados.length > 1 && (
         <ul className="max-w-2xl border-t">
@@ -1005,7 +1010,7 @@ function AtenderPedido({ pedido, loja, aoConcluir }) {
       <div className="space-y-1">
         <div className="flex flex-wrap items-center gap-2">
           <Etiqueta>{pedido.codigo_venda}</Etiqueta>
-          {pedido.devolucao === 'parcial' && <Etiqueta alerta>Já teve devolução</Etiqueta>}
+          {pedido.devolucao === 'parcial' && <Etiqueta>Já teve devolução</Etiqueta>}
         </div>
         <h2 className="text-2xl font-medium">{pedido.cliente ?? (pedido.cpf_nota ? `CPF ${mascaraCpf(pedido.cpf_nota)}` : 'Cliente sem CPF')}</h2>
         <p className="text-sm text-muted-foreground">
@@ -1059,7 +1064,7 @@ function AtenderPedido({ pedido, loja, aoConcluir }) {
                         opcoes.carregando ? (
                           <span className="text-xs text-muted-foreground">Procurando no estoque...</span>
                         ) : disponiveis.length === 0 ? (
-                          <span className="text-xs text-muted-foreground">Nenhuma outra cor ou tamanho com saldo nesta loja</span>
+                          <span className="text-xs text-muted-foreground">Nenhuma outra cor ou tamanho com saldo nesta loja. Ofereça a devolução.</span>
                         ) : (
                           <Select
                             aria-label={`Peça nova no lugar de ${item.produto}`}
@@ -1100,7 +1105,7 @@ function AtenderPedido({ pedido, loja, aoConcluir }) {
           {estornos.map((e) => (
             <p key={e.id_pagamento} className="text-muted-foreground">{METODOS_PAGAMENTO[e.metodo] ?? e.metodo}: {moeda(e.valor)}</p>
           ))}
-          {falta > 0 && <p className="text-destructive">Os pagamentos do pedido só cobrem {moeda(valorDevolvido - falta)} de estorno.</p>}
+          {falta > 0 && <p className="text-destructive">Os pagamentos do pedido só cobrem {moeda(valorDevolvido - falta)} de estorno. Diminua as peças ou faça a devolução pelo Atendimento.</p>}
         </div>
       )}
 
@@ -1130,7 +1135,7 @@ function ComprovanteFeito({ feito, loja, aoRecomecar }) {
         </p>
       </div>
 
-      <section aria-label="Comprovante" className="notinha space-y-4 border bg-white p-5 text-sm text-black">
+      <section aria-label="Comprovante" className="notinha space-y-4 border bg-white p-5 text-sm text-foreground">
         <div className="space-y-0.5 text-center">
           <p className="font-logo uppercase tracking-[0.3em]">Casa Lorenzi</p>
           <p>{loja.nome}</p>
@@ -1150,7 +1155,7 @@ function ComprovanteFeito({ feito, loja, aoRecomecar }) {
           ))}
         </ul>
         {feito.estornos.length > 0 && (
-          <div className="space-y-1 border-t border-dashed border-black pt-3">
+          <div className="space-y-1 border-t border-dashed border-foreground pt-3">
             {feito.estornos.map((e) => (
               <p key={e.id_pagamento} className="flex justify-between">
                 <span>Estorno em {(METODOS_PAGAMENTO[e.metodo] ?? e.metodo).toLowerCase()}</span>
