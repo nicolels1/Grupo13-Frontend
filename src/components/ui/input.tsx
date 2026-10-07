@@ -69,7 +69,8 @@ export function Campo({
 }) {
   return (
     <div className={cn('space-y-1.5', className)}>
-      <Label htmlFor={id}>
+      {/* em bloco: o rótulo fica em cima mesmo quando o campo é estreito (ex.: quantidade) */}
+      <Label htmlFor={id} className="block">
         {rotulo}
         {opcional && <span className="ml-1 font-normal text-muted-foreground">opcional</span>}
       </Label>
