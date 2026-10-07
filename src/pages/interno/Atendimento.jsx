@@ -4,12 +4,13 @@ import { Link, useParams } from 'react-router'
 import { cn } from 'cn'
 
 import { useAuth } from '@/auth/contexto'
-import { Aviso, Carregando, Vazio } from '@/components/Estados'
+import { Aviso, Carregando, Sucesso, Vazio } from '@/components/Estados'
 import { Abas, Cabecalho, Paginacao } from '@/components/Navegacao'
 import { Etiqueta, NomePeca } from '@/components/Peca'
 import { Status } from '@/components/Status'
 import { Button } from '@/components/ui/button'
 import { Campo, Select } from '@/components/ui/input'
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet'
 import { useUnidadeEscolhida } from '@/layouts/unidadeEscolhida'
 import { api, ErroApi } from '@/lib/api'
 import {
@@ -17,7 +18,9 @@ import {
   tamanhoArquivo,
 } from '@/lib/formato'
 import { nomeUnidade } from '@/lib/listas'
+import { prazoTroca } from '@/lib/trocaDevolucao'
 import { useCarregar, useEnviar } from '@/lib/useCarregar'
+import { AtenderPedido } from './TrocaDevolucao'
 
 const POR_PAGINA = 25
 const INTERVALO_ATUALIZACAO = 20000
@@ -173,9 +176,6 @@ function textoHistorico(h) {
   return `Chamado ${STATUS_CHAMADO[h.valor_novo]?.toLowerCase() ?? h.valor_novo}`
 }
 
-// a troca ou devolução vale até 30 dias depois da entrega (case, seção 5)
-const PRAZO_TROCA_DIAS = 30
-
 // painel à direita da conversa (design, seção Atendimento): cliente e pedido ligado,
 // status, prioridade e responsável, concluir com motivo e o histórico do chamado.
 // Só o responsável muda a prioridade e conclui; quem atende pode assumir um chamado sem responsável.
@@ -184,10 +184,15 @@ function PainelDoChamado({ chamado: c, historico, aoMudar }) {
   const { unidades } = useUnidadeEscolhida()
   const [motivo, setMotivo] = useState('resolvido')
   const [repassando, setRepassando] = useState(false)
+  // 'troca' ou 'devolucao' com o painel lateral aberto; `feito` é a confirmação depois de registrar
+  const [trocando, setTrocando] = useState(null)
+  const [feito, setFeito] = useState(null)
   const { enviar, enviando, erro } = useEnviar()
   const souResponsavel = c.id_responsavel === perfil.id_usuario
   const concluido = c.status === 'concluido'
   const pedido = useCarregar(() => (c.id_pedido ? api(`/vendas/pedidos/${c.id_pedido}`) : null), [c.id_pedido])
+  // o backend só registra troca ou devolução em chamado dessa categoria, aberto e com pedido
+  const podeTrocar = c.categoria === 'troca_devolucao' && c.id_pedido && !concluido && pedido.dados
 
   async function acao(caminho, corpo, metodo = 'POST') {
     const ok = await enviar(() => api(`/atendimento/chamados/${c.id_chamado}${caminho}`, { metodo, corpo }))
@@ -250,6 +255,28 @@ function PainelDoChamado({ chamado: c, historico, aoMudar }) {
 
       {repassando && <Repassar chamado={c} aoFechar={() => setRepassando(false)} aoRepassar={() => { setRepassando(false); aoMudar() }} />}
 
+      {podeTrocar && (
+        <div className="grid grid-cols-2 gap-2">
+          <Button variant="outline" onClick={() => { setFeito(null); setTrocando('troca') }}>Registrar troca</Button>
+          <Button variant="outline" onClick={() => { setFeito(null); setTrocando('devolucao') }}>Registrar devolução</Button>
+        </div>
+      )}
+      {feito && <Sucesso>{feito}</Sucesso>}
+      {pedido.dados && (
+        <TrocaPeloChamado
+          modo={trocando}
+          chamado={c}
+          pedido={pedido.dados}
+          aoFechar={() => setTrocando(null)}
+          aoConcluir={(resumo) => {
+            setTrocando(null)
+            setFeito(resumo)
+            pedido.recarregar()
+            aoMudar()
+          }}
+        />
+      )}
+
       {!c.id_responsavel && !concluido && (
         <Button variant="outline" size="lg" className="h-11 w-full" disabled={enviando} onClick={() => acao('/assumir')}>
           Assumir chamado
@@ -289,6 +316,60 @@ function PainelDoChamado({ chamado: c, historico, aoMudar }) {
         </ul>
       </section>
     </aside>
+  )
+}
+
+// troca ou devolução pelo chamado, num painel lateral (POST /atendimento/chamados/{id}/troca ou
+// /devolucao). A peça volta numa loja: começa pela loja do chamado ou a do topo, e dá para trocar.
+function TrocaPeloChamado({ modo, chamado: c, pedido, aoFechar, aoConcluir }) {
+  const { unidade, unidades } = useUnidadeEscolhida()
+  const lojas = unidades.filter((u) => u.ativo && u.tipo === 'loja')
+  const inicial = [c.id_unidade, unidade].map(String).find((id) => lojas.some((u) => String(u.id_unidade) === id)) ?? ''
+  const [idLoja, setIdLoja] = useState(inicial)
+  const loja = lojas.find((u) => String(u.id_unidade) === idLoja)
+  const troca = modo === 'troca'
+
+  function concluir(f) {
+    const pecas = plural(f.linhas.reduce((t, l) => t + l.quantidade, 0), 'peça')
+    const estorno = f.estornos.reduce((t, e) => t + Number(e.valor), 0)
+    aoConcluir(troca
+      ? `Troca de ${pecas} registrada na ${loja.nome}.`
+      : `Devolução de ${pecas} registrada na ${loja.nome}, com estorno de ${moeda(estorno)}.`)
+  }
+
+  return (
+    <Sheet open={Boolean(modo)} onOpenChange={(aberto) => { if (!aberto) aoFechar() }}>
+      <SheetContent className="w-full! overflow-y-auto transition-none sm:max-w-3xl!">
+        <SheetHeader className="border-b pr-12">
+          <SheetTitle className="text-lg">{troca ? 'Registrar troca' : 'Registrar devolução'}</SheetTitle>
+          <SheetDescription>
+            Pedido {pedido.codigo_venda}, chamado {c.id_chamado}. {troca
+              ? 'A peça devolvida entra e a nova sai do estoque da loja física da loja escolhida.'
+              : 'A peça entra no estoque da loja física da loja escolhida e o estorno sai pelo mesmo meio do pagamento.'}
+          </SheetDescription>
+        </SheetHeader>
+        <div className="space-y-6 px-4 pb-6">
+          <Campo id="troca-loja" rotulo="Loja que recebe a peça" className="max-w-xs">
+            <Select id="troca-loja" value={idLoja} onChange={(e) => setIdLoja(e.target.value)}>
+              <option value="" disabled>Escolha a loja</option>
+              {lojas.map((u) => <option key={u.id_unidade} value={u.id_unidade}>{u.nome}</option>)}
+            </Select>
+          </Campo>
+          {loja && (
+            <AtenderPedido
+              key={`${modo}-${idLoja}`}
+              pedido={pedido}
+              loja={loja}
+              rota={`/atendimento/chamados/${c.id_chamado}`}
+              modoInicial={modo}
+              comAbas={false}
+              comCabecalho={false}
+              aoConcluir={concluir}
+            />
+          )}
+        </div>
+      </SheetContent>
+    </Sheet>
   )
 }
 
@@ -340,7 +421,7 @@ function PedidoLigado({ chamado: c, pedido }) {
   const p = pedido.dados
   const apontados = p.itens.filter((i) => i.id_item === c.id_item_pedido || (!c.id_item_pedido && i.id_variante === c.id_variante))
   const itens = apontados.length ? apontados : p.itens
-  const prazo = p.entregue_em ? new Date(new Date(p.entregue_em).getTime() + PRAZO_TROCA_DIAS * 86400000) : null
+  const prazo = prazoTroca(p)
 
   return (
     <div className="space-y-2 bg-superficie p-3 text-sm">
