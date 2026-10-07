@@ -49,6 +49,7 @@ function CampoSenha({
     <div className="relative">
       <Input
         id={id}
+        name={id}
         type={visivel ? 'text' : 'password'}
         autoComplete={autoComplete}
         value={valor}
@@ -92,13 +93,21 @@ export function Entrar() {
 
   if (sessao) return <Navigate to={voltarPara} replace />
 
-  async function enviar(evento: SubmitEvent) {
+  async function enviar(evento: SubmitEvent<HTMLFormElement>) {
     evento.preventDefault()
+    // o preenchimento automático do navegador pode não avisar o React: lê o que está nos campos
+    const dados = new FormData(evento.currentTarget)
+    const quem = String(dados.get('identificacao') ?? identificacao).trim()
+    const segredo = String(dados.get('senha') ?? senha)
+    if (!quem || !segredo) {
+      setErro('Preencha o e-mail ou CPF e a senha.')
+      return
+    }
     setErro(null)
     setEnviando(true)
     try {
-      if (identificacao.includes('@')) await entrarComEmail(identificacao.trim(), senha)
-      else await entrarComCpf(identificacao, senha)
+      if (quem.includes('@')) await entrarComEmail(quem, segredo)
+      else await entrarComCpf(quem, segredo)
       navegar(voltarPara, { replace: true })
     } catch (falha) {
       setErro(mensagemDoLogin(falha))
@@ -115,6 +124,7 @@ export function Entrar() {
           <Label htmlFor="identificacao">E-mail ou CPF</Label>
           <Input
             id="identificacao"
+            name="identificacao"
             autoComplete="username"
             value={identificacao}
             onChange={(e) => setIdentificacao(e.target.value)}
@@ -131,7 +141,7 @@ export function Entrar() {
 
         <ErroDoCampo id="erro-login" texto={erro} />
 
-        <Button type="submit" size="loja" className="w-full sm:w-full" disabled={enviando || !identificacao || !senha}>
+        <Button type="submit" size="loja" className="w-full sm:w-full" disabled={enviando}>
           {enviando ? 'Entrando...' : 'Entrar'}
         </Button>
 
