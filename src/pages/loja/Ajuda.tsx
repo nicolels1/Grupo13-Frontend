@@ -1,6 +1,7 @@
 import { useEffect } from 'react'
 import { CreditCard, MessageCircle, Package, RefreshCcw, UserRound } from 'lucide-react'
 import { Link, useLocation } from 'react-router'
+import { cn } from 'cn'
 
 import { useAuth } from '@/auth/contexto'
 import { Status } from '@/components/Status'
@@ -14,6 +15,7 @@ const ASSUNTOS = [
     id: 'pedidos-e-entrega',
     titulo: 'Pedidos e entrega',
     icone: Package,
+    fundo: 'bg-marinho',
     perguntas: [
       {
         pergunta: 'Como acompanho meu pedido?',
@@ -37,6 +39,7 @@ const ASSUNTOS = [
     id: 'trocas-e-devolucoes',
     titulo: 'Trocas e devoluções',
     icone: RefreshCcw,
+    fundo: 'bg-terracota',
     perguntas: [
       {
         pergunta: 'Como faço para trocar ou devolver uma peça?',
@@ -53,6 +56,7 @@ const ASSUNTOS = [
     id: 'pagamento',
     titulo: 'Pagamento',
     icone: CreditCard,
+    fundo: 'bg-aco',
     perguntas: [
       {
         pergunta: 'Quais formas de pagamento vocês aceitam?',
@@ -64,6 +68,7 @@ const ASSUNTOS = [
     id: 'sua-conta',
     titulo: 'Sua conta',
     icone: UserRound,
+    fundo: 'bg-ardosia',
     perguntas: [
       {
         pergunta: 'Posso entrar com meu CPF?',
@@ -100,14 +105,20 @@ export function AjudaLoja() {
       <h1 className="mb-8 font-titulo text-4xl">Central de ajuda</h1>
 
       <ul className="mb-14 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        {ASSUNTOS.map(({ id, titulo, icone: Icone, perguntas }) => (
+        {ASSUNTOS.map(({ id, titulo, icone: Icone, fundo }) => (
           <li key={id}>
-            <Link to={{ hash: id }} className="flex h-full flex-col gap-3 border p-5 transition-colors hover:border-foreground">
-              <Icone className="size-5 text-aco" aria-hidden="true" />
-              <span className="font-medium">{titulo}</span>
-              <span className="text-sm text-muted-foreground">
-                {perguntas.length === 1 ? '1 pergunta' : `${perguntas.length} perguntas`}
-              </span>
+            <Link
+              to={{ hash: id }}
+              aria-current={alvo === id ? 'location' : undefined}
+              className={cn(
+                'flex h-full flex-col gap-3 p-5 text-white transition-opacity hover:opacity-90',
+                fundo,
+                alvo === id && 'outline-3 outline-offset-3 outline-marinho-escuro',
+              )}
+            >
+              <Icone className="size-6" aria-hidden="true" />
+              {/* só texto grande nos blocos: branco sobre terracota não tem contraste para texto pequeno */}
+              <span className="font-titulo text-2xl">{titulo}</span>
             </Link>
           </li>
         ))}
@@ -115,11 +126,20 @@ export function AjudaLoja() {
 
       <div className="grid gap-12 lg:grid-cols-[minmax(0,1fr)_20rem]">
         <div className="space-y-12">
-          {ASSUNTOS.map(({ id, titulo, perguntas }) => (
+          {ASSUNTOS.map(({ id, titulo, icone: Icone, fundo, perguntas }) => (
             <section key={id} id={id} aria-labelledby={`titulo-${id}`} className="scroll-mt-6">
-              <h2 id={`titulo-${id}`} className="mb-2 font-titulo text-2xl">{titulo}</h2>
-              {/* a chave recria o acordeão quando o assunto vira o alvo, para abrir a primeira pergunta */}
-              <Accordion key={`${id}-${alvo === id}`} defaultValue={alvo === id ? [perguntas[0]!.pergunta] : []}>
+              {/* faixa na cor do cartão do topo: liga o cartão ao assunto e marca onde a lista começa */}
+              <h2 id={`titulo-${id}`} className={cn('flex items-center gap-3 px-5 py-4 font-titulo text-2xl text-white', fundo)}>
+                <Icone className="size-6 shrink-0" aria-hidden="true" />
+                {titulo}
+              </h2>
+              {/* o assunto que o link pediu ganha fundo e faixa aço nas perguntas, para ser notado mesmo
+                  sem ver a rolagem; a chave recria o acordeão para abrir a primeira pergunta */}
+              <Accordion
+                key={`${id}-${alvo === id}`}
+                defaultValue={alvo === id ? [perguntas[0]!.pergunta] : []}
+                className={cn('border-l-4 px-5', alvo === id ? 'border-aco bg-aco-fundo' : 'border-transparent')}
+              >
                 {perguntas.map(({ pergunta, resposta }) => (
                   <AccordionItem key={pergunta} value={pergunta} className="border-b">
                     <AccordionTrigger className="py-4 text-base font-normal">{pergunta}</AccordionTrigger>
