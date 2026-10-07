@@ -1,4 +1,4 @@
-import { createBrowserRouter, RouterProvider } from 'react-router'
+import { createBrowserRouter, Outlet, RouterProvider, ScrollRestoration } from 'react-router'
 
 import { AuthProvider } from '@/auth/AuthProvider'
 import { ErroDaPagina, NaoEncontrada, RotaInicial } from '@/pages/Basicas'
@@ -9,6 +9,15 @@ import { rotasLoja } from '@/rotas/rotasLoja'
 // interno crescerem sem mexer no mesmo lugar
 const roteador = createBrowserRouter([
   {
+    // trocar de página por link mantinha a rolagem da página anterior (do rodapé, abria a próxima
+    // já embaixo). O ScrollRestoration leva ao topo, devolve a rolagem no voltar do navegador e
+    // respeita âncoras (#) e o preventScrollReset dos filtros da lista
+    element: (
+      <>
+        <ScrollRestoration />
+        <Outlet />
+      </>
+    ),
     errorElement: <ErroDaPagina />,
     children: [
       { path: '/', element: <RotaInicial /> },
