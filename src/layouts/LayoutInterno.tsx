@@ -38,12 +38,13 @@ export function LayoutInterno() {
   return (
     <div className="min-h-svh bg-background text-foreground">
       <header className="bg-marinho-escuro text-white">
-        <div className="mx-auto grid max-w-7xl grid-cols-[auto_minmax(0,1fr)] items-center gap-x-4 px-4 sm:px-6 lg:grid-cols-[auto_minmax(0,1fr)_auto_auto] lg:gap-x-8">
+        {/* duas linhas na mesma faixa: logo, unidade e pessoa em cima; as áreas embaixo (as nove não cabem ao lado da logo) */}
+        <div className="mx-auto grid max-w-7xl grid-cols-[auto_minmax(0,1fr)] items-center gap-x-4 px-4 sm:px-6">
           <Logo para="/interno" className="py-4 text-lg" />
 
           <nav
             aria-label="Áreas"
-            className="col-span-2 row-start-2 -mx-4 flex min-w-0 gap-6 overflow-x-auto px-4 lg:col-span-1 lg:row-start-auto lg:mx-0 lg:self-stretch lg:px-0"
+            className="col-span-2 row-start-2 -mx-4 flex min-w-0 gap-6 overflow-x-auto border-t border-white/10 px-4 [scrollbar-width:none] sm:-mx-6 sm:px-6 [&::-webkit-scrollbar]:hidden"
           >
             {areas.map((area) => (
               <NavLink
@@ -64,7 +65,7 @@ export function LayoutInterno() {
             ))}
           </nav>
 
-          <div className="col-start-2 row-start-1 flex items-center justify-end gap-6 lg:col-span-2 lg:col-start-auto lg:row-start-auto">
+          <div className="col-start-2 row-start-1 flex items-center justify-end gap-6">
             <label className="flex items-center gap-2 text-sm">
               <Store className="size-4 text-white/70" aria-hidden="true" />
               <span className="sr-only">Unidade em foco</span>
