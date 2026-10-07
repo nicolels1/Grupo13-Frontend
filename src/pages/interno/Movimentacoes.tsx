@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, type ChangeEvent, type FormEvent } from 'react'
 import { Search } from 'lucide-react'
 import { useSearchParams } from 'react-router'
 import { cn } from 'cn'
@@ -11,16 +11,20 @@ import { Etiqueta, NomePeca } from '@/components/Peca'
 import { Button } from '@/components/ui/button'
 import { Campo, Input, Select, Textarea } from '@/components/ui/input'
 import { useUnidadeEscolhida } from '@/layouts/unidadeEscolhida'
-import { api } from '@/lib/api'
+import { api, type Esquema } from '@/lib/api'
 import { CANAIS, codigoTransferencia, dataCurta, hojeIso, hora, TIPOS_MOVIMENTACAO } from '@/lib/formato'
 import { nomeUnidade } from '@/lib/listas'
 import { useCarregar, useEnviar } from '@/lib/useCarregar'
 import { AbasEstoque, AcoesEstoque } from './Estoque'
 
+type ItemEstoque = Esquema<'EstoqueItem'>
+type Canal = ItemEstoque['canal']
+type PaginaEstoque = Esquema<'Pagina_EstoqueItem_'>
+
 const POR_PAGINA = 25
 const PERIODOS = { 7: 'Últimos 7 dias', 30: 'Últimos 30 dias', 90: 'Últimos 90 dias', '': 'Todo o período' }
 
-function diasAtras(dias) {
+function diasAtras(dias: string) {
   if (!dias) return undefined
   const d = new Date(`${hojeIso()}T12:00:00`)
   d.setDate(d.getDate() - Number(dias))
@@ -38,12 +42,12 @@ export function Movimentacoes() {
   const podeRegistrar = temPermissao(perfil, 'movimentar_estoque')
 
   const lista = useCarregar(
-    () => api('/movimentacoes-estoque', {
+    () => api<Esquema<'Pagina_MovimentacaoItem_'>>('/movimentacoes-estoque', {
       params: { id_unidade: unidade, busca: busca.trim(), de: diasAtras(periodo), tipo, limit: POR_PAGINA, offset },
     }),
     [unidade, busca, periodo, tipo, offset],
   )
-  const filtro = (setter) => (e) => {
+  const filtro = (setter: (valor: string) => void) => (e: ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     setter(e.target.value)
     setOffset(0)
   }
@@ -78,7 +82,7 @@ export function Movimentacoes() {
           {lista.erro && <Aviso mensagem={lista.erro} />}
           {lista.carregando && !lista.dados && <Carregando />}
           {lista.dados?.items.length === 0 && <Vazio>Nenhuma movimentação nesse período.</Vazio>}
-          {lista.dados?.items.length > 0 && (
+          {lista.dados && lista.dados.items.length > 0 && (
             <div className="overflow-x-auto">
               <table className="w-full min-w-[44rem] text-sm">
                 <thead className="text-left text-xs text-muted-foreground">
@@ -127,39 +131,40 @@ export function Movimentacoes() {
 
 const TIPOS_MANUAIS = ['recebimento', 'avaria', 'perda', 'ajuste']
 
-function RegistrarMovimentacao({ aoRegistrar }) {
+function RegistrarMovimentacao({ aoRegistrar }: { aoRegistrar: () => void }) {
   const { unidade: unidadeTopo, unidades } = useUnidadeEscolhida()
   const [tipo, setTipo] = useState('recebimento')
   const [idUnidade, setIdUnidade] = useState(unidadeTopo)
   const [termo, setTermo] = useState('')
-  const [peca, setPeca] = useState(null)
-  const [canal, setCanal] = useState('loja_fisica')
+  const [peca, setPeca] = useState<ItemEstoque | null>(null)
+  const [canal, setCanal] = useState<Canal>('loja_fisica')
   const [quantidade, setQuantidade] = useState('1')
   const [motivo, setMotivo] = useState('')
-  const [feito, setFeito] = useState(null)
+  const [feito, setFeito] = useState<string | null>(null)
   const { enviar, enviando, erro } = useEnviar()
 
   // a peça é procurada na rede inteira: uma unidade pode receber uma peça que ainda não tinha
   const encontradas = useCarregar(
-    () => (termo.trim().length >= 2 && !peca ? api('/estoque', { params: { busca: termo.trim(), limit: 30 } }) : null),
+    () => (termo.trim().length >= 2 && !peca ? api<PaginaEstoque>('/estoque', { params: { busca: termo.trim(), limit: 30 } }) : null),
     [termo, peca],
   )
   const saldoAqui = useCarregar(
-    () => (peca && idUnidade ? api('/estoque', { params: { id_variante: peca.id_variante, id_unidade: idUnidade } }) : null),
+    () => (peca && idUnidade ? api<PaginaEstoque>('/estoque', { params: { id_variante: peca.id_variante, id_unidade: idUnidade } }) : null),
     [peca, idUnidade],
   )
   const opcoes = [...new Map((encontradas.dados?.items ?? []).map((e) => [e.id_variante, e])).values()].slice(0, 6)
-  const disponivel = (c) => saldoAqui.dados?.items.find((l) => l.canal === c)?.disponivel ?? 0
+  const disponivel = (c: Canal) => saldoAqui.dados?.items.find((l) => l.canal === c)?.disponivel ?? 0
   const precisaMotivo = tipo !== 'recebimento'
   const unidadeEscolhida = unidades.find((u) => String(u.id_unidade) === String(idUnidade))
-  const canais = unidadeEscolhida?.tipo === 'cd' ? ['online'] : Object.keys(CANAIS)
+  const canais: Canal[] = unidadeEscolhida?.tipo === 'cd' ? ['online'] : ['loja_fisica', 'online']
 
   const qtd = Number(quantidade) || 0
   const efeito = tipo === 'ajuste' ? qtd : tipo === 'recebimento' ? qtd : -qtd
   const fica = disponivel(canal) + efeito
 
-  async function registrar(evento) {
+  async function registrar(evento: FormEvent) {
     evento.preventDefault()
+    if (!peca) return
     setFeito(null)
     const ok = await enviar(() => api('/movimentacoes-estoque', {
       metodo: 'POST',
@@ -264,7 +269,7 @@ function RegistrarMovimentacao({ aoRegistrar }) {
         {erro && <Aviso mensagem={erro} />}
         {feito && <Sucesso>{feito}</Sucesso>}
         <Button type="submit" size="lg" className="h-11 w-full" disabled={enviando || !peca || !idUnidade || (tipo === 'ajuste' && qtd === 0)}>
-          {enviando ? 'Registrando...' : `Registrar ${TIPOS_MOVIMENTACAO[tipo].toLowerCase()}`}
+          {enviando ? 'Registrando...' : `Registrar ${TIPOS_MOVIMENTACAO[tipo]?.toLowerCase()}`}
         </Button>
       </form>
     </aside>
