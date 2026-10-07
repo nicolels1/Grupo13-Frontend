@@ -65,3 +65,16 @@ export function useEnviar() {
 
   return { enviar, enviando, erro, limparErro: () => setErro(null) }
 }
+
+/**
+ * Devolve o valor só depois de `ms` sem mudança (ex.: a busca espera a pessoa parar de digitar).
+ *   const buscaAplicada = useAdiado(busca, 300)
+ */
+export function useAdiado<T>(valor: T, ms = 300) {
+  const [adiado, setAdiado] = useState(valor)
+  useEffect(() => {
+    const espera = setTimeout(() => setAdiado(valor), ms)
+    return () => clearTimeout(espera)
+  }, [valor, ms])
+  return adiado
+}
