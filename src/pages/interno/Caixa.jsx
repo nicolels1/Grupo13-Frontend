@@ -14,6 +14,7 @@ import { api, ErroApi } from '@/lib/api'
 import { ordenarTamanhos } from '@/lib/cores'
 import { CANAIS, dataCurta, dataHora, haQuanto, hojeIso, hora, mascaraCpf, METODOS_PAGAMENTO, moeda, plural } from '@/lib/formato'
 import { useCarregar, useEnviar } from '@/lib/useCarregar'
+import { AtenderPedido } from './TrocaDevolucao'
 
 // abas do Caixa e a permissão que cada uma pede (as mesmas das rotas do backend)
 const ABAS = [
@@ -809,51 +810,10 @@ function ConsultarPeca({ loja }) {
 
 // ---------- Troca ou devolução ----------
 
-const PRAZO_TROCA_DIAS = 30
 const BUSCAS = {
   codigo_venda: { rotulo: 'Código da venda', dica: 'O código da notinha ou do pedido, como CL...' },
   cpf: { rotulo: 'CPF', dica: 'Mostra os pedidos entregues nos últimos 30 dias, pela conta ou pelo CPF na nota.' },
   id_pedido: { rotulo: 'Número do pedido', dica: 'O número que aparece no painel de pedidos.' },
-}
-
-function prazoTroca(pedido) {
-  if (!pedido.entregue_em) return null
-  return new Date(new Date(pedido.entregue_em).getTime() + PRAZO_TROCA_DIAS * 86400000)
-}
-
-// por que o pedido não aceita troca nem devolução (null = aceita); o backend confere de novo
-function motivoBloqueio(pedido, loja) {
-  if (pedido.status !== 'entregue') return 'Só pedido entregue tem troca ou devolução.'
-  if (prazoTroca(pedido) < new Date()) return `Passou o prazo de ${PRAZO_TROCA_DIAS} dias após a entrega.`
-  if (pedido.devolucao === 'total') return 'Todas as peças deste pedido já foram devolvidas.'
-  if (loja.tipo !== 'loja') return 'Troca e devolução são feitas numa loja.'
-  return null
-}
-
-// quanto ainda dá para estornar de cada pagamento aprovado (valor menos os estornos já feitos)
-function estornaveis(pedido) {
-  return pedido.pagamentos
-    .filter((p) => p.tipo === 'pagamento' && p.status === 'aprovado')
-    .map((p) => {
-      const estornado = pedido.pagamentos
-        .filter((e) => e.id_pagamento_original === p.id_pagamento && e.status !== 'recusado')
-        .reduce((t, e) => t + Number(e.valor), 0)
-      return { pagamento: p, restante: Math.round((Number(p.valor) - estornado) * 100) / 100 }
-    })
-    .filter((p) => p.restante > 0)
-}
-
-// reparte o valor da devolução pelos pagamentos, na ordem em que foram feitos (mesmo meio de pagamento)
-function repartirEstorno(pedido, valor) {
-  const estornos = []
-  let falta = Math.round(valor * 100) / 100
-  for (const { pagamento, restante } of estornaveis(pedido)) {
-    if (falta <= 0) break
-    const parte = Math.min(falta, restante)
-    estornos.push({ id_pagamento: pagamento.id_pagamento, metodo: pagamento.metodo, valor: parte.toFixed(2) })
-    falta = Math.round((falta - parte) * 100) / 100
-  }
-  return { estornos, falta }
 }
 
 function TrocaOuDevolucao({ loja }) {
@@ -936,177 +896,12 @@ function TrocaOuDevolucao({ loja }) {
           key={`${escolhido.id_pedido}-${escolhido.devolucao}`}
           pedido={escolhido}
           loja={loja}
+          rota={`/balcao/pedidos/${escolhido.id_pedido}`}
+          dicaSemEstorno="Diminua as peças ou faça a devolução pelo Atendimento."
           aoConcluir={setFeito}
         />
       )}
     </div>
-  )
-}
-
-function AtenderPedido({ pedido, loja, aoConcluir }) {
-  const [modo, setModo] = useState('troca')
-  // quantidade escolhida e variante nova de cada item, por id_item
-  const [quantidades, setQuantidades] = useState({})
-  const [novas, setNovas] = useState({})
-  const { enviar, enviando, erro } = useEnviar()
-  const bloqueio = motivoBloqueio(pedido, loja)
-
-  // na troca, as outras cores e tamanhos do mesmo produto com saldo na loja física desta loja
-  const nomes = [...new Set(pedido.itens.map((i) => i.produto))]
-  const opcoes = useCarregar(
-    () => (modo === 'troca' && !bloqueio
-      ? Promise.all(nomes.map((nome) => api('/balcao/estoque', {
-        params: { id_unidade: loja.id_unidade, canal: 'loja_fisica', busca: nome, limit: 200 },
-      }))).then((paginas) => paginas.flatMap((p) => p.items))
-      : null),
-    [modo, loja.id_unidade, nomes.join('|'), Boolean(bloqueio)],
-  )
-  const opcoesDoItem = (item) => (opcoes.dados ?? []).filter((l) => l.produto === item.produto && l.id_variante !== item.id_variante && l.disponivel > 0)
-
-  const escolhidos = pedido.itens
-    .map((item) => ({ item, quantidade: Number(quantidades[item.id_item] || 0), nova: novas[item.id_item] }))
-    .filter((e) => e.quantidade > 0)
-  const valorDevolvido = escolhidos.reduce((t, e) => t + Number(e.item.preco_unitario) * e.quantidade, 0)
-  const { estornos, falta } = repartirEstorno(pedido, valorDevolvido)
-
-  const quantidadesOk = escolhidos.length > 0 && escolhidos.every((e) => e.quantidade <= e.item.quantidade)
-  const pronto = !bloqueio && quantidadesOk && (modo === 'troca' ? escolhidos.every((e) => e.nova) : falta <= 0)
-
-  async function registrar(evento) {
-    evento.preventDefault()
-    const itens = escolhidos.map((e) => ({
-      id_variante: e.item.id_variante,
-      quantidade: e.quantidade,
-      ...(modo === 'troca' && { id_variante_nova: Number(e.nova) }),
-    }))
-    const corpo = modo === 'troca'
-      ? { id_unidade: loja.id_unidade, itens }
-      : { id_unidade: loja.id_unidade, itens, estornos: estornos.map(({ id_pagamento, valor }) => ({ id_pagamento, valor })) }
-    const resposta = await enviar(() => api(`/balcao/pedidos/${pedido.id_pedido}/${modo === 'troca' ? 'troca' : 'devolucao'}`, { metodo: 'POST', corpo }))
-    if (!resposta) return
-    const variantes = Object.fromEntries((opcoes.dados ?? []).map((l) => [l.id_variante, l]))
-    aoConcluir({
-      modo,
-      pedido: resposta,
-      linhas: escolhidos.map((e) => ({ ...e, nova: e.nova ? variantes[e.nova] : null })),
-      estornos: modo === 'devolucao' ? estornos : [],
-    })
-  }
-
-  const prazo = prazoTroca(pedido)
-
-  return (
-    <form onSubmit={registrar} className="max-w-4xl space-y-6">
-      <div className="space-y-1">
-        <div className="flex flex-wrap items-center gap-2">
-          <Etiqueta>{pedido.codigo_venda}</Etiqueta>
-          {pedido.devolucao === 'parcial' && <Etiqueta>Já teve devolução</Etiqueta>}
-        </div>
-        <h2 className="text-2xl font-medium">{pedido.cliente ?? (pedido.cpf_nota ? `CPF ${mascaraCpf(pedido.cpf_nota)}` : 'Cliente sem CPF')}</h2>
-        <p className="text-sm text-muted-foreground">
-          {pedido.unidade}, entregue em {dataCurta(pedido.entregue_em)}
-          {prazo && `, troca e devolução até ${dataCurta(prazo.toISOString())}`}
-        </p>
-      </div>
-
-      <Abas
-        rotulo="Tipo de atendimento"
-        valor={modo}
-        aoMudar={setModo}
-        abas={[{ valor: 'troca', rotulo: 'Troca' }, { valor: 'devolucao', rotulo: 'Devolução' }]}
-      />
-
-      <div className="overflow-x-auto">
-        <table className="w-full min-w-[40rem] text-sm">
-          <thead className="text-left text-xs text-muted-foreground">
-            <tr className="border-b">
-              <th className="py-2 font-medium">Peça</th>
-              <th className="text-right font-medium">Comprou</th>
-              <th className="text-right font-medium">{modo === 'troca' ? 'Trocar' : 'Devolver'}</th>
-              <th className="pl-4 font-medium">{modo === 'troca' ? 'Levar no lugar' : 'Valor'}</th>
-            </tr>
-          </thead>
-          <tbody>
-            {pedido.itens.map((item) => {
-              const quantidade = quantidades[item.id_item] ?? ''
-              const marcada = Number(quantidade) > 0
-              const disponiveis = opcoesDoItem(item)
-              return (
-                <tr key={item.id_item} className="border-b">
-                  <td className="py-3"><NomePeca produto={item.produto} cor={item.cor} tamanho={`${item.tamanho}, ${item.sku}`} /></td>
-                  <td className="text-right tabular-nums">{item.quantidade}</td>
-                  <td className="text-right">
-                    <Input
-                      aria-label={`Quantidade de ${item.produto} para ${modo === 'troca' ? 'trocar' : 'devolver'}`}
-                      type="number"
-                      min={0}
-                      max={item.quantidade}
-                      value={quantidade}
-                      placeholder="0"
-                      onChange={(e) => setQuantidades({ ...quantidades, [item.id_item]: e.target.value })}
-                      disabled={Boolean(bloqueio)}
-                      className="ml-auto w-20 text-right"
-                    />
-                  </td>
-                  <td className="pl-4">
-                    {modo === 'troca' ? (
-                      marcada && (
-                        opcoes.carregando ? (
-                          <span className="text-xs text-muted-foreground">Procurando no estoque...</span>
-                        ) : disponiveis.length === 0 ? (
-                          <span className="text-xs text-muted-foreground">Nenhuma outra cor ou tamanho com saldo nesta loja. Ofereça a devolução.</span>
-                        ) : (
-                          <Select
-                            aria-label={`Peça nova no lugar de ${item.produto}`}
-                            value={novas[item.id_item] ?? ''}
-                            onChange={(e) => setNovas({ ...novas, [item.id_item]: e.target.value })}
-                            required
-                          >
-                            <option value="" disabled>Escolha cor e tamanho</option>
-                            {disponiveis.map((l) => (
-                              <option key={l.id_variante} value={l.id_variante}>
-                                {l.cor}, {l.tamanho} ({plural(l.disponivel, 'disponível', 'disponíveis')})
-                              </option>
-                            ))}
-                          </Select>
-                        )
-                      )
-                    ) : (
-                      <span className="tabular-nums">{marcada ? moeda(Number(item.preco_unitario) * Number(quantidade)) : moeda(item.preco_unitario)}</span>
-                    )}
-                  </td>
-                </tr>
-              )
-            })}
-          </tbody>
-        </table>
-      </div>
-      {opcoes.erro && <Aviso mensagem={opcoes.erro} />}
-
-      {pedido.devolucao === 'parcial' && !bloqueio && (
-        <p className="text-xs text-muted-foreground">
-          Este pedido já teve peças devolvidas. A lista mostra o que foi comprado; o sistema confere o que o cliente ainda tem ao registrar.
-        </p>
-      )}
-
-      {modo === 'devolucao' && escolhidos.length > 0 && (
-        <div className="space-y-1 border-l-4 border-aco bg-aco/10 p-4 text-sm">
-          <p className="font-medium">Estorno de {moeda(valorDevolvido)}, pelo mesmo meio do pagamento</p>
-          {estornos.map((e) => (
-            <p key={e.id_pagamento} className="text-muted-foreground">{METODOS_PAGAMENTO[e.metodo] ?? e.metodo}: {moeda(e.valor)}</p>
-          ))}
-          {falta > 0 && <p className="text-destructive">Os pagamentos do pedido só cobrem {moeda(valorDevolvido - falta)} de estorno. Diminua as peças ou faça a devolução pelo Atendimento.</p>}
-        </div>
-      )}
-
-      {erro && <Aviso mensagem={erro} />}
-      <div className="flex flex-wrap items-center justify-end gap-3">
-        {bloqueio && <p className="text-sm text-muted-foreground">{bloqueio}</p>}
-        <Button type="submit" size="lg" className="h-11 px-5" disabled={!pronto || enviando}>
-          {enviando ? 'Registrando...' : modo === 'troca' ? 'Registrar troca' : 'Registrar devolução'}
-        </Button>
-      </div>
-    </form>
   )
 }
 

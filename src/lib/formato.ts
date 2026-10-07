@@ -131,3 +131,10 @@ export function mascaraCpf(texto: string) {
     .replace(/^(\d{3})\.(\d{3})(\d)/, '$1.$2.$3')
     .replace(/\.(\d{3})(\d{1,2})$/, '.$1-$2')
 }
+
+// tamanho de arquivo: "820 KB", "2,4 MB"
+export function tamanhoArquivo(bytes: number | null | undefined) {
+  if (!bytes) return ''
+  if (bytes < 1024 * 1024) return `${Math.max(1, Math.round(bytes / 1024))} KB`
+  return `${(bytes / (1024 * 1024)).toLocaleString('pt-BR', { maximumFractionDigits: 1 })} MB`
+}

@@ -47,6 +47,7 @@ export type OpcoesApi = {
  * Chama a API do backend.
  *   api<Esquema<'Lista_UnidadeSaida_'>>('/unidades')
  *   api('/categorias', { metodo: 'POST', corpo: { nome: 'Camisas' } })
+ *   api('/atendimento/chamados/7/anexos', { metodo: 'POST', corpo: formData })  // upload em multipart
  * Envia o token do Supabase (se houver sessão) e lança ErroApi quando a resposta não é 2xx.
  */
 export async function api<T = unknown>(
@@ -60,8 +61,10 @@ export async function api<T = unknown>(
     }
   }
 
+  // FormData (upload de arquivo) vai como multipart: o navegador monta o Content-Type com o boundary
+  const multipart = corpo instanceof FormData
   const headers: Record<string, string> = {}
-  if (corpo !== undefined) headers['Content-Type'] = 'application/json'
+  if (corpo !== undefined && !multipart) headers['Content-Type'] = 'application/json'
   if (autenticado) {
     const { data } = await supabase.auth.getSession()
     const token = data.session?.access_token
@@ -73,7 +76,7 @@ export async function api<T = unknown>(
     resposta = await fetch(url, {
       method: metodo,
       headers,
-      body: corpo === undefined ? undefined : JSON.stringify(corpo),
+      body: corpo === undefined ? undefined : multipart ? corpo : JSON.stringify(corpo),
     })
   } catch {
     throw new ErroApi(0, 'Sem conexão com o servidor. Confira sua internet e tente de novo.')

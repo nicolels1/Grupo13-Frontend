@@ -5,7 +5,7 @@ import { AREAS } from '@/auth/areas'
 import { ExigeArea, ExigeLogin } from '@/auth/Protecao'
 import { LayoutInterno } from '@/layouts/LayoutInterno'
 import { EmConstrucao } from '@/pages/Basicas'
-import { Atendimento, ChamadoInterno } from '@/pages/interno/Atendimento'
+import { Atendimento } from '@/pages/interno/Atendimento'
 import { Caixa } from '@/pages/interno/Caixa'
 import { Catalogo } from '@/pages/interno/Catalogo'
 import { Estoque } from '@/pages/interno/Estoque'
@@ -29,7 +29,8 @@ const TELAS: Record<string, { tela: ReactElement; filhas?: RouteObject[] }> = {
   },
   transferencias: { tela: <Transferencias /> },
   caixa: { tela: <Caixa /> },
-  atendimento: { tela: <Atendimento />, filhas: [{ path: ':idChamado', element: <ChamadoInterno /> }] },
+  // o chamado aberto é a mesma caixa de entrada com a terceira coluna preenchida
+  atendimento: { tela: <Atendimento />, filhas: [{ path: ':idChamado', element: <Atendimento /> }] },
   catalogo: { tela: <Catalogo />, filhas: [{ path: ':idProduto', element: <ProdutoInterno /> }] },
   gestao: { tela: <Gestao /> },
 }
