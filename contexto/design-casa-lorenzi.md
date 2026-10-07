@@ -27,6 +27,7 @@ O código é a fonte da verdade (o Figma não é referência). Os tokens ficam n
 | branco, superfície `#f4f4f2`, borda `#e2e2e2` | Fundos e divisões |
 
 - A área dos produtos fica neutra (fotos de moda pedem fundo limpo); a cor entra em blocos grandes ao redor.
+- Na loja, a terracota também pode ser cor de bloco (ex.: um dos assuntos da Central de ajuda), só com texto grande por cima: branco sobre terracota não tem contraste para texto pequeno. A ferrugem continua só para erro.
 - Sem modo escuro, sem degradê, cantos retos.
 
 ### Status (iguais nas duas plataformas)
@@ -36,7 +37,7 @@ Etiqueta reta, texto curto: neutro (aguardando pagamento, aberto, solicitada) ·
 - Botões principais da loja com 44px (largura total no celular). Um botão principal por tela.
 - Sucesso inline, perto da ação. Sem toasts. A gaveta do carrinho é a confirmação de "adicionado".
 - Erros dizem o que aconteceu e como resolver.
-- Animação: só a gaveta do carrinho e o carrossel. Respeitar `prefers-reduced-motion`.
+- Animação: só a gaveta do carrinho, o carrossel e o abrir e fechar do acordeão (o padrão do shadcn). Respeitar `prefers-reduced-motion`.
 - Gráficos só na Visão Geral e no Histórico do estoque. Séries: marinho → aço → terracota → ardósia.
 - Responsivo de 360px ao desktop; polimento máximo no desktop; loja e checkout conferidos no celular.
 

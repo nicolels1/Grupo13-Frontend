@@ -1,5 +1,5 @@
 import { useState, type FormEvent, type ReactNode } from 'react'
-import { ChevronDown, Search, User } from 'lucide-react'
+import { ChevronDown, Search, ShoppingBag, User } from 'lucide-react'
 import { Link, Outlet, useLocation, useNavigate, useSearchParams } from 'react-router'
 import { cn } from 'cn'
 
@@ -32,8 +32,11 @@ export function LayoutCliente() {
           <Logo para="/loja" className="text-lg sm:text-2xl" />
           <Categorias categorias={ativas} />
           <BuscaDaLoja />
-          <div className="col-start-2 row-start-1 flex justify-end lg:col-start-auto lg:row-start-auto">
+          <div className="col-start-2 row-start-1 flex items-center justify-end gap-5 lg:col-start-auto lg:row-start-auto">
             <Conta />
+            <Link to="/loja/carrinho" aria-label="Carrinho" className="hover:text-aco">
+              <ShoppingBag className="size-5" aria-hidden="true" />
+            </Link>
           </div>
         </div>
       </header>
@@ -104,7 +107,7 @@ function BuscaDaLoja() {
     <form
       role="search"
       onSubmit={buscar}
-      className="col-span-2 flex min-w-0 items-center gap-2 rounded-full bg-superficie px-4 py-2 focus-within:ring-2 focus-within:ring-ring lg:col-span-1 lg:w-64"
+      className="col-span-2 flex min-w-0 items-center gap-2 bg-superficie px-4 py-2 focus-within:ring-2 focus-within:ring-ring lg:col-span-1 lg:w-64"
     >
       <Search className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
       <label htmlFor="busca-loja" className="sr-only">Buscar produtos</label>
@@ -161,10 +164,12 @@ function MenuDaConta({ nome }: { nome: string }) {
         <ChevronDown className="size-3.5" aria-hidden="true" />
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-52">
+        <DropdownMenuItem render={<Link to="/loja/pedidos" />}>Meus pedidos</DropdownMenuItem>
         <DropdownMenuItem render={<Link to="/loja/chamados" />}>
           Chamados
           {temNova && <span className="ml-auto size-2 rounded-full bg-terracota" aria-label="Resposta nova" />}
         </DropdownMenuItem>
+        <DropdownMenuItem render={<Link to="/loja/enderecos" />}>Endereços</DropdownMenuItem>
         <DropdownMenuItem render={<Link to="/loja/ajuda" />}>Ajuda</DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={() => void sair()}>Sair</DropdownMenuItem>
