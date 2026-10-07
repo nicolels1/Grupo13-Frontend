@@ -2948,6 +2948,22 @@ export interface components {
              */
             criado_em: string;
         };
+        /** PaginaProdutos */
+        PaginaProdutos: {
+            /** Items */
+            items: components["schemas"]["ProdutoSaida"][];
+            /** Total */
+            total: number;
+            /** Limit */
+            limit: number;
+            /** Offset */
+            offset: number;
+            /**
+             * Busca Alternativa
+             * @description Só na vitrine, quando a busca não achou nada: 'parecidas' traz as peças mais próximas do termo; 'novidades', as mais recentes. Vazio quando achou o que foi buscado
+             */
+            busca_alternativa?: ("parecidas" | "novidades") | null;
+        };
         /** Pagina[AvaliacaoSaida] */
         Pagina_AvaliacaoSaida_: {
             /** Items */
@@ -3018,17 +3034,6 @@ export interface components {
         Pagina_PedidoSaida_: {
             /** Items */
             items: components["schemas"]["PedidoSaida"][];
-            /** Total */
-            total: number;
-            /** Limit */
-            limit: number;
-            /** Offset */
-            offset: number;
-        };
-        /** Pagina[ProdutoSaida] */
-        Pagina_ProdutoSaida_: {
-            /** Items */
-            items: components["schemas"]["ProdutoSaida"][];
             /** Total */
             total: number;
             /** Limit */
@@ -4501,14 +4506,14 @@ export interface operations {
                 id_categoria?: number | null;
                 /** @description Só para quem gerencia o catálogo */
                 ativo?: boolean | null;
-                /** @description Parte do nome do produto */
+                /** @description Sem acento e sem a palavra exata: procura no nome, categoria, cores e descrição, pelo começo das palavras e por semelhança (erros de digitação, camisa ~ camiseta) */
                 busca?: string | null;
                 /** @description Só produtos com algum desses tamanhos à venda; repita para vários (?tamanho=P&tamanho=M) */
                 tamanho?: string[] | null;
                 /** @description true: só produtos com peça para vender online (nos tamanhos, se informados) */
                 disponivel?: boolean | null;
-                /** @description nome, novidades, menor_preco ou maior_preco (pela variante mais barata) */
-                ordem?: "nome" | "novidades" | "menor_preco" | "maior_preco";
+                /** @description relevancia (padrão com busca), nome (padrão sem busca), novidades, menor_preco ou maior_preco (pela variante mais barata) */
+                ordem?: ("relevancia" | "nome" | "novidades" | "menor_preco" | "maior_preco") | null;
                 limit?: number;
                 offset?: number;
             };
@@ -4526,7 +4531,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["Pagina_ProdutoSaida_"];
+                    "application/json": components["schemas"]["PaginaProdutos"];
                 };
             };
             /** @description Validation Error */

@@ -46,7 +46,7 @@ const TROCA_A_CADA_MS = 6000
 export function InicioLoja() {
   const { dados: categorias } = useCategorias()
   const novidades = useCarregar(
-    () => api<Esquema<'Pagina_ProdutoSaida_'>>('/produtos', { params: { limit: 8, ordem: 'novidades' } }),
+    () => api<Esquema<'PaginaProdutos'>>('/produtos', { params: { limit: 8, ordem: 'novidades' } }),
     [],
   )
   const ativas = (categorias ?? []).filter((c) => c.ativo)

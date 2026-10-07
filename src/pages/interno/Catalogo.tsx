@@ -28,7 +28,7 @@ export function Catalogo() {
   // o painel de categorias usa a lista completa (com as desativadas), sem o cache da vitrine
   const categorias = useCarregar(() => api<ListaCategorias>('/categorias'), [])
   const lista = useCarregar(
-    () => api<Esquema<'Pagina_ProdutoSaida_'>>('/produtos', { params: { busca: busca.trim(), id_categoria: idCategoria, ativo: situacao, limit: POR_PAGINA, offset } }),
+    () => api<Esquema<'PaginaProdutos'>>('/produtos', { params: { busca: busca.trim(), id_categoria: idCategoria, ativo: situacao, limit: POR_PAGINA, offset } }),
     [busca, idCategoria, situacao, offset],
   )
   const nomeCategoria = (id: number) => categorias.dados?.items.find((c) => c.id_categoria === id)?.nome ?? '—'
