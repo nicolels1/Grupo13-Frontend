@@ -27,7 +27,9 @@ export function ProdutosLoja() {
   const [params, setParams] = useSearchParams()
   const idCategoria = params.get('categoria') ?? ''
   const busca = params.get('busca') ?? ''
-  const tamanho = params.get('tamanho') ?? ''
+  // vários tamanhos marcados: a lista traz as peças que têm qualquer um deles
+  const escolhidos = params.getAll('tamanho')
+  const chaveTamanhos = escolhidos.join(',')
   const soDisponiveis = params.get('disponivel') === 'true'
   const ordem = params.get('ordem') ?? 'novidades'
   const quantos = Number(params.get('quantos')) || POR_PAGINA
@@ -38,10 +40,12 @@ export function ProdutosLoja() {
     () =>
       api<Esquema<'Pagina_ProdutoSaida_'>>('/produtos', {
         params: {
-          id_categoria: idCategoria, busca, tamanho, disponivel: soDisponiveis || undefined, ordem, limit: quantos,
+          id_categoria: idCategoria, busca, tamanho: escolhidos, disponivel: soDisponiveis || undefined, ordem,
+          limit: quantos,
         },
       }),
-    [idCategoria, busca, tamanho, soDisponiveis, ordem, quantos],
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- a lista muda de identidade a cada render; a chave não
+    [idCategoria, busca, chaveTamanhos, soDisponiveis, ordem, quantos],
   )
   // só os tamanhos que existem na categoria ou na busca, já na ordem da grade
   const { dados: tamanhosAVenda } = useCarregar(
@@ -51,15 +55,27 @@ export function ProdutosLoja() {
   const tamanhos = tamanhosAVenda?.items ?? []
 
   const titulo = busca ? `Resultados para “${busca}”` : (categoria?.nome ?? 'Todos os produtos')
-  const filtrando = Boolean(tamanho) || soDisponiveis
+  const filtrando = escolhidos.length > 0 || soDisponiveis
 
   // trocar um filtro volta para a primeira página
+  function aplicar(novos: URLSearchParams) {
+    novos.delete('quantos')
+    setParams(novos, { replace: true, preventScrollReset: true })
+  }
+
   function mudar(chave: string, valor: string | null) {
     const novos = new URLSearchParams(params)
     if (valor) novos.set(chave, valor)
     else novos.delete(chave)
-    novos.delete('quantos')
-    setParams(novos, { replace: true, preventScrollReset: true })
+    aplicar(novos)
+  }
+
+  function alternarTamanho(opcao: string) {
+    const novos = new URLSearchParams(params)
+    novos.delete('tamanho')
+    const marcados = escolhidos.includes(opcao) ? escolhidos.filter((t) => t !== opcao) : [...escolhidos, opcao]
+    for (const t of marcados) novos.append('tamanho', t)
+    aplicar(novos)
   }
 
   function mostrarMais() {
@@ -98,11 +114,11 @@ export function ProdutosLoja() {
               <button
                 key={opcao}
                 type="button"
-                aria-pressed={tamanho === opcao}
-                onClick={() => mudar('tamanho', tamanho === opcao ? null : opcao)}
+                aria-pressed={escolhidos.includes(opcao)}
+                onClick={() => alternarTamanho(opcao)}
                 className={cn(
                   'h-9 min-w-9 border px-2 text-sm transition-colors',
-                  tamanho === opcao ? 'border-marinho bg-marinho text-white' : 'hover:border-foreground',
+                  escolhidos.includes(opcao) ? 'border-marinho bg-marinho text-white' : 'hover:border-foreground',
                 )}
               >
                 {rotuloTamanho(opcao)}
