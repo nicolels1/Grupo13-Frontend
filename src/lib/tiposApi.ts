@@ -271,6 +271,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/produtos/tamanhos": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Tamanhos A Venda */
+        get: operations["tamanhos_a_venda_produtos_tamanhos_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/produtos/{id_produto}": {
         parameters: {
             query?: never;
@@ -2578,6 +2595,11 @@ export interface components {
             /** Items */
             items: components["schemas"]["UnidadeSaida"][];
         };
+        /** Lista[str] */
+        Lista_str_: {
+            /** Items */
+            items: string[];
+        };
         /** LoginCpf */
         LoginCpf: {
             /** Cpf */
@@ -4520,6 +4542,39 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+        };
+    };
+    tamanhos_a_venda_produtos_tamanhos_get: {
+        parameters: {
+            query?: {
+                id_categoria?: number | null;
+                /** @description Parte do nome do produto */
+                busca?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Lista_str_"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
             };
         };
     };
