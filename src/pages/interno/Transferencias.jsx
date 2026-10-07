@@ -115,7 +115,8 @@ export function Transferencias() {
   )
 }
 
-const ROTULO_ETAPA = { solicitada: 'Esperando envio', enviada: 'Esperando conferência', recebida: 'Recebida', cancelada: 'Cancelada' }
+// o que falta acontecer, ao lado da etiqueta de status (só enquanto a transferência anda)
+const PROXIMO_PASSO = { solicitada: 'Esperando envio', enviada: 'Esperando conferência' }
 
 function DetalheTransferencia({ transferencia: t, aoMudar }) {
   const { perfil } = useAuth()
@@ -167,9 +168,8 @@ function DetalheTransferencia({ transferencia: t, aoMudar }) {
       <div className="space-y-3">
         <div className="flex flex-wrap items-center gap-2">
           <Etiqueta>{codigoTransferencia(t.id_transferencia)}</Etiqueta>
-          <span className={cn('border px-2 py-0.5 text-xs', t.status === 'cancelada' ? 'border-ferrugem text-ferrugem' : 'border-foreground')}>
-            {ROTULO_ETAPA[t.status]}
-          </span>
+          <Status tipo="transferencia" valor={t.status} />
+          {PROXIMO_PASSO[t.status] && <span className="text-sm text-muted-foreground">{PROXIMO_PASSO[t.status]}</span>}
         </div>
         <h2 className="text-2xl font-medium">
           De {nomeUnidade(unidades, t.id_unidade_origem)} para {nomeUnidade(unidades, t.id_unidade_destino)}
@@ -225,8 +225,7 @@ function DetalheTransferencia({ transferencia: t, aoMudar }) {
                           max={podeReceber ? item.quantidade_enviada : undefined}
                           value={valor}
                           onChange={(e) => setQuantidades({ ...quantidades, [item.id_item_transferencia]: e.target.value })}
-                          aria-invalid={diferente || undefined}
-                          className={cn('ml-auto w-20 text-right', diferente && 'bg-ferrugem-fundo')}
+                          className={cn('ml-auto w-20 text-right', diferente && 'border-terracota bg-terracota-fundo')}
                           required
                         />
                       </>
@@ -243,10 +242,10 @@ function DetalheTransferencia({ transferencia: t, aoMudar }) {
       {pecas.erro && <Aviso mensagem={pecas.erro} />}
 
       {faltaram > 0 && (
-        <div className="space-y-4 bg-ferrugem-fundo p-5">
+        <div className="space-y-4 border-l-4 border-terracota bg-terracota-fundo p-5">
           <div className="space-y-1">
-            <p className="font-medium text-ferrugem">Chegaram {plural(faltaram, 'peça', 'peças')} a menos do que foi enviado</p>
-            <p className="text-sm text-ferrugem">A entrada registra o que chegou e a diferença vira uma saída com o motivo abaixo.</p>
+            <p className="font-medium">Chegaram {plural(faltaram, 'peça', 'peças')} a menos do que foi enviado</p>
+            <p className="text-sm text-muted-foreground">A entrada registra o que chegou e a diferença vira uma saída com o motivo abaixo.</p>
           </div>
           <div className="grid gap-4 sm:grid-cols-[12rem_1fr]">
             <Campo id="tipo-diferenca" rotulo="Registrar como">

@@ -518,7 +518,7 @@ function EditorModelo({ modelo, modelos, permissoes, aoSalvar }) {
                   <label key={p.codigo} className="flex cursor-pointer items-center gap-3 border-b py-2.5 text-sm hover:bg-superficie">
                     <input type="checkbox" checked={ligada} onChange={() => marcar([p.codigo], !ligada)} className="size-4 accent-marinho" />
                     <span className="flex-1">{p.descricao}</span>
-                    {!novo && mudou && <span className="text-xs text-terracota">{ligada ? 'vai ganhar' : 'vai perder'}</span>}
+                    {!novo && mudou && <span className="bg-terracota-fundo px-1.5 py-0.5 text-xs text-marinho-escuro shadow-[inset_2px_0_0_var(--terracota)]">{ligada ? 'vai ganhar' : 'vai perder'}</span>}
                   </label>
                 )
               })}
