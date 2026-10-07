@@ -9,16 +9,17 @@ import { Abas, Cabecalho, Paginacao } from '@/components/Navegacao'
 import { Etiqueta, NomePeca } from '@/components/Peca'
 import { Status } from '@/components/Status'
 import { Button } from '@/components/ui/button'
-import { Campo, Select } from '@/components/ui/input'
+import { Campo, Input, Select } from '@/components/ui/input'
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet'
 import { useUnidadeEscolhida } from '@/layouts/unidadeEscolhida'
 import { api, ErroApi } from '@/lib/api'
 import {
-  CATEGORIAS_CHAMADO, dataCurta, dataHora, dataLonga, haQuanto, hora, moeda, MOTIVOS_CONCLUSAO, plural, PRIORIDADES, STATUS_CHAMADO,
+  CATEGORIAS_CHAMADO, dataCurta, dataHora, dataLonga, haQuanto, hora, METODOS_PAGAMENTO, moeda, MOTIVOS_CONCLUSAO, plural, PRIORIDADES,
+  STATUS_CHAMADO,
   tamanhoArquivo,
 } from '@/lib/formato'
 import { nomeUnidade } from '@/lib/listas'
-import { prazoTroca } from '@/lib/trocaDevolucao'
+import { estornaveis, prazoTroca } from '@/lib/trocaDevolucao'
 import { useCarregar, useEnviar } from '@/lib/useCarregar'
 import { AtenderPedido } from './TrocaDevolucao'
 
@@ -193,6 +194,10 @@ function PainelDoChamado({ chamado: c, historico, aoMudar }) {
   const pedido = useCarregar(() => (c.id_pedido ? api(`/vendas/pedidos/${c.id_pedido}`) : null), [c.id_pedido])
   // o backend só registra troca ou devolução em chamado dessa categoria, aberto e com pedido
   const podeTrocar = c.categoria === 'troca_devolucao' && c.id_pedido && !concluido && pedido.dados
+  // estorno sem troca nem devolução: qualquer chamado aberto com pedido pago que ainda tem o que estornar
+  const [estornando, setEstornando] = useState(false)
+  const podeEstornar = !concluido && pedido.dados && !['aguardando_pagamento', 'cancelado'].includes(pedido.dados.status)
+    && estornaveis(pedido.dados).length > 0
 
   async function acao(caminho, corpo, metodo = 'POST') {
     const ok = await enviar(() => api(`/atendimento/chamados/${c.id_chamado}${caminho}`, { metodo, corpo }))
@@ -261,7 +266,24 @@ function PainelDoChamado({ chamado: c, historico, aoMudar }) {
           <Button variant="outline" onClick={() => { setFeito(null); setTrocando('devolucao') }}>Registrar devolução</Button>
         </div>
       )}
+      {podeEstornar && (
+        <Button variant="outline" className="w-full" onClick={() => { setFeito(null); setEstornando(true) }}>Estornar</Button>
+      )}
       {feito && <Sucesso>{feito}</Sucesso>}
+      {pedido.dados && (
+        <EstornoPeloChamado
+          aberto={estornando}
+          chamado={c}
+          pedido={pedido.dados}
+          aoFechar={() => setEstornando(false)}
+          aoConcluir={(resumo) => {
+            setEstornando(false)
+            setFeito(resumo)
+            pedido.recarregar()
+            aoMudar()
+          }}
+        />
+      )}
       {pedido.dados && (
         <TrocaPeloChamado
           modo={trocando}
@@ -366,6 +388,152 @@ function TrocaPeloChamado({ modo, chamado: c, pedido, aoFechar, aoConcluir }) {
               comCabecalho={false}
               aoConcluir={concluir}
             />
+          )}
+        </div>
+      </SheetContent>
+    </Sheet>
+  )
+}
+
+const PASSOS_ESTORNO = ['Pagamento', 'Valor', 'Confirmar']
+
+// estorno pelo chamado, sem troca nem devolução (ex.: problema na entrega), num painel lateral
+// passo a passo (design, seção Atendimento): de qual pagamento sai, quanto (pode ser parcial) e
+// a confirmação. Volta pelo mesmo meio do pagamento e fica ligado ao chamado.
+function EstornoPeloChamado({ aberto, chamado: c, pedido, aoFechar, aoConcluir }) {
+  const [passo, setPasso] = useState(0)
+  const [idPagamento, setIdPagamento] = useState(null)
+  const [valor, setValor] = useState('')
+  const { enviar, enviando, erro, limparErro } = useEnviar()
+  const opcoes = estornaveis(pedido)
+  const escolhida = opcoes.find((o) => o.pagamento.id_pagamento === idPagamento)
+  const numero = Number(valor.replace(',', '.'))
+  const valorOk = escolhida && numero > 0 && numero <= escolhida.restante && /^\d+([.,]\d{1,2})?$/.test(valor)
+  const metodo = escolhida ? (METODOS_PAGAMENTO[escolhida.pagamento.metodo] ?? escolhida.pagamento.metodo).toLowerCase() : ''
+  const jaEstornados = pedido.pagamentos.filter((p) => p.tipo === 'estorno' && p.status !== 'recusado')
+
+  function fechar() {
+    setPasso(0)
+    setIdPagamento(null)
+    setValor('')
+    limparErro()
+    aoFechar()
+  }
+
+  function escolher(opcao) {
+    setIdPagamento(opcao.pagamento.id_pagamento)
+    setValor(opcao.restante.toFixed(2).replace('.', ','))
+    setPasso(1)
+  }
+
+  async function confirmar() {
+    const corpo = { id_pagamento: idPagamento, valor: numero.toFixed(2) }
+    const ok = await enviar(() => api(`/atendimento/chamados/${c.id_chamado}/estornos`, { metodo: 'POST', corpo }))
+    if (!ok) return
+    setPasso(0)
+    setIdPagamento(null)
+    setValor('')
+    aoConcluir(`Estorno de ${moeda(numero)} no ${metodo} registrado no pedido ${pedido.codigo_venda}.`)
+  }
+
+  return (
+    <Sheet open={aberto} onOpenChange={(abrir) => { if (!abrir) fechar() }}>
+      <SheetContent className="overflow-y-auto transition-none sm:max-w-md!">
+        <SheetHeader className="border-b pr-12">
+          <SheetTitle className="text-lg">Estornar</SheetTitle>
+          <SheetDescription>
+            Pedido {pedido.codigo_venda}, chamado {c.id_chamado}. Sem troca nem devolução: o valor volta pelo mesmo meio do pagamento e fica ligado a este chamado.
+          </SheetDescription>
+        </SheetHeader>
+
+        <div className="space-y-6 px-4 pb-6">
+          <ol aria-label="Passos do estorno" className="grid grid-cols-3 gap-2">
+            {PASSOS_ESTORNO.map((rotulo, i) => (
+              <li
+                key={rotulo}
+                aria-current={i === passo ? 'step' : undefined}
+                className={cn('border-t-[3px] pt-2 text-xs', i <= passo ? 'border-foreground font-medium' : 'border-border text-muted-foreground')}
+              >
+                {i + 1}. {rotulo}
+              </li>
+            ))}
+          </ol>
+
+          {passo === 0 && (
+            <section className="space-y-3">
+              <h3 className="font-medium">De qual pagamento sai o estorno?</h3>
+              <ul className="space-y-2">
+                {opcoes.map((o) => (
+                  <li key={o.pagamento.id_pagamento}>
+                    <button
+                      type="button"
+                      onClick={() => escolher(o)}
+                      className="flex w-full items-center justify-between gap-3 border px-4 py-3 text-left text-sm hover:border-foreground"
+                    >
+                      <span>
+                        <span className="block font-medium">{METODOS_PAGAMENTO[o.pagamento.metodo] ?? o.pagamento.metodo}</span>
+                        <span className="text-xs text-muted-foreground">pago {moeda(o.pagamento.valor)} em {dataCurta(o.pagamento.criado_em)}</span>
+                      </span>
+                      <span className="text-right">
+                        <span className="block font-medium tabular-nums">{moeda(o.restante)}</span>
+                        <span className="text-xs text-muted-foreground">dá para estornar</span>
+                      </span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+              {jaEstornados.length > 0 && (
+                <p className="text-xs text-muted-foreground">
+                  Já estornado neste pedido: {moeda(jaEstornados.reduce((t, e) => t + Number(e.valor), 0))}.
+                </p>
+              )}
+            </section>
+          )}
+
+          {passo === 1 && escolhida && (
+            <section className="space-y-4">
+              <h3 className="font-medium">Quanto estornar no {metodo}?</h3>
+              <Campo id="estorno-valor" rotulo="Valor" dica={`Até ${moeda(escolhida.restante)}. Pode ser parcial.`}>
+                <Input
+                  id="estorno-valor"
+                  inputMode="decimal"
+                  value={valor}
+                  onChange={(e) => setValor(e.target.value.replace(/[^\d,.]/g, ''))}
+                  aria-invalid={valor !== '' && !valorOk ? true : undefined}
+                  className="max-w-40"
+                  autoFocus
+                />
+              </Campo>
+              {valor !== '' && !valorOk && (
+                <p className="text-sm text-destructive">
+                  {numero > escolhida.restante ? `O máximo neste pagamento é ${moeda(escolhida.restante)}. Diminua o valor.` : 'Digite um valor maior que zero, com até dois centavos.'}
+                </p>
+              )}
+              <div className="flex justify-between gap-2">
+                <Button type="button" variant="ghost" onClick={() => setPasso(0)}>Voltar</Button>
+                <Button type="button" variant="outline" disabled={!valorOk} onClick={() => setPasso(2)}>Continuar</Button>
+              </div>
+            </section>
+          )}
+
+          {passo === 2 && escolhida && (
+            <section className="space-y-4">
+              <h3 className="font-medium">Confira antes de estornar</h3>
+              <dl className="space-y-2 bg-superficie p-4 text-sm">
+                <div className="flex justify-between gap-3"><dt className="text-muted-foreground">Valor</dt><dd className="font-medium tabular-nums">{moeda(numero)}</dd></div>
+                <div className="flex justify-between gap-3"><dt className="text-muted-foreground">Volta pelo</dt><dd>{metodo}</dd></div>
+                <div className="flex justify-between gap-3"><dt className="text-muted-foreground">Pedido</dt><dd>{pedido.codigo_venda}</dd></div>
+                <div className="flex justify-between gap-3"><dt className="text-muted-foreground">Cliente</dt><dd>{c.cliente}</dd></div>
+              </dl>
+              <p className="text-xs text-muted-foreground">O estorno não pode ser desfeito.</p>
+              {erro && <Aviso mensagem={erro} />}
+              <div className="flex justify-between gap-2">
+                <Button type="button" variant="ghost" onClick={() => setPasso(1)} disabled={enviando}>Voltar</Button>
+                <Button type="button" size="lg" className="h-11 px-5" disabled={enviando} onClick={confirmar}>
+                  {enviando ? 'Estornando...' : `Estornar ${moeda(numero)}`}
+                </Button>
+              </div>
+            </section>
           )}
         </div>
       </SheetContent>
