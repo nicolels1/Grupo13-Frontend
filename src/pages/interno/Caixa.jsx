@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button'
 import { Campo, Input, Select } from '@/components/ui/input'
 import { useUnidadeEscolhida } from '@/layouts/unidadeEscolhida'
 import { api, ErroApi } from '@/lib/api'
+import { ordenarTamanhos } from '@/lib/cores'
 import { CANAIS, dataCurta, dataHora, haQuanto, hojeIso, hora, mascaraCpf, METODOS_PAGAMENTO, moeda, plural } from '@/lib/formato'
 import { useCarregar, useEnviar } from '@/lib/useCarregar'
 
@@ -660,17 +661,6 @@ function VendasDeHoje({ loja }) {
 }
 
 // ---------- Consultar peça ----------
-
-// ordem dos tamanhos nas colunas; os que não estão aqui vão para o fim, em ordem numérica ou alfabética
-const ORDEM_TAMANHOS = ['PP', 'P', 'M', 'G', 'GG', 'XG', 'XGG']
-
-function ordenarTamanhos(tamanhos) {
-  const posicao = (t) => {
-    const i = ORDEM_TAMANHOS.indexOf(t.toUpperCase())
-    return i === -1 ? ORDEM_TAMANHOS.length : i
-  }
-  return [...tamanhos].sort((a, b) => posicao(a) - posicao(b) || a.localeCompare(b, 'pt-BR', { numeric: true }))
-}
 
 // todas as linhas de estoque do produto em todas as unidades; a busca é por parte do nome, então
 // filtra o nome exato no fim
