@@ -1,5 +1,5 @@
-import { useState, type FormEvent, type ReactNode } from 'react'
-import { ChevronDown, Search, ShoppingBag, User } from 'lucide-react'
+import { useState, type ReactNode, type SubmitEvent } from 'react'
+import { ChevronDown, Package, Search, ShoppingBag, User } from 'lucide-react'
 import { Link, Outlet, useLocation, useNavigate, useSearchParams } from 'react-router'
 import { cn } from 'cn'
 
@@ -8,7 +8,9 @@ import { Logo } from '@/components/Logo'
 import {
   DropdownMenu,
   DropdownMenuContent,
+  DropdownMenuGroup,
   DropdownMenuItem,
+  DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
@@ -38,6 +40,7 @@ export function LayoutCliente() {
             <BuscaDaLoja />
             <div className="col-start-2 row-start-1 flex items-center justify-end gap-5 lg:col-start-auto lg:row-start-auto">
               <Conta />
+              <LinkPedidos />
               <BotaoCarrinho />
             </div>
           </div>
@@ -51,6 +54,19 @@ export function LayoutCliente() {
         <GavetaCarrinho />
       </div>
     </CarrinhoProvider>
+  )
+}
+
+// Meus pedidos à vista no topo: dentro do menu da conta pouca gente achava. Sem login, a proteção
+// da rota leva a Entrar e volta para cá; conta da equipe não tem pedidos de cliente
+function LinkPedidos() {
+  const { perfil } = useAuth()
+  if (perfil?.tipo_conta === 'interna') return null
+  return (
+    <Link to="/loja/pedidos" aria-label="Meus pedidos" className="flex items-center gap-1.5 text-sm whitespace-nowrap hover:text-aco">
+      <Package className="size-5" aria-hidden="true" />
+      <span className="hidden lg:inline" aria-hidden="true">Pedidos</span>
+    </Link>
   )
 }
 
@@ -124,7 +140,7 @@ function BuscaDaLoja() {
   const [params] = useSearchParams()
   const [termo, setTermo] = useState(params.get('busca') ?? '')
 
-  function buscar(evento: FormEvent) {
+  function buscar(evento: SubmitEvent) {
     evento.preventDefault()
     const texto = termo.trim()
     navegar(texto ? `/loja/produtos?busca=${encodeURIComponent(texto)}` : '/loja/produtos')
@@ -199,6 +215,10 @@ function MenuDaConta({ nome }: { nome: string }) {
         <ChevronDown className="size-3.5" aria-hidden="true" />
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-52">
+        {/* o rótulo do base-ui precisa estar dentro de um grupo */}
+        <DropdownMenuGroup>
+          <DropdownMenuLabel className="text-xs font-medium text-muted-foreground">Minha conta</DropdownMenuLabel>
+        </DropdownMenuGroup>
         <DropdownMenuItem render={<Link to="/loja/pedidos" />}>Meus pedidos</DropdownMenuItem>
         <DropdownMenuItem render={<Link to="/loja/chamados" />}>
           Chamados
@@ -216,7 +236,12 @@ function MenuDaConta({ nome }: { nome: string }) {
 function Rodape({ categorias }: { categorias: Esquema<'CategoriaSaida'>[] }) {
   return (
     <footer className="mt-20 bg-marinho-escuro text-white">
-      <div className="mx-auto grid max-w-7xl gap-10 px-4 py-12 sm:grid-cols-3 sm:px-6">
+      <div className="mx-auto grid max-w-7xl gap-10 px-4 py-12 sm:grid-cols-2 sm:px-6 lg:grid-cols-4">
+        <ColunaRodape titulo="Minha conta">
+          <Link to="/loja/pedidos">Meus pedidos</Link>
+          <Link to="/loja/chamados">Chamados</Link>
+          <Link to="/loja/enderecos">Endereços</Link>
+        </ColunaRodape>
         <ColunaRodape titulo="Ajuda">
           <Link to="/loja/ajuda">Central de ajuda</Link>
           <Link to="/loja/ajuda#trocas-e-devolucoes">Trocas e devoluções</Link>
