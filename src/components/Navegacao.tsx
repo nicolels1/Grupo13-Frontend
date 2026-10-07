@@ -1,9 +1,24 @@
+import type { ReactNode } from 'react'
 import { cn } from 'cn'
 
 import { Button } from '@/components/ui/button'
 
-// abas sublinhadas; `abas` = [{ valor, rotulo, contagem? }]
-export function Abas({ abas, valor, aoMudar, rotulo, className }) {
+type Aba<V extends string> = { valor: V; rotulo: string; contagem?: number | null }
+
+// abas sublinhadas
+export function Abas<V extends string>({
+  abas,
+  valor,
+  aoMudar,
+  rotulo,
+  className,
+}: {
+  abas: Aba<V>[]
+  valor: V
+  aoMudar: (valor: V) => void
+  rotulo: string
+  className?: string
+}) {
   return (
     <div role="tablist" aria-label={rotulo} className={cn('flex gap-6 overflow-x-auto border-b', className)}>
       {abas.map((aba) => (
@@ -31,7 +46,15 @@ export function Abas({ abas, valor, aoMudar, rotulo, className }) {
 }
 
 // navegação de uma lista paginada da API ({ total, limit, offset })
-export function Paginacao({ pagina, aoMudar, rotulo = 'itens' }) {
+export function Paginacao({
+  pagina,
+  aoMudar,
+  rotulo = 'itens',
+}: {
+  pagina: { total: number; limit: number; offset: number } | null | undefined
+  aoMudar: (offset: number) => void
+  rotulo?: string
+}) {
   if (!pagina || pagina.total === 0) return null
   const { total, limit, offset } = pagina
   const atual = Math.floor(offset / limit)
@@ -61,7 +84,7 @@ export function Paginacao({ pagina, aoMudar, rotulo = 'itens' }) {
 }
 
 // cabeçalho de página da plataforma interna: título, subtítulo e ações à direita
-export function Cabecalho({ titulo, subtitulo, children }) {
+export function Cabecalho({ titulo, subtitulo, children }: { titulo: string; subtitulo?: ReactNode; children?: ReactNode }) {
   return (
     <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
       <div className="space-y-1">

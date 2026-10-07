@@ -1,4 +1,5 @@
-import { createBrowserRouter, Outlet, RouterProvider, useOutletContext } from 'react-router'
+import type { ReactElement } from 'react'
+import { createBrowserRouter, Outlet, RouterProvider, useOutletContext, type RouteObject } from 'react-router'
 
 import { AREAS } from '@/auth/areas'
 import { AuthProvider } from '@/auth/AuthProvider'
@@ -23,7 +24,7 @@ import { ProdutosLoja } from '@/pages/loja/Produtos'
 
 // telas de cada área da barra interna. Pedidos e Avaliações seguem em construção
 // até o backend ter as rotas delas.
-const TELAS = {
+const TELAS: Record<string, { tela: ReactElement; filhas?: RouteObject[] }> = {
   '': { tela: <VisaoGeral /> },
   estoque: { tela: <Estoque />, filhas: [{ path: 'movimentacoes', element: <Movimentacoes /> }] },
   transferencias: { tela: <Transferencias /> },
@@ -39,7 +40,7 @@ function RepassaContexto() {
 
 // cada área ganha sua rota protegida pela permissão da área; as páginas internas da área
 // (ex.: o chamado aberto) ficam sob a mesma proteção
-const rotasInternas = AREAS.map((area) => {
+const rotasInternas = AREAS.map((area): RouteObject => {
   const { tela, filhas = [] } = TELAS[area.caminho] ?? { tela: <EmConstrucao titulo={area.rotulo} /> }
   const protegida = (
     <ExigeArea area={area}>

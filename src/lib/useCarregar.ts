@@ -1,6 +1,8 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useState, type DependencyList } from 'react'
 
 import { ErroApi } from './api'
+
+type EstadoCarga<T> = { dados: T | null; erro: string | null; carregando: boolean }
 
 /**
  * Carrega dados da API e acompanha o estado da chamada.
@@ -8,8 +10,8 @@ import { ErroApi } from './api'
  * Refaz a chamada quando as dependências mudam; ignora a resposta de uma chamada antiga.
  * `buscar` pode devolver null para não carregar nada (ex.: falta um filtro obrigatório).
  */
-export function useCarregar(buscar, dependencias) {
-  const [estado, setEstado] = useState({ dados: null, erro: null, carregando: true })
+export function useCarregar<T>(buscar: () => Promise<T> | null, dependencias: DependencyList) {
+  const [estado, setEstado] = useState<EstadoCarga<T>>({ dados: null, erro: null, carregando: true })
   const [versao, setVersao] = useState(0)
 
   useEffect(() => {
@@ -21,8 +23,10 @@ export function useCarregar(buscar, dependencias) {
     }
     setEstado((anterior) => ({ ...anterior, erro: null, carregando: true }))
     promessa
-      .then((dados) => ativo && setEstado({ dados, erro: null, carregando: false }))
-      .catch((erro) => {
+      .then((dados) => {
+        if (ativo) setEstado({ dados, erro: null, carregando: false })
+      })
+      .catch((erro: unknown) => {
         const mensagem = erro instanceof ErroApi ? erro.message : 'Não foi possível carregar os dados'
         if (ativo) setEstado({ dados: null, erro: mensagem, carregando: false })
       })
@@ -44,9 +48,9 @@ export function useCarregar(buscar, dependencias) {
  */
 export function useEnviar() {
   const [enviando, setEnviando] = useState(false)
-  const [erro, setErro] = useState(null)
+  const [erro, setErro] = useState<string | null>(null)
 
-  const enviar = useCallback(async (acao) => {
+  const enviar = useCallback(async <T>(acao: () => Promise<T>): Promise<T | undefined> => {
     setEnviando(true)
     setErro(null)
     try {

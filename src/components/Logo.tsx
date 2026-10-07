@@ -2,7 +2,7 @@ import { Link } from 'react-router'
 import { cn } from 'cn'
 
 // marca em caixa alta e espaçada, como no design
-export function Logo({ para = '/', className }) {
+export function Logo({ para = '/', className }: { para?: string; className?: string }) {
   return (
     <Link
       to={para}

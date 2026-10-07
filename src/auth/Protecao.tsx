@@ -1,13 +1,14 @@
+import type { ReactNode } from 'react'
 import { Navigate, useLocation } from 'react-router'
 
 import { Button } from '@/components/ui/button'
 import { Aviso, Carregando } from '@/components/Estados'
-import { podeVerArea } from './areas'
+import { podeVerArea, type Area } from './areas'
 import { useAuth } from './contexto'
 
 // exige login e, se `tipo` vier, o tipo de conta ('interna' ou 'cliente').
 // Sem login, manda para /entrar lembrando a página de onde veio.
-export function ExigeLogin({ tipo, children }) {
+export function ExigeLogin({ tipo, children }: { tipo?: 'interna' | 'cliente'; children: ReactNode }) {
   const { sessao, perfil, erroPerfil, carregando, sair, recarregarPerfil } = useAuth()
   const local = useLocation()
 
@@ -28,12 +29,12 @@ export function ExigeLogin({ tipo, children }) {
   }
 
   // conta do outro tipo vai para a plataforma dela
-  if (tipo && perfil.tipo_conta !== tipo) return <Navigate to="/" replace />
+  if (tipo && perfil?.tipo_conta !== tipo) return <Navigate to="/" replace />
   return children
 }
 
 // exige poder ver a área da plataforma interna (permissão da área ou Admin)
-export function ExigeArea({ area, children }) {
+export function ExigeArea({ area, children }: { area: Area; children: ReactNode }) {
   const { perfil } = useAuth()
   if (!podeVerArea(perfil, area)) {
     return (

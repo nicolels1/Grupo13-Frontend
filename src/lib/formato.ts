@@ -3,18 +3,21 @@
 const MOEDA = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' })
 const FUSO = 'America/Sao_Paulo'
 
+// datas da API em ISO; sem data, as funções mostram "—"
+type Data = string | null | undefined
+
 // a API manda dinheiro como texto ("349.90"): converte só na hora de mostrar
-export function moeda(valor) {
+export function moeda(valor: string | number | null | undefined) {
   if (valor === null || valor === undefined || valor === '') return '—'
   return MOEDA.format(Number(valor))
 }
 
-export function dataCurta(iso) {
+export function dataCurta(iso: Data) {
   if (!iso) return '—'
   return new Date(iso).toLocaleDateString('pt-BR', { day: 'numeric', month: 'short', timeZone: FUSO }).replace('.', '')
 }
 
-export function dataHora(iso) {
+export function dataHora(iso: Data) {
   if (!iso) return '—'
   const d = new Date(iso)
   const dia = d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', timeZone: FUSO })
@@ -22,18 +25,18 @@ export function dataHora(iso) {
   return `${dia} ${hora}`
 }
 
-export function hora(iso) {
+export function hora(iso: Data) {
   if (!iso) return '—'
   return new Date(iso).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', timeZone: FUSO })
 }
 
-export function dataLonga(iso) {
+export function dataLonga(iso: Data) {
   if (!iso) return '—'
   return new Date(iso).toLocaleDateString('pt-BR', { day: 'numeric', month: 'long', year: 'numeric', timeZone: FUSO })
 }
 
 // "há 25 min", "há 3 h", "ontem", "12 set"
-export function haQuanto(iso) {
+export function haQuanto(iso: Data) {
   if (!iso) return '—'
   const minutos = Math.round((Date.now() - new Date(iso).getTime()) / 60000)
   if (minutos < 1) return 'agora'
@@ -44,7 +47,7 @@ export function haQuanto(iso) {
   return dataCurta(iso)
 }
 
-export function plural(n, singular, pluralTexto = `${singular}s`) {
+export function plural(n: number, singular: string, pluralTexto = `${singular}s`) {
   return `${n.toLocaleString('pt-BR')} ${n === 1 ? singular : pluralTexto}`
 }
 
@@ -89,12 +92,12 @@ export const MOTIVOS_CONCLUSAO = { resolvido: 'Resolvido', desistencia: 'Desist�
 
 export const STATUS_CONTA = { pendente_ativacao: 'Convite pendente', ativa: 'Ativa', inativa: 'Desativada' }
 
-export function codigoTransferencia(id) {
+export function codigoTransferencia(id: number) {
   return `TR-${String(id).padStart(4, '0')}`
 }
 
 // "AAAA-MM-DDTHH:MM" no horário de Brasília, formato que a API aceita nos filtros de data
-export function paraApi(data, horaTexto) {
+export function paraApi(data: string, horaTexto?: string) {
   return horaTexto ? `${data}T${horaTexto}` : data
 }
 
