@@ -19,6 +19,8 @@ type Resumo = Esquema<'Resumo'>
 type Pendencia = { chave: string; rotulo: string; singular: string; para: string; total: number }
 
 const ESTOQUE = ['movimentar_estoque', 'definir_estoque_minimo']
+// quem vê a seção de vendas do resumo (a mesma regra do backend); atender_chamado vê a de atendimento
+const VENDAS = ['registrar_venda_fisica', 'preparar_entregar_pedido']
 // a retirada vence em 7 dias; a partir de 5, entra nas pendências (mesmo corte do resumo)
 const RETIRADA_PERTO_DE_VENCER_DIAS = 5
 // cobertura abaixo disso é número fora do esperado na tabela das unidades
@@ -103,7 +105,9 @@ export function VisaoGeral() {
 
   const titulo = unidade ? nomeUnidade(unidades, Number(unidade)) : 'Toda a rede'
   const abertas = (pendencias.dados ?? []).filter((p) => p.total > 0).length
-  const temNumeros = r && (r.vendas_por_dia || r.chamados)
+  // as duas colunas já existem antes do resumo chegar, pelo perfil: assim os números carregam ao
+  // lado das pendências, e não aparecem embaixo delas para depois pular de lugar
+  const teraNumeros = admin || VENDAS.some(pode) || pode('atender_chamado')
 
   return (
     <div className="space-y-12">
@@ -118,8 +122,8 @@ export function VisaoGeral() {
         <Atalhos pode={pode} />
       </div>
 
-      <div className={cn('grid gap-12', temNumeros && 'lg:grid-cols-[22rem_1fr]')}>
-        <section aria-labelledby="titulo-pendencias">
+      <div className={cn('grid gap-12', teraNumeros && 'lg:grid-cols-[22rem_1fr]')}>
+        <section aria-labelledby="titulo-pendencias" className={cn(!teraNumeros && 'max-w-md')}>
           <h2 id="titulo-pendencias" className="border-b border-foreground pb-3 text-lg font-medium">Pendências</h2>
           {pendencias.erro && <div className="mt-4"><Aviso mensagem={pendencias.erro} /></div>}
           {pendencias.carregando && !pendencias.dados && <Carregando texto="Conferindo as pendências..." />}
@@ -129,11 +133,11 @@ export function VisaoGeral() {
           </ul>
         </section>
 
-        {(resumo.carregando && !r) && <Carregando texto="Carregando os números..." />}
-        {resumo.erro && <Aviso mensagem={resumo.erro}>Recarregue a página para tentar de novo.</Aviso>}
-        {temNumeros && (
+        {teraNumeros && (
           <div className="min-w-0 space-y-12">
-            {r.vendas_por_dia && (
+            {resumo.carregando && !r && <Carregando texto="Carregando os números..." />}
+            {resumo.erro && <Aviso mensagem={resumo.erro}>Recarregue a página para tentar de novo.</Aviso>}
+            {r?.vendas_por_dia && (
               <section aria-labelledby="titulo-vendas" className="space-y-6">
                 <h2 id="titulo-vendas" className="border-b border-foreground pb-3 text-lg font-medium">Vendas</h2>
                 <NumerosVendas dias={r.vendas_por_dia} />
@@ -143,7 +147,7 @@ export function VisaoGeral() {
                 </div>
               </section>
             )}
-            {r.chamados && (
+            {r?.chamados && (
               <section aria-labelledby="titulo-chamados" className="space-y-6">
                 <h2 id="titulo-chamados" className="border-b border-foreground pb-3 text-lg font-medium">Atendimento</h2>
                 <div className="grid grid-cols-3 gap-6">
