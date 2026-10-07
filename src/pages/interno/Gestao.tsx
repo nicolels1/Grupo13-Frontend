@@ -36,18 +36,20 @@ export function Gestao() {
   const [aba, setAba] = useState('pessoas')
   return (
     <>
-      <Cabecalho titulo="Gestão" subtitulo="Quem usa a plataforma, o que cada modelo de acesso permite e as unidades da rede." />
-      <Abas
-        rotulo="Gestão"
-        valor={aba}
-        aoMudar={setAba}
-        className="mb-8"
-        abas={[
-          { valor: 'pessoas', rotulo: 'Pessoas' },
-          { valor: 'modelos', rotulo: 'Modelos de acesso' },
-          { valor: 'unidades', rotulo: 'Unidades' },
-        ]}
-      />
+      {/* teste: cabeçalho e abas num bloco aço-claro, só na Gestão */}
+      <div className="mb-8 bg-aco-fundo px-6 pt-8">
+        <Cabecalho titulo="Gestão" subtitulo="Quem usa a plataforma, o que cada modelo de acesso permite e as unidades da rede." />
+        <Abas
+          rotulo="Gestão"
+          valor={aba}
+          aoMudar={setAba}
+          abas={[
+            { valor: 'pessoas', rotulo: 'Pessoas' },
+            { valor: 'modelos', rotulo: 'Modelos de acesso' },
+            { valor: 'unidades', rotulo: 'Unidades' },
+          ]}
+        />
+      </div>
       {aba === 'pessoas' && <Pessoas />}
       {aba === 'modelos' && <Modelos />}
       {aba === 'unidades' && <Unidades />}
