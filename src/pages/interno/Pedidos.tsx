@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, type FormEvent, type ReactNode } from 'react'
 import { Check, PackageCheck, Truck, UserPen, X } from 'lucide-react'
 import { useSearchParams } from 'react-router'
 import { cn } from 'cn'
@@ -13,9 +13,15 @@ import { Button } from '@/components/ui/button'
 import { Campo, Input, Textarea } from '@/components/ui/input'
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet'
 import { useUnidadeEscolhida } from '@/layouts/unidadeEscolhida'
-import { api, ErroApi } from '@/lib/api'
+import { api, ErroApi, type Esquema } from '@/lib/api'
 import { dataCurta, dataHora, haQuanto, hora, mascaraCpf, METODOS_PAGAMENTO, moeda, plural } from '@/lib/formato'
 import { useCarregar, useEnviar } from '@/lib/useCarregar'
+
+type Pedido = Esquema<'PedidoSaida'>
+type PaginaPedidos = Esquema<'Pagina_PedidoSaida_'>
+type Cliente = Esquema<'ClienteResumo'>
+type ClienteCorrigido = Esquema<'ClienteCorrigido'>
+type Fila = 'preparar' | 'retirada' | 'enviados' | 'aguardando' | 'todos'
 
 const POR_PAGINA = 25
 // a retirada fica guardada por 7 dias depois de pronta; a partir de 5, a lista avisa que está perto de vencer
@@ -23,7 +29,7 @@ const PRAZO_RETIRADA_DIAS = 7
 const AVISO_RETIRADA_DIAS = 5
 
 // filas da área Pedidos (design, seção Pedidos): cada uma vira o filtro do GET /vendas/pedidos
-const FILAS = [
+const FILAS: { valor: Fila; rotulo: string; filtros: { status?: Pedido['status'] } }[] = [
   { valor: 'preparar', rotulo: 'Para preparar', filtros: { status: 'pago' } },
   { valor: 'retirada', rotulo: 'Esperando retirada', filtros: { status: 'pronto_para_retirada' } },
   { valor: 'enviados', rotulo: 'Enviados', filtros: { status: 'enviado' } },
@@ -32,42 +38,42 @@ const FILAS = [
 ]
 
 // como o pedido chega à pessoa
-function comoRecebe(p) {
+function comoRecebe(p: Pedido) {
   if (p.canal === 'loja_fisica') return `Compra na ${p.unidade}`
   if (p.modalidade === 'retirada') return `Retirada na ${p.unidade}`
   return 'Entrega em casa'
 }
 
-const pecas = (p) => p.itens.reduce((t, i) => t + i.quantidade, 0)
-const diasDesde = (iso) => (iso ? Math.floor((Date.now() - new Date(iso).getTime()) / 86400000) : 0)
-const nomeDoCliente = (p) => p.cliente ?? (p.cpf_nota ? `CPF ${mascaraCpf(p.cpf_nota)}` : 'Cliente sem cadastro')
+const pecas = (p: Pedido) => p.itens.reduce((t, i) => t + i.quantidade, 0)
+const diasDesde = (iso: string | null) => (iso ? Math.floor((Date.now() - new Date(iso).getTime()) / 86400000) : 0)
+const nomeDoCliente = (p: Pedido) => p.cliente ?? (p.cpf_nota ? `CPF ${mascaraCpf(p.cpf_nota)}` : 'Cliente sem cadastro')
 
 export function Pedidos() {
   const { perfil } = useAuth()
   const { unidade } = useUnidadeEscolhida()
   const [params, setParams] = useSearchParams()
-  const [fila, setFila] = useState('preparar')
+  const [fila, setFila] = useState<Fila>('preparar')
   const [offset, setOffset] = useState(0)
   const [corrigindo, setCorrigindo] = useState(false)
   const idVer = params.get('ver')
-  const filtros = FILAS.find((f) => f.valor === fila).filtros
+  const filtros = FILAS.find((f) => f.valor === fila)?.filtros ?? {}
 
   const lista = useCarregar(
-    () => api('/vendas/pedidos', { params: { ...filtros, id_unidade: unidade, limit: POR_PAGINA, offset } }),
+    () => api<PaginaPedidos>('/vendas/pedidos', { params: { ...filtros, id_unidade: unidade, limit: POR_PAGINA, offset } }),
     [fila, unidade, offset],
   )
   // contagem de cada fila (só o total; "Todos" não precisa)
   const contagens = useCarregar(
     () => Promise.all(FILAS.map((f) => (f.valor === 'todos'
       ? Promise.resolve(null)
-      : api('/vendas/pedidos', { params: { ...f.filtros, id_unidade: unidade, limit: 1 } }).then((r) => r.total)))),
+      : api<PaginaPedidos>('/vendas/pedidos', { params: { ...f.filtros, id_unidade: unidade, limit: 1 } }).then((r) => r.total)))),
     [unidade],
   )
   const itens = lista.dados?.items ?? []
   // o pedido aberto vem da lista; se não está na página (link direto), o detalhe busca sozinho
   const escolhido = itens.find((p) => String(p.id_pedido) === idVer) ?? (idVer ? null : itens[0])
 
-  function ver(id) {
+  function ver(id: number) {
     setParams({ ver: String(id) }, { replace: true })
   }
 
@@ -123,7 +129,7 @@ export function Pedidos() {
 }
 
 // um pedido na lista: código e status, cliente, como recebe, peças, total e há quanto tempo
-function ItemDaFila({ pedido: p, aberto, aoAbrir }) {
+function ItemDaFila({ pedido: p, aberto, aoAbrir }: { pedido: Pedido; aberto: boolean; aoAbrir: () => void }) {
   const dias = diasDesde(p.pronto_retirada_em)
   const perto = p.status === 'pronto_para_retirada' && dias >= AVISO_RETIRADA_DIAS
   return (
@@ -149,15 +155,17 @@ function ItemDaFila({ pedido: p, aberto, aoAbrir }) {
 }
 
 // aberto por link (?ver=) quando o pedido não está na página da fila
-function PedidoPorLink({ idPedido, aoMudar }) {
-  const pedido = useCarregar(() => api(`/vendas/pedidos/${idPedido}`), [idPedido])
+function PedidoPorLink({ idPedido, aoMudar }: { idPedido: string; aoMudar: () => void }) {
+  const pedido = useCarregar(() => api<Pedido>(`/vendas/pedidos/${idPedido}`), [idPedido])
   if (pedido.erro) return <Aviso mensagem={pedido.erro} />
   if (!pedido.dados) return <Carregando />
   return <DetalhePedido pedido={pedido.dados} aoMudar={() => { pedido.recarregar(); aoMudar() }} />
 }
 
 // etapas do pedido na ordem em que acontecem; cancelado substitui o que faltava
-function etapas(p) {
+type Etapa = { rotulo: string; quando: string | null; feita: boolean; cancelada?: boolean }
+
+function etapas(p: Pedido): Etapa[] {
   if (p.canal === 'loja_fisica') {
     return [{ rotulo: 'Vendido na loja', quando: p.entregue_em ?? p.criado_em, feita: true }]
   }
@@ -176,14 +184,14 @@ function etapas(p) {
 
 // painel do pedido (design, seção Pedidos): a ação do momento, os itens, o pagamento, a entrega
 // e "Cancelar pedido" com motivo
-function DetalhePedido({ pedido: p, aoMudar }) {
+function DetalhePedido({ pedido: p, aoMudar }: { pedido: Pedido; aoMudar: () => void }) {
   const { perfil } = useAuth()
-  const [feito, setFeito] = useState(null)
+  const [feito, setFeito] = useState<string | null>(null)
   const podeCancelar = temPermissao(perfil, 'cancelar_pedido_equipe') && ['aguardando_pagamento', 'pago', 'pronto_para_retirada'].includes(p.status)
   const pagamentos = p.pagamentos.filter((x) => x.tipo === 'pagamento')
   const estornos = p.pagamentos.filter((x) => x.tipo === 'estorno' && x.status !== 'recusado')
 
-  function aposAcao(mensagem) {
+  function aposAcao(mensagem: string) {
     setFeito(mensagem)
     aoMudar()
   }
@@ -287,19 +295,19 @@ function DetalhePedido({ pedido: p, aoMudar }) {
 }
 
 // o que falta fazer agora, conforme o status e a modalidade (só para quem prepara e entrega)
-function AcaoDoMomento({ pedido: p, aoFazer }) {
+function AcaoDoMomento({ pedido: p, aoFazer }: { pedido: Pedido; aoFazer: (mensagem: string) => void }) {
   const { perfil } = useAuth()
   const [codigo, setCodigo] = useState('')
   const [conferiu, setConferiu] = useState(false)
   const { enviar, enviando, erro } = useEnviar()
   if (!temPermissao(perfil, 'preparar_entregar_pedido')) return null
 
-  async function fazer(acao, corpo, mensagem) {
-    const ok = await enviar(() => api(`/vendas/pedidos/${p.id_pedido}/${acao}`, { metodo: 'POST', corpo }))
+  async function fazer(acao: 'enviar' | 'pronto-retirada' | 'entregar', corpo: object | undefined, mensagem: string) {
+    const ok = await enviar(() => api<Pedido>(`/vendas/pedidos/${p.id_pedido}/${acao}`, { metodo: 'POST', corpo }))
     if (ok) aoFazer(mensagem)
   }
 
-  let conteudo = null
+  let conteudo: ReactNode = null
   if (p.status === 'pago' && p.modalidade === 'entrega') {
     conteudo = (
       <>
@@ -364,15 +372,15 @@ function AcaoDoMomento({ pedido: p, aoFazer }) {
 }
 
 // cancelamento pela equipe: antes do envio. Já pago, o backend estorna tudo e as peças voltam ao estoque
-function CancelarPedido({ pedido: p, aoCancelar }) {
+function CancelarPedido({ pedido: p, aoCancelar }: { pedido: Pedido; aoCancelar: () => void }) {
   const [aberto, setAberto] = useState(false)
   const [justificativa, setJustificativa] = useState('')
   const { enviar, enviando, erro } = useEnviar()
   const pago = p.status !== 'aguardando_pagamento'
 
-  async function cancelar(evento) {
+  async function cancelar(evento: FormEvent) {
     evento.preventDefault()
-    const ok = await enviar(() => api(`/vendas/pedidos/${p.id_pedido}/cancelar`, { metodo: 'POST', corpo: { justificativa: justificativa.trim() } }))
+    const ok = await enviar(() => api<Pedido>(`/vendas/pedidos/${p.id_pedido}/cancelar`, { metodo: 'POST', corpo: { justificativa: justificativa.trim() } }))
     if (ok) aoCancelar()
   }
 
@@ -409,16 +417,16 @@ function CancelarPedido({ pedido: p, aoCancelar }) {
 
 // corrigir e-mail ou CPF de um cliente, com documento (GET /vendas/clientes pelo CPF e PATCH).
 // Se o CPF certo já tem conta, os pedidos passam para ela e esta conta é desativada.
-function CorrigirCadastro({ aberto, aoFechar }) {
+function CorrigirCadastro({ aberto, aoFechar }: { aberto: boolean; aoFechar: () => void }) {
   const [cpfBusca, setCpfBusca] = useState('')
-  const [cliente, setCliente] = useState(null)
+  const [cliente, setCliente] = useState<Cliente | null>(null)
   const [email, setEmail] = useState('')
   const [cpf, setCpf] = useState('')
   const [conferiu, setConferiu] = useState(false)
-  const [resultado, setResultado] = useState(null)
-  const [erroBusca, setErroBusca] = useState(null)
+  const [resultado, setResultado] = useState<ClienteCorrigido | null>(null)
+  const [erroBusca, setErroBusca] = useState<string | null>(null)
   const { enviar, enviando, erro, limparErro } = useEnviar()
-  const digitos = (t) => t.replace(/\D/g, '')
+  const digitos = (t: string) => t.replace(/\D/g, '')
 
   function recomecar() {
     setCpfBusca('')
@@ -429,12 +437,12 @@ function CorrigirCadastro({ aberto, aoFechar }) {
     limparErro()
   }
 
-  async function buscar(evento) {
+  async function buscar(evento: FormEvent) {
     evento.preventDefault()
     setErroBusca(null)
     setResultado(null)
     try {
-      const achado = await api('/vendas/clientes', { params: { cpf: digitos(cpfBusca) } })
+      const achado = await api<Cliente>('/vendas/clientes', { params: { cpf: digitos(cpfBusca) } })
       setCliente(achado)
       setEmail(achado.email)
       setCpf(achado.cpf ? mascaraCpf(achado.cpf) : '')
@@ -447,14 +455,15 @@ function CorrigirCadastro({ aberto, aoFechar }) {
     }
   }
 
-  const mudancas = {}
+  const mudancas: { email?: string; cpf?: string } = {}
   if (cliente && email.trim() && email.trim() !== cliente.email) mudancas.email = email.trim()
   if (cliente && digitos(cpf) && digitos(cpf) !== (cliente.cpf ?? '')) mudancas.cpf = digitos(cpf)
   const temMudanca = Object.keys(mudancas).length > 0
 
-  async function corrigir(evento) {
+  async function corrigir(evento: FormEvent) {
     evento.preventDefault()
-    const feito = await enviar(() => api(`/vendas/clientes/${cliente.id_usuario}`, { metodo: 'PATCH', corpo: mudancas }))
+    if (!cliente) return
+    const feito = await enviar(() => api<ClienteCorrigido>(`/vendas/clientes/${cliente.id_usuario}`, { metodo: 'PATCH', corpo: mudancas }))
     if (feito) {
       setResultado(feito)
       setCliente(null)
