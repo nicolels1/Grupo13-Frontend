@@ -477,7 +477,7 @@ function CorrigirCadastro({ aberto, aoFechar }: { aberto: boolean; aoFechar: () 
 
   return (
     <Sheet open={aberto} onOpenChange={(abrir) => { if (!abrir) { recomecar(); aoFechar() } }}>
-      <SheetContent className="overflow-y-auto transition-none sm:max-w-md!">
+      <SheetContent className="overflow-y-auto sm:max-w-md!">
         <SheetHeader className="border-b pr-12">
           <SheetTitle className="text-lg">Corrigir cadastro de cliente</SheetTitle>
           <SheetDescription>E-mail ou CPF errados são corrigidos em qualquer loja, conferindo um documento com foto.</SheetDescription>

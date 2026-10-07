@@ -142,7 +142,7 @@ export function Movimentacoes() {
       </div>
 
       <Sheet open={registrando} onOpenChange={(abrir) => { if (!abrir) fecharRegistro() }}>
-        <SheetContent className="overflow-y-auto transition-none sm:max-w-md!">
+        <SheetContent className="overflow-y-auto sm:max-w-md!">
           <SheetHeader className="border-b pr-12">
             <SheetTitle className="text-lg">Registrar movimentação</SheetTitle>
             <SheetDescription>Entrada ou saída de peças que não veio de venda nem de transferência.</SheetDescription>

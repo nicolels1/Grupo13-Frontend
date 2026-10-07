@@ -376,7 +376,7 @@ function TrocaPeloChamado({ modo, chamado: c, pedido, aoFechar, aoConcluir }: {
 
   return (
     <Sheet open={Boolean(modo)} onOpenChange={(aberto) => { if (!aberto) aoFechar() }}>
-      <SheetContent className="w-full! overflow-y-auto transition-none sm:max-w-3xl!">
+      <SheetContent className="w-full! overflow-y-auto sm:max-w-3xl!">
         <SheetHeader className="border-b pr-12">
           <SheetTitle className="text-lg">{troca ? 'Registrar troca' : 'Registrar devolução'}</SheetTitle>
           <SheetDescription>
@@ -459,7 +459,7 @@ function EstornoPeloChamado({ aberto, chamado: c, pedido, aoFechar, aoConcluir }
 
   return (
     <Sheet open={aberto} onOpenChange={(abrir) => { if (!abrir) fechar() }}>
-      <SheetContent className="overflow-y-auto transition-none sm:max-w-md!">
+      <SheetContent className="overflow-y-auto sm:max-w-md!">
         <SheetHeader className="border-b pr-12">
           <SheetTitle className="text-lg">Estornar</SheetTitle>
           <SheetDescription>
