@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { Check, Printer, Trash2 } from 'lucide-react'
 import { cn } from 'cn'
 
@@ -10,14 +10,23 @@ import { Etiqueta, NomePeca } from '@/components/Peca'
 import { Button } from '@/components/ui/button'
 import { Campo, Input, Select } from '@/components/ui/input'
 import { useUnidadeEscolhida } from '@/layouts/unidadeEscolhida'
-import { api, ErroApi } from '@/lib/api'
+import { api, ErroApi, todasAsPaginas, type Esquema } from '@/lib/api'
 import { ordenarTamanhos } from '@/lib/cores'
 import { CANAIS, dataCurta, dataHora, haQuanto, hojeIso, hora, mascaraCpf, METODOS_PAGAMENTO, moeda, plural } from '@/lib/formato'
+import type { TrocaFeita } from '@/lib/trocaDevolucao'
 import { useCarregar, useEnviar } from '@/lib/useCarregar'
 import { AtenderPedido } from './TrocaDevolucao'
 
+type Unidade = Esquema<'UnidadeSaida'>
+type Pedido = Esquema<'PedidoSaida'>
+type ItemEstoque = Esquema<'EstoqueItem'>
+type PaginaPedidos = Esquema<'Pagina_PedidoSaida_'>
+type Aba = 'nova' | 'retiradas' | 'hoje' | 'consultar' | 'troca'
+// peça no carrinho da venda: a linha de estoque da loja e a quantidade digitada
+type ItemVenda = { linha: ItemEstoque; quantidade: string }
+
 // abas do Caixa e a permissão que cada uma pede (as mesmas das rotas do backend)
-const ABAS = [
+const ABAS: { valor: Aba; rotulo: string; permissoes: string[] }[] = [
   { valor: 'nova', rotulo: 'Nova venda', permissoes: ['registrar_venda_fisica'] },
   { valor: 'retiradas', rotulo: 'Retiradas', permissoes: ['preparar_entregar_pedido'] },
   { valor: 'hoje', rotulo: 'Vendas de hoje', permissoes: ['registrar_venda_fisica', 'preparar_entregar_pedido', 'registrar_troca_devolucao'] },
@@ -45,7 +54,7 @@ export function Caixa() {
   }, [travada, unidade, setUnidade])
 
   const abas = ABAS.filter((a) => a.permissoes.some((codigo) => temPermissao(perfil, codigo)))
-  const [aba, setAba] = useState(abas[0]?.valor)
+  const [aba, setAba] = useState<Aba>(abas[0]?.valor ?? 'nova')
   const vendendo = loja?.tipo === 'loja' && loja.ativo
 
   return (
@@ -84,11 +93,11 @@ export function Caixa() {
 
 // ---------- Nova venda ----------
 
-const soDigitos = (texto) => texto.replace(/\D/g, '')
+const soDigitos = (texto: string) => texto.replace(/\D/g, '')
 
-function NovaVenda({ loja }) {
-  const [venda, setVenda] = useState(null)
-  const [troco, setTroco] = useState(null)
+function NovaVenda({ loja }: { loja: Unidade }) {
+  const [venda, setVenda] = useState<Pedido | null>(null)
+  const [troco, setTroco] = useState<number | null>(null)
   // remonta o formulário vazio a cada venda nova
   const [numero, setNumero] = useState(0)
 
@@ -117,9 +126,9 @@ function NovaVenda({ loja }) {
   )
 }
 
-function FormularioVenda({ loja, aoFinalizar }) {
+function FormularioVenda({ loja, aoFinalizar }: { loja: Unidade; aoFinalizar: (pedido: Pedido, troco: number | null) => void }) {
   const [termo, setTermo] = useState('')
-  const [itens, setItens] = useState([])
+  const [itens, setItens] = useState<ItemVenda[]>([])
   const [cpf, setCpf] = useState('')
   const [metodo, setMetodo] = useState('pix')
   const [recebido, setRecebido] = useState('')
@@ -127,7 +136,7 @@ function FormularioVenda({ loja, aoFinalizar }) {
 
   const achadas = useCarregar(
     () => (termo.trim().length >= 2
-      ? api('/balcao/estoque', { params: { id_unidade: loja.id_unidade, canal: 'loja_fisica', busca: termo.trim(), limit: 30 } })
+      ? api<Esquema<'Pagina_EstoqueItem_'>>('/balcao/estoque', { params: { id_unidade: loja.id_unidade, canal: 'loja_fisica', busca: termo.trim(), limit: 30 } })
       : null),
     [loja.id_unidade, termo],
   )
@@ -138,7 +147,7 @@ function FormularioVenda({ loja, aoFinalizar }) {
   const chaveCarrinho = validos.map((i) => `${i.linha.id_variante}x${Number(i.quantidade)}`).join(',')
   const resumo = useCarregar(
     () => (validos.length
-      ? api('/carrinho', { metodo: 'POST', corpo: { itens: validos.map((i) => ({ id_variante: i.linha.id_variante, quantidade: Number(i.quantidade) })) } })
+      ? api<Esquema<'ResumoCarrinho'>>('/carrinho', { metodo: 'POST', corpo: { itens: validos.map((i) => ({ id_variante: i.linha.id_variante, quantidade: Number(i.quantidade) })) } })
       : null),
     [chaveCarrinho],
   )
@@ -149,9 +158,9 @@ function FormularioVenda({ loja, aoFinalizar }) {
   const cpfDigitos = soDigitos(cpf)
   const cliente = useCarregar(
     () => (cpfDigitos.length === 11
-      ? api('/vendas/clientes', { params: { cpf: cpfDigitos } })
-        .then((c) => ({ conta: c }))
-        .catch((falha) => {
+      ? api<Esquema<'ClienteResumo'>>('/vendas/clientes', { params: { cpf: cpfDigitos } })
+        .then((c): { conta: Esquema<'ClienteResumo'> | null } => ({ conta: c }))
+        .catch((falha: unknown) => {
           if (falha instanceof ErroApi && falha.status === 404) return { conta: null }
           throw falha
         })
@@ -162,13 +171,13 @@ function FormularioVenda({ loja, aoFinalizar }) {
   const emDinheiro = metodo === 'dinheiro'
   const valorRecebido = Number(recebido.replace(',', '.'))
   const trocoDado = emDinheiro && total && recebido ? valorRecebido - Number(total) : null
-  const faltaDinheiro = emDinheiro && (!recebido || trocoDado < 0)
+  const faltaDinheiro = emDinheiro && (!recebido || (trocoDado ?? 0) < 0)
 
   const quantidadesOk = itens.length > 0 && itens.every((i) => Number(i.quantidade) >= 1 && Number(i.quantidade) <= i.linha.disponivel)
   const cpfOk = cpfDigitos.length === 0 || cpfDigitos.length === 11
   const pronta = quantidadesOk && cpfOk && total && !resumo.carregando && !resumo.erro && !faltaDinheiro
 
-  function adicionar(linha) {
+  function adicionar(linha: ItemEstoque) {
     setTermo('')
     if (itens.some((i) => i.linha.id_variante === linha.id_variante)) {
       setItens(itens.map((i) => (i.linha.id_variante === linha.id_variante
@@ -179,11 +188,11 @@ function FormularioVenda({ loja, aoFinalizar }) {
     setItens([...itens, { linha, quantidade: '1' }])
   }
 
-  function mudarQuantidade(idVariante, quantidade) {
+  function mudarQuantidade(idVariante: number, quantidade: string) {
     setItens(itens.map((i) => (i.linha.id_variante === idVariante ? { ...i, quantidade } : i)))
   }
 
-  async function finalizar(evento) {
+  async function finalizar(evento: FormEvent) {
     evento.preventDefault()
     const corpo = {
       id_unidade: loja.id_unidade,
@@ -191,7 +200,7 @@ function FormularioVenda({ loja, aoFinalizar }) {
       cpf_nota: cpfDigitos || null,
       pagamentos: [{ metodo, valor: total }],
     }
-    const pedido = await enviar(() => api('/vendas/pedidos', { metodo: 'POST', corpo }))
+    const pedido = await enviar(() => api<Pedido>('/vendas/pedidos', { metodo: 'POST', corpo }))
     if (pedido) aoFinalizar(pedido, trocoDado)
   }
 
@@ -358,7 +367,7 @@ function useImprimirAoAbrir() {
 }
 
 // a notinha abre para imprimir assim que a venda fecha; "Nova venda" só depois de imprimir
-function VendaFinalizada({ venda, troco, aoNovaVenda }) {
+function VendaFinalizada({ venda, troco, aoNovaVenda }: { venda: Pedido; troco: number | null; aoNovaVenda: () => void }) {
   const { imprimiu, imprimir } = useImprimirAoAbrir()
 
   return (
@@ -384,7 +393,7 @@ function VendaFinalizada({ venda, troco, aoNovaVenda }) {
   )
 }
 
-function Notinha({ venda, troco }) {
+function Notinha({ venda, troco }: { venda: Pedido; troco: number | null }) {
   return (
     <section aria-label="Notinha" className="notinha space-y-4 border bg-white p-5 text-sm text-foreground">
       <div className="space-y-0.5 text-center">
@@ -416,7 +425,7 @@ function Notinha({ venda, troco }) {
             <span className="tabular-nums">{moeda(p.valor)}</span>
           </p>
         ))}
-        {troco > 0 && <p className="flex justify-between"><span>Troco</span><span className="tabular-nums">{moeda(troco)}</span></p>}
+        {troco !== null && troco > 0 && <p className="flex justify-between"><span>Troco</span><span className="tabular-nums">{moeda(troco)}</span></p>}
       </div>
       {venda.cpf_nota && <p className="text-center">CPF na nota {mascaraCpf(venda.cpf_nota)}</p>}
       <p className="text-center text-xs">Troca ou devolução em até 30 dias com esta notinha.</p>
@@ -426,25 +435,25 @@ function Notinha({ venda, troco }) {
 
 // ---------- Retiradas ----------
 
-function diasDesde(iso) {
+function diasDesde(iso: string | null) {
   return iso ? Math.floor((Date.now() - new Date(iso).getTime()) / 86400000) : 0
 }
 
-function Retiradas({ loja }) {
+function Retiradas({ loja }: { loja: Unidade }) {
   const lista = useCarregar(
-    () => api('/vendas/pedidos', { params: { status: 'pronto_para_retirada', id_unidade: loja.id_unidade, limit: 100 } }),
+    () => api<PaginaPedidos>('/vendas/pedidos', { params: { status: 'pronto_para_retirada', id_unidade: loja.id_unidade, limit: 100 } }),
     [loja.id_unidade],
   )
   const prontas = lista.dados?.items ?? []
-  const [idEscolhido, setIdEscolhido] = useState(null)
+  const [idEscolhido, setIdEscolhido] = useState<number | null>(null)
   const [codigo, setCodigo] = useState('')
-  const [entregue, setEntregue] = useState(null)
+  const [entregue, setEntregue] = useState<Pedido | null>(null)
 
   // o pedido aparece pelo clique na lista ou pelo código digitado
   const codigoLimpo = codigo.trim().toUpperCase()
   const escolhido = prontas.find((p) => codigoLimpo && p.codigo_venda === codigoLimpo) ?? prontas.find((p) => p.id_pedido === idEscolhido)
 
-  function aposEntregar(pedido) {
+  function aposEntregar(pedido: Pedido) {
     setEntregue(pedido)
     setIdEscolhido(null)
     setCodigo('')
@@ -517,13 +526,13 @@ function Retiradas({ loja }) {
   )
 }
 
-function EntregarRetirada({ pedido, codigo, aoEntregar }) {
+function EntregarRetirada({ pedido, codigo, aoEntregar }: { pedido: Pedido; codigo: string; aoEntregar: (pedido: Pedido) => void }) {
   const [conferiu, setConferiu] = useState(false)
   const { enviar, enviando, erro } = useEnviar()
 
-  async function entregar(evento) {
+  async function entregar(evento: FormEvent) {
     evento.preventDefault()
-    const feito = await enviar(() => api(`/vendas/pedidos/${pedido.id_pedido}/entregar`, { metodo: 'POST', corpo: { codigo_venda: codigo } }))
+    const feito = await enviar(() => api<Pedido>(`/vendas/pedidos/${pedido.id_pedido}/entregar`, { metodo: 'POST', corpo: { codigo_venda: codigo } }))
     if (feito) aoEntregar(feito)
   }
 
@@ -562,17 +571,17 @@ function EntregarRetirada({ pedido, codigo, aoEntregar }) {
 
 // ---------- Vendas de hoje ----------
 
-function VendasDeHoje({ loja }) {
+function VendasDeHoje({ loja }: { loja: Unidade }) {
   const hoje = hojeIso()
   const lista = useCarregar(
-    () => api('/vendas/pedidos', { params: { canal: 'loja_fisica', id_unidade: loja.id_unidade, de: hoje, ate: hoje, limit: 200 } }),
+    () => api<PaginaPedidos>('/vendas/pedidos', { params: { canal: 'loja_fisica', id_unidade: loja.id_unidade, de: hoje, ate: hoje, limit: 200 } }),
     [loja.id_unidade, hoje],
   )
   const vendas = lista.dados?.items ?? []
-  const [reimprimindo, setReimprimindo] = useState(null)
+  const [reimprimindo, setReimprimindo] = useState<Pedido | null>(null)
 
   // total recebido por forma de pagamento (só os pagamentos aprovados; estornos ficam de fora)
-  const porMetodo = {}
+  const porMetodo: Record<string, number> = {}
   for (const venda of vendas) {
     for (const p of venda.pagamentos) {
       if (p.tipo === 'pagamento' && p.status === 'aprovado') porMetodo[p.metodo] = (porMetodo[p.metodo] ?? 0) + Number(p.valor)
@@ -665,25 +674,20 @@ function VendasDeHoje({ loja }) {
 
 // todas as linhas de estoque do produto em todas as unidades; a busca é por parte do nome, então
 // filtra o nome exato no fim
-async function estoqueDoProduto(produto) {
-  const linhas = []
-  for (let offset = 0; ; offset += 200) {
-    const pagina = await api('/balcao/estoque', { params: { busca: produto, limit: 200, offset } })
-    linhas.push(...pagina.items)
-    if (offset + pagina.limit >= pagina.total) break
-  }
+async function estoqueDoProduto(produto: string) {
+  const linhas = await todasAsPaginas<ItemEstoque>('/balcao/estoque', { busca: produto })
   return linhas.filter((l) => l.produto === produto)
 }
 
-const somaDisponivel = (linhas) => linhas.reduce((t, l) => t + l.disponivel, 0)
+const somaDisponivel = (linhas: ItemEstoque[]) => linhas.reduce((t, l) => t + l.disponivel, 0)
 
-function ConsultarPeca({ loja }) {
+function ConsultarPeca({ loja }: { loja: Unidade }) {
   const [termo, setTermo] = useState('')
-  const [produto, setProduto] = useState(null)
-  const [celula, setCelula] = useState(null)
+  const [produto, setProduto] = useState<string | null>(null)
+  const [celula, setCelula] = useState<{ cor: string; tamanho: string } | null>(null)
 
   const achadas = useCarregar(
-    () => (termo.trim().length >= 2 && !produto ? api('/balcao/estoque', { params: { busca: termo.trim(), limit: 200 } }) : null),
+    () => (termo.trim().length >= 2 && !produto ? api<Esquema<'Pagina_EstoqueItem_'>>('/balcao/estoque', { params: { busca: termo.trim(), limit: 200 } }) : null),
     [termo, produto],
   )
   const produtos = [...new Set((achadas.dados?.items ?? []).map((l) => l.produto))].sort((a, b) => a.localeCompare(b, 'pt-BR'))
@@ -692,10 +696,10 @@ function ConsultarPeca({ loja }) {
   const linhas = estoque.dados ?? []
   const cores = [...new Set(linhas.map((l) => l.cor))].sort((a, b) => a.localeCompare(b, 'pt-BR'))
   const tamanhos = ordenarTamanhos(new Set(linhas.map((l) => l.tamanho)))
-  const doCruzamento = (cor, tamanho) => linhas.filter((l) => l.cor === cor && l.tamanho === tamanho)
-  const nestaLoja = (doCruz) => somaDisponivel(doCruz.filter((l) => l.id_unidade === loja.id_unidade && l.canal === 'loja_fisica'))
+  const doCruzamento = (cor: string, tamanho: string) => linhas.filter((l) => l.cor === cor && l.tamanho === tamanho)
+  const nestaLoja = (doCruz: ItemEstoque[]) => somaDisponivel(doCruz.filter((l) => l.id_unidade === loja.id_unidade && l.canal === 'loja_fisica'))
 
-  function escolher(nome) {
+  function escolher(nome: string) {
     setProduto(nome)
     setTermo(nome)
     setCelula(null)
@@ -810,24 +814,26 @@ function ConsultarPeca({ loja }) {
 
 // ---------- Troca ou devolução ----------
 
-const BUSCAS = {
+type TipoBusca = 'codigo_venda' | 'cpf' | 'id_pedido'
+
+const BUSCAS: Record<TipoBusca, { rotulo: string; dica: string }> = {
   codigo_venda: { rotulo: 'Código da venda', dica: 'O código da notinha ou do pedido, como CL...' },
   cpf: { rotulo: 'CPF', dica: 'Mostra os pedidos entregues nos últimos 30 dias, pela conta ou pelo CPF na nota.' },
   id_pedido: { rotulo: 'Número do pedido', dica: 'O número que aparece no painel de pedidos.' },
 }
 
-function TrocaOuDevolucao({ loja }) {
-  const [tipoBusca, setTipoBusca] = useState('codigo_venda')
+function TrocaOuDevolucao({ loja }: { loja: Unidade }) {
+  const [tipoBusca, setTipoBusca] = useState<TipoBusca>('codigo_venda')
   const [termo, setTermo] = useState('')
-  const [filtro, setFiltro] = useState(null)
-  const [idEscolhido, setIdEscolhido] = useState(null)
-  const [feito, setFeito] = useState(null)
+  const [filtro, setFiltro] = useState<Record<string, string> | null>(null)
+  const [idEscolhido, setIdEscolhido] = useState<number | null>(null)
+  const [feito, setFeito] = useState<TrocaFeita | null>(null)
 
-  const busca = useCarregar(() => (filtro ? api('/balcao/pedidos', { params: filtro }) : null), [JSON.stringify(filtro)])
+  const busca = useCarregar(() => (filtro ? api<Esquema<'Lista_PedidoSaida_'>>('/balcao/pedidos', { params: filtro }) : null), [JSON.stringify(filtro)])
   const achados = busca.dados?.items ?? []
   const escolhido = achados.length === 1 ? achados[0] : achados.find((p) => p.id_pedido === idEscolhido)
 
-  function buscar(evento) {
+  function buscar(evento: FormEvent) {
     evento.preventDefault()
     const valor = tipoBusca === 'codigo_venda' ? termo.trim().toUpperCase() : soDigitos(termo)
     setIdEscolhido(null)
@@ -849,7 +855,7 @@ function TrocaOuDevolucao({ loja }) {
     <div className="space-y-8">
       <form onSubmit={buscar} className="flex flex-wrap items-end gap-3">
         <Campo id="troca-tipo" rotulo="Buscar por" className="w-48">
-          <Select id="troca-tipo" value={tipoBusca} onChange={(e) => { setTipoBusca(e.target.value); setTermo('') }}>
+          <Select id="troca-tipo" value={tipoBusca} onChange={(e) => { setTipoBusca(e.target.value as TipoBusca); setTermo('') }}>
             {Object.entries(BUSCAS).map(([valor, { rotulo }]) => <option key={valor} value={valor}>{rotulo}</option>)}
           </Select>
         </Campo>
@@ -906,7 +912,7 @@ function TrocaOuDevolucao({ loja }) {
 }
 
 // comprovante da troca ou devolução: abre para imprimir na hora, como a notinha da venda
-function ComprovanteFeito({ feito, loja, aoRecomecar }) {
+function ComprovanteFeito({ feito, loja, aoRecomecar }: { feito: TrocaFeita; loja: Unidade; aoRecomecar: () => void }) {
   const { imprimiu, imprimir } = useImprimirAoAbrir()
   const troca = feito.modo === 'troca'
   const [momento] = useState(() => new Date().toISOString())

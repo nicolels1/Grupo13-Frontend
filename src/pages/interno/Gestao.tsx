@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, type ChangeEvent, type FormEvent, type ReactNode } from 'react'
 import { Plus, Search, X } from 'lucide-react'
 import { cn } from 'cn'
 
@@ -7,15 +7,23 @@ import { Abas, Cabecalho, Paginacao } from '@/components/Navegacao'
 import { Button } from '@/components/ui/button'
 import { Campo, Input, Select } from '@/components/ui/input'
 import { useUnidadeEscolhida } from '@/layouts/unidadeEscolhida'
-import { api } from '@/lib/api'
+import { api, type Esquema } from '@/lib/api'
 import { plural, STATUS_CONTA } from '@/lib/formato'
 import { limparListas } from '@/lib/listas'
 import { useCarregar, useEnviar } from '@/lib/useCarregar'
 
+type Modelo = Esquema<'ModeloSaida'>
+type Permissao = Esquema<'PermissaoSaida'>
+type Unidade = Esquema<'UnidadeSaida'>
+type Pessoa = Esquema<'UsuarioDetalhe'>
+type ListaModelos = Esquema<'Lista_ModeloSaida_'>
+type ListaPermissoes = Esquema<'Lista_PermissaoSaida_'>
+type Metodo = 'POST' | 'PATCH' | 'PUT' | 'DELETE'
+
 const POR_PAGINA = 25
 
 // grupos das permissões no editor de modelos (os códigos são os do banco)
-const GRUPOS = [
+const GRUPOS: [string, string[]][] = [
   ['Contas', ['gerenciar_contas', 'gerenciar_modelos_acesso']],
   ['Cadastros', ['gerenciar_catalogo', 'gerenciar_unidades']],
   ['Estoque', ['movimentar_estoque', 'definir_estoque_minimo']],
@@ -54,13 +62,14 @@ function Pessoas() {
   const [busca, setBusca] = useState('')
   const [idModelo, setIdModelo] = useState('')
   const [offset, setOffset] = useState(0)
-  const [aberta, setAberta] = useState(null)
-  const modelos = useCarregar(() => api('/modelos-acesso'), [])
+  // id da pessoa aberta, 'nova' ou null
+  const [aberta, setAberta] = useState<string | null>(null)
+  const modelos = useCarregar(() => api<ListaModelos>('/modelos-acesso'), [])
   const lista = useCarregar(
-    () => api('/usuarios', { params: { tipo_conta: 'interna', busca: busca.trim(), id_modelo_acesso: idModelo, limit: POR_PAGINA, offset } }),
+    () => api<Esquema<'Pagina_UsuarioItem_'>>('/usuarios', { params: { tipo_conta: 'interna', busca: busca.trim(), id_modelo_acesso: idModelo, limit: POR_PAGINA, offset } }),
     [busca, idModelo, offset],
   )
-  const filtro = (setter) => (e) => {
+  const filtro = (setter: (valor: string) => void) => (e: ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     setter(e.target.value)
     setOffset(0)
   }
@@ -88,7 +97,7 @@ function Pessoas() {
         {lista.erro && <Aviso mensagem={lista.erro} />}
         {lista.carregando && !lista.dados && <Carregando />}
         {lista.dados?.items.length === 0 && <Vazio>Ninguém encontrado.</Vazio>}
-        {lista.dados?.items.length > 0 && (
+        {lista.dados && lista.dados.items.length > 0 && (
           <div className="overflow-x-auto">
             <table className="w-full min-w-[36rem] text-sm">
               <thead className="text-left text-xs text-muted-foreground">
@@ -144,7 +153,7 @@ function Pessoas() {
   )
 }
 
-function Painel({ titulo, aoFechar, children }) {
+function Painel({ titulo, aoFechar, children }: { titulo: string; aoFechar: () => void; children: ReactNode }) {
   return (
     <aside className="h-fit space-y-5 bg-superficie p-6">
       <div className="flex items-start justify-between gap-2">
@@ -156,14 +165,19 @@ function Painel({ titulo, aoFechar, children }) {
   )
 }
 
-function ConvidarPessoa({ modelos, unidades, aoFechar, aoCriar }) {
+function ConvidarPessoa({ modelos, unidades, aoFechar, aoCriar }: {
+  modelos: Modelo[]
+  unidades: Unidade[]
+  aoFechar: () => void
+  aoCriar: (pessoa: Pessoa) => void
+}) {
   const [form, setForm] = useState({ nome: '', email: '', id_modelo_acesso: '', id_unidade: '', senha_provisoria: '' })
   const { enviar, enviando, erro } = useEnviar()
-  const mudar = (campo) => (e) => setForm({ ...form, [campo]: e.target.value })
+  const mudar = (campo: keyof typeof form) => (e: ChangeEvent<HTMLInputElement | HTMLSelectElement>) => setForm({ ...form, [campo]: e.target.value })
 
-  async function convidar(evento) {
+  async function convidar(evento: FormEvent) {
     evento.preventDefault()
-    const pessoa = await enviar(() => api('/usuarios', {
+    const pessoa = await enviar(() => api<Pessoa>('/usuarios', {
       metodo: 'POST',
       corpo: {
         nome: form.nome,
@@ -207,15 +221,21 @@ function ConvidarPessoa({ modelos, unidades, aoFechar, aoCriar }) {
   )
 }
 
-function DetalhePessoa({ idUsuario, modelos, unidades, aoFechar, aoMudar }) {
-  const pessoa = useCarregar(() => api(`/usuarios/${idUsuario}`), [idUsuario])
-  const permissoes = useCarregar(() => api('/permissoes'), [])
-  const [aviso, setAviso] = useState(null)
+function DetalhePessoa({ idUsuario, modelos, unidades, aoFechar, aoMudar }: {
+  idUsuario: string
+  modelos: Modelo[]
+  unidades: Unidade[]
+  aoFechar: () => void
+  aoMudar: () => void
+}) {
+  const pessoa = useCarregar(() => api<Pessoa>(`/usuarios/${idUsuario}`), [idUsuario])
+  const permissoes = useCarregar(() => api<ListaPermissoes>('/permissoes'), [])
+  const [aviso, setAviso] = useState<string | null>(null)
   const { enviar, enviando, erro } = useEnviar()
 
-  async function alterar(caminho, metodo, corpo, mensagem) {
+  async function alterar(caminho: string, metodo: Metodo, corpo: object | undefined, mensagem: string) {
     setAviso(null)
-    const ok = await enviar(() => api(`/usuarios/${idUsuario}${caminho}`, { metodo, corpo }))
+    const ok = await enviar(() => api<unknown>(`/usuarios/${idUsuario}${caminho}`, { metodo, corpo }))
     if (ok) {
       setAviso(mensagem)
       pessoa.recarregar()
@@ -224,12 +244,12 @@ function DetalhePessoa({ idUsuario, modelos, unidades, aoFechar, aoMudar }) {
   }
 
   if (pessoa.carregando && !pessoa.dados) return <Painel titulo="Pessoa" aoFechar={aoFechar}><Carregando /></Painel>
-  if (pessoa.erro) return <Painel titulo="Pessoa" aoFechar={aoFechar}><Aviso mensagem={pessoa.erro} /></Painel>
+  if (pessoa.erro || !pessoa.dados) return <Painel titulo="Pessoa" aoFechar={aoFechar}><Aviso mensagem={pessoa.erro ?? 'Pessoa não encontrada.'} /></Painel>
   const p = pessoa.dados
   const ehAdmin = p.modelo_acesso?.eh_admin
-  const excecao = (codigo) => p.excecoes.find((e) => e.codigo === codigo)?.efeito ?? ''
+  const excecao = (codigo: string) => p.excecoes.find((e) => e.codigo === codigo)?.efeito ?? ''
 
-  function mudarExcecao(codigo, efeito) {
+  function mudarExcecao(codigo: string, efeito: string) {
     if (!efeito) return alterar(`/excecoes/${codigo}`, 'DELETE', undefined, 'Exceção removida.')
     return alterar(`/excecoes/${codigo}`, 'PUT', { efeito }, 'Exceção salva.')
   }
@@ -328,18 +348,18 @@ function DetalhePessoa({ idUsuario, modelos, unidades, aoFechar, aoMudar }) {
 
 // lista dos modelos à esquerda; à direita, o modelo escolhido com as permissões agrupadas por área
 function Modelos() {
-  const modelos = useCarregar(() => api('/modelos-acesso'), [])
-  const permissoes = useCarregar(() => api('/permissoes'), [])
+  const modelos = useCarregar(() => api<ListaModelos>('/modelos-acesso'), [])
+  const permissoes = useCarregar(() => api<ListaPermissoes>('/permissoes'), [])
   // id do modelo aberto, 'novo' ou null (abre o primeiro)
-  const [aberto, setAberto] = useState(null)
+  const [aberto, setAberto] = useState<number | 'novo' | null>(null)
 
-  if ((modelos.carregando && !modelos.dados) || (permissoes.carregando && !permissoes.dados)) return <Carregando />
   if (modelos.erro || permissoes.erro) return <Aviso mensagem={modelos.erro || permissoes.erro} />
+  if (!modelos.dados || !permissoes.dados) return <Carregando />
 
   const lista = modelos.dados.items
   const escolhido = aberto === 'novo' ? null : (lista.find((m) => m.id_modelo === aberto) ?? lista[0])
 
-  function aposSalvar(modelo) {
+  function aposSalvar(modelo: Modelo) {
     modelos.recarregar()
     setAberto(modelo.id_modelo)
   }
@@ -383,20 +403,25 @@ function Modelos() {
 }
 
 // grupos na ordem de GRUPOS; permissão nova do banco que não está no mapa cai em "Outras"
-function agruparPermissoes(permissoes) {
-  const porCodigo = Object.fromEntries(permissoes.map((p) => [p.codigo, p]))
+function agruparPermissoes(permissoes: Permissao[]): [string, Permissao[]][] {
+  const porCodigo: Record<string, Permissao> = Object.fromEntries(permissoes.map((p) => [p.codigo, p]))
   const conhecidos = new Set(GRUPOS.flatMap(([, codigos]) => codigos))
   const outras = permissoes.map((p) => p.codigo).filter((c) => !conhecidos.has(c))
-  return [...GRUPOS, ['Outras', outras]]
-    .map(([nome, codigos]) => [nome, codigos.map((c) => porCodigo[c]).filter(Boolean)])
+  return [...GRUPOS, ['Outras', outras] as [string, string[]]]
+    .map(([nome, codigos]): [string, Permissao[]] => [nome, codigos.map((c) => porCodigo[c]).filter((p): p is Permissao => Boolean(p))])
     .filter(([, lista]) => lista.length > 0)
 }
 
-function EditorModelo({ modelo, modelos, permissoes, aoSalvar }) {
+function EditorModelo({ modelo, modelos, permissoes, aoSalvar }: {
+  modelo: Modelo | null | undefined
+  modelos: Modelo[]
+  permissoes: Permissao[]
+  aoSalvar: (modelo: Modelo) => void
+}) {
   const novo = !modelo
   const [nome, setNome] = useState(modelo?.nome ?? '')
-  const [marcadas, setMarcadas] = useState(() => new Set(modelo?.permissoes ?? []))
-  const [salvo, setSalvo] = useState(null)
+  const [marcadas, setMarcadas] = useState(() => new Set<string>(modelo?.permissoes ?? []))
+  const [salvo, setSalvo] = useState<string | null>(null)
   const { enviar, enviando, erro } = useEnviar()
 
   // as permissões da Gestão são só do Admin: ficam fora da edição dos outros modelos
@@ -405,9 +430,9 @@ function EditorModelo({ modelo, modelos, permissoes, aoSalvar }) {
   const grupos = agruparPermissoes(editaveis)
   const original = new Set(modelo?.permissoes ?? [])
   const mudancas = editaveis.filter((p) => marcadas.has(p.codigo) !== original.has(p.codigo)).length
-  const nomeMudou = !novo && nome.trim() !== modelo.nome
+  const nomeMudou = Boolean(modelo) && nome.trim() !== modelo?.nome
 
-  function marcar(codigos, ligar) {
+  function marcar(codigos: string[], ligar: boolean) {
     setSalvo(null)
     const proximas = new Set(marcadas)
     for (const codigo of codigos) {
@@ -417,26 +442,26 @@ function EditorModelo({ modelo, modelos, permissoes, aoSalvar }) {
     setMarcadas(proximas)
   }
 
-  function copiarDe(idModelo) {
+  function copiarDe(idModelo: string) {
     const origem = modelos.find((m) => String(m.id_modelo) === idModelo)
     setMarcadas(new Set((origem?.permissoes ?? []).filter((c) => editaveis.some((p) => p.codigo === c))))
   }
 
-  async function salvar(evento) {
+  async function salvar(evento: FormEvent) {
     evento.preventDefault()
     setSalvo(null)
-    if (novo) {
-      const criado = await enviar(() => api('/modelos-acesso', { metodo: 'POST', corpo: { nome, permissoes: [...marcadas] } }))
+    if (!modelo) {
+      const criado = await enviar(() => api<Modelo>('/modelos-acesso', { metodo: 'POST', corpo: { nome, permissoes: [...marcadas] } }))
       if (criado) aoSalvar(criado)
       return
     }
-    let atual = modelo
+    let atual: Modelo | undefined = modelo
     if (nomeMudou) {
-      atual = await enviar(() => api(`/modelos-acesso/${modelo.id_modelo}`, { metodo: 'PATCH', corpo: { nome } }))
+      atual = await enviar(() => api<Modelo>(`/modelos-acesso/${modelo.id_modelo}`, { metodo: 'PATCH', corpo: { nome } }))
       if (!atual) return
     }
     if (mudancas > 0) {
-      atual = await enviar(() => api(`/modelos-acesso/${modelo.id_modelo}/permissoes`, { metodo: 'PUT', corpo: { permissoes: [...marcadas] } }))
+      atual = await enviar(() => api<Modelo>(`/modelos-acesso/${modelo.id_modelo}/permissoes`, { metodo: 'PUT', corpo: { permissoes: [...marcadas] } }))
       if (!atual) return
     }
     setSalvo(`Modelo salvo. A mudança já vale para ${plural(modelo.pessoas, 'pessoa')}.`)
@@ -444,8 +469,9 @@ function EditorModelo({ modelo, modelos, permissoes, aoSalvar }) {
   }
 
   async function alternarAtivo() {
+    if (!modelo) return
     setSalvo(null)
-    const atual = await enviar(() => api(`/modelos-acesso/${modelo.id_modelo}`, { metodo: 'PATCH', corpo: { ativo: !modelo.ativo } }))
+    const atual = await enviar(() => api<Modelo>(`/modelos-acesso/${modelo.id_modelo}`, { metodo: 'PATCH', corpo: { ativo: !modelo.ativo } }))
     if (atual) aoSalvar(atual)
   }
 
@@ -569,15 +595,21 @@ function EditorModelo({ modelo, modelos, permissoes, aoSalvar }) {
 
 // ---------- unidades ----------
 
-const UNIDADE_VAZIA = {
+type FormUnidade = {
+  nome: string; tipo: string; despacha_online: boolean; cep: string; rua: string; numero: string
+  complemento: string; bairro: string; cidade: string; uf: string
+}
+
+const UNIDADE_VAZIA: FormUnidade = {
   nome: '', tipo: 'loja', despacha_online: false, cep: '', rua: '', numero: '', complemento: '', bairro: '', cidade: '', uf: '',
 }
 
 function Unidades() {
-  const unidades = useCarregar(() => api('/unidades'), [])
-  const [aberta, setAberta] = useState(null)
+  const unidades = useCarregar(() => api<Esquema<'Lista_UnidadeSaida_'>>('/unidades'), [])
+  // id da unidade aberta, 'nova' ou null
+  const [aberta, setAberta] = useState<number | 'nova' | null>(null)
 
-  function aposSalvar(unidade) {
+  function aposSalvar(unidade: Unidade) {
     limparListas('unidades')
     unidades.recarregar()
     setAberta(unidade.id_unidade)
@@ -634,22 +666,22 @@ function Unidades() {
   )
 }
 
-function FormularioUnidade({ unidade, aoFechar, aoSalvar }) {
-  const inicial = unidade ? { ...UNIDADE_VAZIA, ...unidade, complemento: unidade.complemento ?? '' } : UNIDADE_VAZIA
+function FormularioUnidade({ unidade, aoFechar, aoSalvar }: { unidade?: Unidade; aoFechar: () => void; aoSalvar: (unidade: Unidade) => void }) {
+  const inicial: FormUnidade = unidade ? { ...UNIDADE_VAZIA, ...unidade, complemento: unidade.complemento ?? '' } : UNIDADE_VAZIA
   const [form, setForm] = useState(inicial)
   const [salvo, setSalvo] = useState(false)
   const { enviar, enviando, erro } = useEnviar()
-  const mudar = (campo) => (e) => {
+  const mudar = (campo: keyof FormUnidade) => (e: ChangeEvent<HTMLInputElement>) => {
     setSalvo(false)
     setForm({ ...form, [campo]: e.target.type === 'checkbox' ? e.target.checked : e.target.value })
   }
   const cd = form.tipo === 'cd'
 
-  async function salvar(evento, extra = {}) {
+  async function salvar(evento: FormEvent | null, extra: Record<string, unknown> = {}) {
     evento?.preventDefault()
     setSalvo(false)
-    const campos = ['nome', 'despacha_online', 'cep', 'rua', 'numero', 'complemento', 'bairro', 'cidade', 'uf']
-    let corpo
+    const campos: (keyof FormUnidade)[] = ['nome', 'despacha_online', 'cep', 'rua', 'numero', 'complemento', 'bairro', 'cidade', 'uf']
+    let corpo: Record<string, unknown>
     if (unidade) {
       corpo = Object.fromEntries(campos.filter((c) => form[c] !== inicial[c]).map((c) => [c, c === 'complemento' ? form[c] || null : form[c]]))
       Object.assign(corpo, extra)
@@ -657,7 +689,7 @@ function FormularioUnidade({ unidade, aoFechar, aoSalvar }) {
       corpo = { ...Object.fromEntries(campos.map((c) => [c, form[c]])), tipo: form.tipo, complemento: form.complemento || null }
     }
     if (unidade && Object.keys(corpo).length === 0) return
-    const salva = await enviar(() => api(unidade ? `/unidades/${unidade.id_unidade}` : '/unidades', { metodo: unidade ? 'PATCH' : 'POST', corpo }))
+    const salva = await enviar(() => api<Unidade>(unidade ? `/unidades/${unidade.id_unidade}` : '/unidades', { metodo: unidade ? 'PATCH' : 'POST', corpo }))
     if (salva) {
       setSalvo(true)
       aoSalvar(salva)

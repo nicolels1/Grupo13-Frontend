@@ -1,21 +1,27 @@
 import { Bar, BarChart, CartesianGrid, LabelList, XAxis, YAxis } from 'recharts'
 
 import { ChartContainer, ChartLegend, ChartLegendContent, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart'
+import type { Esquema } from '@/lib/api'
 import { moeda } from '@/lib/formato'
+
+type VendasDoDia = Esquema<'VendasDoDia'>
+type MaisVendida = Esquema<'MaisVendida'>
+type ChamadosDoDia = Esquema<'ChamadosDoDia'>
+type Raio = [number, number, number, number]
 
 // gráficos da Visão Geral (design: só aqui e no Histórico do estoque).
 // Séries na ordem do design: marinho, aço, terracota, ardósia. Barras finas, pontas
 // arredondadas de 4px, 2px de respiro entre barras vizinhas, grade e eixos discretos.
 
-const PONTA = [4, 4, 0, 0]
-const PONTA_HORIZONTAL = [0, 4, 4, 0]
-const EIXO = { tickLine: false, axisLine: false, fontSize: 11 }
+const PONTA: Raio = [4, 4, 0, 0]
+const PONTA_HORIZONTAL: Raio = [0, 4, 4, 0]
+const EIXO = { tickLine: false, axisLine: false, fontSize: 11 } as const
 
 // "05/10" a partir de "2026-10-05" (dia sem hora, já no horário de Brasília)
-const diaCurto = (iso) => `${iso.slice(8, 10)}/${iso.slice(5, 7)}`
+const diaCurto = (iso: string) => `${iso.slice(8, 10)}/${iso.slice(5, 7)}`
 
 // R$ 4,2 mil no eixo: o tooltip mostra o valor exato
-function moedaCurta(valor) {
+function moedaCurta(valor: number) {
   if (valor >= 1000) return `R$ ${(valor / 1000).toLocaleString('pt-BR', { maximumFractionDigits: 1 })} mil`
   return `R$ ${valor.toLocaleString('pt-BR', { maximumFractionDigits: 0 })}`
 }
@@ -26,7 +32,7 @@ const CONFIG_VENDAS = {
 }
 
 // vendas dos últimos 14 dias, online × loja física, em reais
-export function GraficoVendas({ dias }) {
+export function GraficoVendas({ dias }: { dias: VendasDoDia[] }) {
   const dados = dias.map((d) => ({
     dia: diaCurto(d.dia),
     online: Number(d.online.valor),
@@ -44,13 +50,11 @@ export function GraficoVendas({ dias }) {
           <YAxis {...EIXO} width={64} tickFormatter={moedaCurta} />
           <ChartTooltip
             cursor={{ fill: 'var(--superficie)' }}
-            content={<ChartTooltipContent formatter={(valor, nome, item) => (
-              <LinhaTooltip
-                cor={CONFIG_VENDAS[nome].color}
-                rotulo={CONFIG_VENDAS[nome].label}
-                valor={`${moeda(valor)}, ${nome === 'online' ? item.payload.pedidos_online : item.payload.pedidos_loja} pedidos`}
-              />
-            )} />}
+            content={<ChartTooltipContent formatter={(valor, nome, item) => {
+              const serie = CONFIG_VENDAS[nome as keyof typeof CONFIG_VENDAS]
+              const pedidos = nome === 'online' ? item.payload.pedidos_online : item.payload.pedidos_loja
+              return <LinhaTooltip cor={serie.color} rotulo={serie.label} valor={`${moeda(Number(valor))}, ${pedidos} pedidos`} />
+            }} />}
           />
           <ChartLegend content={<ChartLegendContent />} />
           <Bar dataKey="online" fill="var(--color-online)" radius={PONTA} maxBarSize={14} />
@@ -69,7 +73,7 @@ export function GraficoVendas({ dias }) {
 const CONFIG_MAIS_VENDIDAS = { quantidade_vendida: { label: 'Peças vendidas', color: 'var(--marinho)' } }
 
 // 5 peças mais vendidas na semana: uma série só, então sem legenda; o número fica na ponta da barra
-export function GraficoMaisVendidas({ pecas }) {
+export function GraficoMaisVendidas({ pecas }: { pecas: MaisVendida[] }) {
   const dados = pecas.map((p) => ({ ...p, nome: `${p.produto}, ${p.cor}, ${p.tamanho}` }))
   return (
     <figure className="space-y-2">
@@ -80,7 +84,7 @@ export function GraficoMaisVendidas({ pecas }) {
         <ChartContainer config={CONFIG_MAIS_VENDIDAS} className="aspect-auto w-full" style={{ height: dados.length * 44 + 8 }}>
           <BarChart data={dados} layout="vertical" margin={{ left: 0, right: 32 }} accessibilityLayer>
             <XAxis type="number" hide />
-            <YAxis type="category" dataKey="nome" {...EIXO} width={180} tickFormatter={(t) => (t.length > 28 ? `${t.slice(0, 27)}…` : t)} />
+            <YAxis type="category" dataKey="nome" {...EIXO} width={180} tickFormatter={(t: string) => (t.length > 28 ? `${t.slice(0, 27)}…` : t)} />
             <ChartTooltip
               cursor={{ fill: 'var(--superficie)' }}
               content={<ChartTooltipContent hideLabel formatter={(valor, _nome, item) => (
@@ -106,7 +110,7 @@ const CONFIG_CHAMADOS = {
 }
 
 // chamados abertos × concluídos por dia
-export function GraficoChamados({ dias }) {
+export function GraficoChamados({ dias }: { dias: ChamadosDoDia[] }) {
   const dados = dias.map((d) => ({ dia: diaCurto(d.dia), abertos: d.abertos, concluidos: d.concluidos }))
   return (
     <figure className="space-y-2">
@@ -131,7 +135,7 @@ export function GraficoChamados({ dias }) {
   )
 }
 
-function LinhaTooltip({ cor, rotulo, valor }) {
+function LinhaTooltip({ cor, rotulo, valor }: { cor: string; rotulo: string; valor: string }) {
   return (
     <div className="flex w-full items-center gap-2">
       <span className="size-2.5 shrink-0 rounded-[2px]" style={{ backgroundColor: cor }} aria-hidden="true" />
@@ -142,7 +146,7 @@ function LinhaTooltip({ cor, rotulo, valor }) {
 }
 
 // os mesmos números em tabela, para quem não lê o gráfico
-function TabelaDoGrafico({ titulo, colunas, linhas }) {
+function TabelaDoGrafico({ titulo, colunas, linhas }: { titulo: string; colunas: string[]; linhas: (string | number)[][] }) {
   return (
     <details className="text-sm">
       <summary className="cursor-pointer text-xs text-muted-foreground hover:text-foreground">{titulo}</summary>
@@ -152,7 +156,7 @@ function TabelaDoGrafico({ titulo, colunas, linhas }) {
         </thead>
         <tbody>
           {linhas.map((linha) => (
-            <tr key={linha[0]} className="border-b">
+            <tr key={String(linha[0])} className="border-b">
               {linha.map((v, i) => <td key={i} className={i ? 'py-1 text-right tabular-nums' : 'py-1'}>{v}</td>)}
             </tr>
           ))}

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, type ReactNode } from 'react'
 import { ArrowLeftRight, Plus, ShoppingBag } from 'lucide-react'
 import { Link } from 'react-router'
 import { cn } from 'cn'
@@ -8,11 +8,15 @@ import { ehAdmin, temPermissao } from '@/auth/areas'
 import { Aviso, Carregando } from '@/components/Estados'
 import { buttonVariants } from '@/components/ui/button'
 import { useUnidadeEscolhida } from '@/layouts/unidadeEscolhida'
-import { api } from '@/lib/api'
+import { api, type Esquema, type OpcoesApi } from '@/lib/api'
 import { moeda, plural } from '@/lib/formato'
 import { nomeUnidade } from '@/lib/listas'
 import { useCarregar } from '@/lib/useCarregar'
 import { GraficoChamados, GraficoMaisVendidas, GraficoVendas } from './GraficosVisaoGeral'
+
+type Perfil = Esquema<'Perfil'>
+type Resumo = Esquema<'Resumo'>
+type Pendencia = { chave: string; rotulo: string; singular: string; para: string; total: number }
 
 const ESTOQUE = ['movimentar_estoque', 'definir_estoque_minimo']
 // a retirada vence em 7 dias; a partir de 5, entra nas pendências (mesmo corte do resumo)
@@ -21,19 +25,21 @@ const RETIRADA_PERTO_DE_VENCER_DIAS = 5
 const COBERTURA_BAIXA_DIAS = 15
 
 // só o total importa: pede uma linha e lê o total da página
-const contar = (caminho, params) => api(caminho, { params: { ...params, limit: 1 } }).then((r) => r.total)
+const contar = (caminho: string, params: OpcoesApi['params']) =>
+  api<{ total: number }>(caminho, { params: { ...params, limit: 1 } }).then((r) => r.total)
 
 // pendências que a conta pode resolver, cada uma com a contagem e o lugar onde se resolve.
 // O resumo da Visão Geral não traz contagens por pessoa, então cada uma é uma consulta curta.
-function usePendencias(perfil, unidade) {
-  const pode = (codigo) => temPermissao(perfil, codigo)
+function usePendencias(perfil: Perfil | null, unidade: string) {
+  const pode = (codigo: string) => temPermissao(perfil, codigo)
   const idUnidade = unidade ? Number(unidade) : null
   const chave = [unidade, perfil?.id_usuario].join('|')
 
   return useCarregar(async () => {
-    const lista = []
+    // o total chega como número ou como a consulta que vai contar; tudo espera junto no fim
+    const lista: (Omit<Pendencia, 'total'> & { total: number | Promise<number> })[] = []
     const transferencias = pode('receber_transferencia') || pode('enviar_transferencia')
-      ? (await api('/transferencias', { params: { id_unidade: unidade, limit: 200 } })).items
+      ? (await api<Esquema<'Pagina_TransferenciaSaida_'>>('/transferencias', { params: { id_unidade: unidade, limit: 200 } })).items
       : []
 
     if (ESTOQUE.some(pode)) {
@@ -78,7 +84,7 @@ function usePendencias(perfil, unidade) {
     }
 
     const totais = await Promise.all(lista.map((p) => p.total))
-    return lista.map((p, i) => ({ ...p, total: totais[i] }))
+    return lista.map((p, i): Pendencia => ({ ...p, total: totais[i] ?? 0 }))
   }, [chave])
 }
 
@@ -87,11 +93,11 @@ function usePendencias(perfil, unidade) {
 export function VisaoGeral() {
   const { perfil } = useAuth()
   const { unidade, unidades } = useUnidadeEscolhida()
-  const pode = (codigo) => temPermissao(perfil, codigo)
+  const pode = (codigo: string) => temPermissao(perfil, codigo)
   const admin = ehAdmin(perfil)
   const [dia] = useState(() => new Date().toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'America/Sao_Paulo' }))
 
-  const resumo = useCarregar(() => api('/visao-geral/resumo', { params: { id_unidade: unidade } }), [unidade])
+  const resumo = useCarregar(() => api<Resumo>('/visao-geral/resumo', { params: { id_unidade: unidade } }), [unidade])
   const pendencias = usePendencias(perfil, unidade)
   const r = resumo.dados
 
@@ -119,7 +125,7 @@ export function VisaoGeral() {
           {pendencias.carregando && !pendencias.dados && <Carregando texto="Conferindo as pendências..." />}
           {pendencias.dados?.length === 0 && <p className="py-6 text-sm text-muted-foreground">Sua conta não tem pendências para acompanhar aqui.</p>}
           <ul>
-            {(pendencias.dados ?? []).map((p) => <Pendencia key={p.chave} pendencia={p} />)}
+            {(pendencias.dados ?? []).map((p) => <LinhaPendencia key={p.chave} pendencia={p} />)}
           </ul>
         </section>
 
@@ -157,7 +163,7 @@ export function VisaoGeral() {
   )
 }
 
-function Atalhos({ pode }) {
+function Atalhos({ pode }: { pode: (codigo: string) => boolean }) {
   return (
     <div className="flex flex-wrap gap-2">
       {pode('registrar_venda_fisica') && (
@@ -180,7 +186,7 @@ function Atalhos({ pode }) {
 }
 
 // número grande com marcador: terracota quando há o que fazer, cinza com "tudo em dia" quando não
-function Pendencia({ pendencia: p }) {
+function LinhaPendencia({ pendencia: p }: { pendencia: Pendencia }) {
   const ha = p.total > 0
   return (
     <li>
@@ -196,8 +202,8 @@ function Pendencia({ pendencia: p }) {
   )
 }
 
-function NumerosVendas({ dias }) {
-  const soma = (canal, campo) => dias.reduce((t, d) => t + Number(d[canal][campo]), 0)
+function NumerosVendas({ dias }: { dias: Esquema<'VendasDoDia'>[] }) {
+  const soma = (canal: 'online' | 'loja_fisica', campo: 'valor' | 'pedidos') => dias.reduce((t, d) => t + Number(d[canal][campo]), 0)
   return (
     <div className="grid grid-cols-2 gap-6">
       <Numero rotulo="Online em 14 dias" valor={moeda(soma('online', 'valor'))} detalhe={plural(soma('online', 'pedidos'), 'pedido')} />
@@ -206,7 +212,13 @@ function NumerosVendas({ dias }) {
   )
 }
 
-function Numero({ rotulo, valor, detalhe, alerta, className }) {
+function Numero({ rotulo, valor, detalhe, alerta, className }: {
+  rotulo: string
+  valor: ReactNode
+  detalhe?: string | null
+  alerta?: boolean
+  className?: string
+}) {
   return (
     <div className={cn('space-y-1', className)}>
       <p className="text-xs text-muted-foreground">{rotulo}</p>
@@ -218,21 +230,21 @@ function Numero({ rotulo, valor, detalhe, alerta, className }) {
 
 // ---------- A rede agora (só Admin; sempre a rede inteira) ----------
 
-const umaCasa = (n) => n.toLocaleString('pt-BR', { maximumFractionDigits: 1 })
+const umaCasa = (n: number) => n.toLocaleString('pt-BR', { maximumFractionDigits: 1 })
 
-function variacao(pct) {
+function variacao(pct: number | null | undefined) {
   if (pct === null || pct === undefined) return 'sem base para comparar'
   const sinal = pct > 0 ? '+' : pct < 0 ? '−' : ''
   return `${sinal}${umaCasa(Math.abs(pct))}% contra os 14 dias anteriores`
 }
 
-function horas(h) {
+function horas(h: number | null | undefined) {
   if (h === null || h === undefined) return null
   if (h < 1) return `${Math.round(h * 60)} min`
   return `${umaCasa(h)} h`
 }
 
-function RedeAgora({ rede, unidades }) {
+function RedeAgora({ rede, unidades }: { rede: Esquema<'RedeAgora'>; unidades: Esquema<'LinhaDaUnidade'>[] }) {
   const v = rede.vendas_14_dias
   const t = rede.ticket_medio_30_dias
   const a = rede.avaliacoes
@@ -254,7 +266,7 @@ function RedeAgora({ rede, unidades }) {
           rotulo="Ruptura no online"
           valor={rede.ruptura_online_pct === null ? '—' : `${umaCasa(rede.ruptura_online_pct)}%`}
           detalhe="das peças à venda sem estoque para o site"
-          alerta={rede.ruptura_online_pct > 0}
+          alerta={(rede.ruptura_online_pct ?? 0) > 0}
         />
         <Numero
           rotulo="Primeira resposta"
@@ -302,7 +314,7 @@ function RedeAgora({ rede, unidades }) {
                 </td>
                 <Celula valor={u.cobertura_dias === null ? '—' : `${umaCasa(u.cobertura_dias)} dias`} fora={u.cobertura_dias !== null && u.cobertura_dias < COBERTURA_BAIXA_DIAS} />
                 <Celula valor={u.variantes_abaixo_do_minimo} fora={u.variantes_abaixo_do_minimo > 0} />
-                <Celula valor={u.retiradas_perto_de_vencer ?? '—'} fora={u.retiradas_perto_de_vencer > 0} />
+                <Celula valor={u.retiradas_perto_de_vencer ?? '—'} fora={(u.retiradas_perto_de_vencer ?? 0) > 0} />
                 <Celula valor={u.transferencias_esperando_envio} fora={u.transferencias_esperando_envio > 0} />
                 <Celula valor={u.transferencias_chegando} />
               </tr>
@@ -317,7 +329,7 @@ function RedeAgora({ rede, unidades }) {
   )
 }
 
-function Celula({ valor, fora }) {
+function Celula({ valor, fora }: { valor: ReactNode; fora?: boolean }) {
   return (
     <td className={cn('text-right tabular-nums', fora && 'font-medium text-terracota')}>{valor}</td>
   )

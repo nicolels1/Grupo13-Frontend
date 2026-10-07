@@ -3,6 +3,19 @@ import type { Esquema } from './api'
 type Pedido = Esquema<'PedidoSaida'>
 type Pagamento = Esquema<'PagamentoSaida'>
 type Unidade = Esquema<'UnidadeSaida'>
+type ItemPedido = Esquema<'ItemPedidoSaida'>
+type ItemEstoque = Esquema<'EstoqueItem'>
+
+export type ModoTroca = 'troca' | 'devolucao'
+export type EstornoRepartido = { id_pagamento: number; metodo: string; valor: string }
+
+// o que o formulário de troca ou devolução registrou: vai para o comprovante do balcão ou o aviso no chamado
+export type TrocaFeita = {
+  modo: ModoTroca
+  pedido: Pedido
+  linhas: { item: ItemPedido; quantidade: number; nova: ItemEstoque | null }[]
+  estornos: EstornoRepartido[]
+}
 
 // regras de troca, devolução e estorno de um pedido, usadas no balcão do Caixa e no chamado do
 // Atendimento. O backend confere tudo de novo; aqui elas só evitam um envio que já se sabe recusado.
@@ -40,7 +53,7 @@ export function estornaveis(pedido: Pedido): { pagamento: Pagamento; restante: n
 
 // reparte o valor da devolução pelos pagamentos, na ordem em que foram feitos (mesmo meio de pagamento)
 export function repartirEstorno(pedido: Pedido, valor: number) {
-  const estornos: { id_pagamento: number; metodo: string; valor: string }[] = []
+  const estornos: EstornoRepartido[] = []
   let falta = Math.round(valor * 100) / 100
   for (const { pagamento, restante } of estornaveis(pedido)) {
     if (falta <= 0) break

@@ -7,36 +7,43 @@ import { Cabecalho, Paginacao } from '@/components/Navegacao'
 import { Etiqueta, NomePeca } from '@/components/Peca'
 import { Input, Label, Select } from '@/components/ui/input'
 import { useUnidadeEscolhida } from '@/layouts/unidadeEscolhida'
-import { api, todasAsPaginas } from '@/lib/api'
+import { api, todasAsPaginas, type Esquema } from '@/lib/api'
 import { ordenarTamanhos } from '@/lib/cores'
 import { CANAIS, codigoTransferencia, dataCurta, dataLonga, hojeIso, hora, paraApi, plural, TIPOS_MOVIMENTACAO } from '@/lib/formato'
 import { useAdiado, useCarregar } from '@/lib/useCarregar'
 import { AbasEstoque, AcoesEstoque } from './Estoque'
 import { GraficoEvolucao } from './GraficoEvolucao'
 
+type ItemHistorico = Esquema<'EstoqueHistoricoItem'>
+type ItemEstoque = Esquema<'EstoqueItem'>
+type Evolucao = Esquema<'Evolucao'>
+// uma peça numa unidade: o saldo naquele momento e agora (somando os canais do filtro)
+type Linha = ItemHistorico & { chave: string; naquele: number; agora: number }
+
 const POR_PAGINA = 50
 const DIAS_NA_REGUA = 31
-const ATALHOS = [[7, 'Há 1 semana'], [14, 'Há 2 semanas'], [30, 'Há 1 mês']]
-const PERIODOS = [['7', '7 dias'], ['30', '30 dias'], ['90', '90 dias'], ['intervalo', 'Escolher intervalo']]
-const GRANULARIDADES = [['', 'Automático'], ['hora', 'Por hora'], ['dia', 'Por dia'], ['semana', 'Por semana']]
+const ATALHOS = [[7, 'Há 1 semana'], [14, 'Há 2 semanas'], [30, 'Há 1 mês']] as const
+const PERIODOS = [['7', '7 dias'], ['30', '30 dias'], ['90', '90 dias'], ['intervalo', 'Escolher intervalo']] as const
+const GRANULARIDADES = [['', 'Automático'], ['hora', 'Por hora'], ['dia', 'Por dia'], ['semana', 'Por semana']] as const
 
 // "AAAA-MM-DD" de n dias atrás, no horário de Brasília
-function diasAtras(n) {
+function diasAtras(n: number) {
   const d = new Date(`${hojeIso()}T12:00:00`)
   d.setDate(d.getDate() - n)
   return d.toLocaleDateString('sv-SE')
 }
 
-const sinal = (n) => (n > 0 ? `+${n}` : n < 0 ? `−${Math.abs(n)}` : '0')
+const sinal = (n: number) => (n > 0 ? `+${n}` : n < 0 ? `−${Math.abs(n)}` : '0')
 
 // junta "naquele momento" e "agora" por variante e unidade (somando os canais do filtro)
-function comparar(naquele, agora) {
-  const linhas = new Map()
-  const juntar = (lista, campo) => {
+function comparar(naquele: ItemHistorico[], agora: ItemEstoque[]): Linha[] {
+  const linhas = new Map<string, Linha>()
+  const juntar = (lista: ItemHistorico[], campo: 'naquele' | 'agora') => {
     for (const l of lista) {
       const chave = `${l.id_variante}-${l.id_unidade}`
-      if (!linhas.has(chave)) linhas.set(chave, { chave, ...l, naquele: 0, agora: 0 })
-      linhas.get(chave)[campo] += l.quantidade
+      const linha = linhas.get(chave) ?? { chave, ...l, naquele: 0, agora: 0 }
+      linha[campo] += l.quantidade
+      linhas.set(chave, linha)
     }
   }
   juntar(naquele, 'naquele')
@@ -57,20 +64,20 @@ export function HistoricoEstoque() {
   const [canal, setCanal] = useState('')
   const [soMudou, setSoMudou] = useState(false)
   const [offset, setOffset] = useState(0)
-  const [aberta, setAberta] = useState(null)
+  const [aberta, setAberta] = useState<string | null>(null)
   const buscaAplicada = useAdiado(busca.trim())
   const em = paraApi(data, horaEscolhida)
 
   const comparacao = useCarregar(async () => {
     const filtros = { id_unidade: unidade, canal, busca: buscaAplicada }
     const [naquele, agora] = await Promise.all([
-      todasAsPaginas('/estoque/historico', { ...filtros, em }),
-      todasAsPaginas('/estoque', filtros),
+      todasAsPaginas<ItemHistorico>('/estoque/historico', { ...filtros, em }),
+      todasAsPaginas<ItemEstoque>('/estoque', filtros),
     ])
     return comparar(naquele, agora)
   }, [unidade, canal, buscaAplicada, em])
   const transito = useCarregar(
-    () => api('/estoque/em-transito', { params: { em, id_unidade: unidade, busca: buscaAplicada } }),
+    () => api<Esquema<'Lista_EmTransitoItem_'>>('/estoque/em-transito', { params: { em, id_unidade: unidade, busca: buscaAplicada } }),
     [unidade, buscaAplicada, em],
   )
 
@@ -80,7 +87,7 @@ export function HistoricoEstoque() {
   const mudaram = todas.filter((l) => l.naquele !== l.agora).length
   const emTransito = transito.dados?.items ?? []
   const escolhida = unidades.find((u) => String(u.id_unidade) === unidade)
-  const reiniciar = (setter) => (valor) => {
+  const reiniciar = <T,>(setter: (valor: T) => void) => (valor: T) => {
     setter(valor)
     setOffset(0)
     setAberta(null)
@@ -242,7 +249,7 @@ export function HistoricoEstoque() {
   )
 }
 
-function ReguaDeDatas({ valor, aoMudar }) {
+function ReguaDeDatas({ valor, aoMudar }: { valor: string; aoMudar: (dia: string) => void }) {
   const dias = Array.from({ length: DIAS_NA_REGUA }, (_, i) => diasAtras(DIAS_NA_REGUA - 1 - i))
   return (
     <div role="radiogroup" aria-label="Escolher o dia" className="flex items-end overflow-x-auto border bg-background px-2 pb-2 pt-6">
@@ -272,12 +279,12 @@ function ReguaDeDatas({ valor, aoMudar }) {
 }
 
 // ao abrir uma peça: gráfico de evolução no período, resumo curto em números e as movimentações
-function EvolucaoDaPeca({ linha, em }) {
+function EvolucaoDaPeca({ linha, em }: { linha: Linha; em: string }) {
   const { unidade } = useUnidadeEscolhida()
-  const [periodo, setPeriodo] = useState('30')
+  const [periodo, setPeriodo] = useState<string>('30')
   const [de, setDe] = useState(() => diasAtras(30))
   const [ate, setAte] = useState(() => hojeIso())
-  const [granularidade, setGranularidade] = useState('')
+  const [granularidade, setGranularidade] = useState<string>('')
   const intervalo = periodo === 'intervalo'
   const inicio = intervalo ? de : diasAtras(Number(periodo))
   const fim = intervalo ? paraApi(ate, '23:59') : undefined
@@ -287,13 +294,13 @@ function EvolucaoDaPeca({ linha, em }) {
 
   const evolucao = useCarregar(
     () => (intervaloOk
-      ? api('/estoque/evolucao', { params: { id_variante: linha.id_variante, id_unidade: idUnidade, inicio, fim, granularidade } })
+      ? api<Evolucao>('/estoque/evolucao', { params: { id_variante: linha.id_variante, id_unidade: idUnidade, inicio, fim, granularidade } })
       : null),
     [linha.id_variante, idUnidade, inicio, fim, granularidade, intervaloOk],
   )
   const movimentacoes = useCarregar(
     () => (intervaloOk
-      ? api('/movimentacoes-estoque', { params: { id_variante: linha.id_variante, id_unidade: idUnidade, de: inicio, ate: fim, limit: 200 } })
+      ? api<Esquema<'Pagina_MovimentacaoItem_'>>('/movimentacoes-estoque', { params: { id_variante: linha.id_variante, id_unidade: idUnidade, de: inicio, ate: fim, limit: 200 } })
       : null),
     [linha.id_variante, idUnidade, inicio, fim, intervaloOk],
   )
@@ -301,7 +308,7 @@ function EvolucaoDaPeca({ linha, em }) {
   const pontos = evolucao.dados?.pontos ?? []
   const movs = movimentacoes.dados?.items ?? []
   const completo = movimentacoes.dados && movimentacoes.dados.total <= movs.length
-  const saldo = (p) => (p ? p.loja_fisica + p.online : null)
+  const saldo = (p: Evolucao['pontos'][number] | undefined) => (p ? p.loja_fisica + p.online : null)
   const comecou = saldo(pontos[0])
   const terminou = saldo(pontos[pontos.length - 1])
   const entraram = movs.filter((m) => m.quantidade > 0).reduce((t, m) => t + m.quantidade, 0)
