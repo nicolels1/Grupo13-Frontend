@@ -212,7 +212,7 @@ function RegistrarMovimentacao({ aoRegistrar }) {
         <Campo id="mov-peca" rotulo="Peça">
           {peca ? (
             <div className="flex items-center justify-between gap-2 border border-input bg-background px-3 py-2">
-              <NomePeca produto={peca.produto} cor={peca.cor} tamanho={`${peca.tamanho} · ${peca.sku}`} />
+              <NomePeca produto={peca.produto} cor={peca.cor} tamanho={`${peca.tamanho}, ${peca.sku}`} />
               <Button type="button" variant="ghost" size="sm" onClick={() => setPeca(null)}>Trocar</Button>
             </div>
           ) : (
@@ -223,7 +223,7 @@ function RegistrarMovimentacao({ aoRegistrar }) {
                   {opcoes.map((o) => (
                     <li key={o.id_variante}>
                       <button type="button" onClick={() => setPeca(o)} className="w-full px-3 py-2 text-left hover:bg-superficie">
-                        <NomePeca produto={o.produto} cor={o.cor} tamanho={`${o.tamanho} · ${o.sku}`} />
+                        <NomePeca produto={o.produto} cor={o.cor} tamanho={`${o.tamanho}, ${o.sku}`} />
                       </button>
                     </li>
                   ))}
