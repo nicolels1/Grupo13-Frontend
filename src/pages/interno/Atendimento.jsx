@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useState } from 'react'
-import { ChevronLeft, Send } from 'lucide-react'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { ChevronLeft, Paperclip, Send, X } from 'lucide-react'
 import { Link, useParams } from 'react-router'
 import { cn } from 'cn'
 
@@ -10,9 +10,9 @@ import { Etiqueta } from '@/components/Peca'
 import { Button } from '@/components/ui/button'
 import { Campo, Select } from '@/components/ui/input'
 import { useUnidadeEscolhida } from '@/layouts/unidadeEscolhida'
-import { api } from '@/lib/api'
+import { api, ErroApi } from '@/lib/api'
 import {
-  CATEGORIAS_CHAMADO, dataHora, dataLonga, haQuanto, hora, MOTIVOS_CONCLUSAO, plural, PRIORIDADES, STATUS_CHAMADO,
+  CATEGORIAS_CHAMADO, dataHora, dataLonga, haQuanto, hora, MOTIVOS_CONCLUSAO, plural, PRIORIDADES, STATUS_CHAMADO, tamanhoArquivo,
 } from '@/lib/formato'
 import { useCarregar, useEnviar } from '@/lib/useCarregar'
 
@@ -176,8 +176,6 @@ function ChamadoAberto({ idChamado, aoMudar }) {
   const chamado = useCarregar(() => api(`/atendimento/chamados/${idChamado}`), [idChamado])
   const mensagens = useCarregar(() => api(`/atendimento/chamados/${idChamado}/mensagens`), [idChamado])
   const historico = useCarregar(() => api(`/atendimento/chamados/${idChamado}/historico`), [idChamado])
-  const [modo, setModo] = useState('cliente')
-  const [texto, setTexto] = useState('')
   const [motivo, setMotivo] = useState('resolvido')
   const { enviar, enviando, erro } = useEnviar()
   const { recarregar: recarregarMensagens } = mensagens
@@ -205,17 +203,9 @@ function ChamadoAberto({ idChamado, aoMudar }) {
     return ok
   }
 
-  async function responder(evento) {
-    evento.preventDefault()
-    const ok = await enviar(() => api(`/atendimento/chamados/${idChamado}/mensagens`, {
-      metodo: 'POST',
-      corpo: { conteudo: texto, interna: modo === 'interna' },
-    }))
-    if (ok) {
-      setTexto('')
-      recarregarMensagens()
-      atualizarTudo()
-    }
+  function aposResponder() {
+    recarregarMensagens()
+    atualizarTudo()
   }
 
   return (
@@ -233,51 +223,16 @@ function ChamadoAberto({ idChamado, aoMudar }) {
       <div className="grid gap-8 xl:grid-cols-[minmax(0,1fr)_17rem]">
         <div className="min-w-0 space-y-6">
           <ol aria-label="Mensagens" className="space-y-5">
-            <Mensagem doCliente texto={c.descricao} rodape={`${c.cliente}, ${dataHora(c.criado_em)}`} />
-            {mensagens.dados?.items.map((m) => (
-              <Mensagem
-                key={m.id_mensagem}
-                doCliente={!m.da_equipe}
-                interna={m.interna}
-                texto={m.conteudo}
-                anexo={m.anexo_nome}
-                rodape={`${m.autor}, ${dataHora(m.criado_em)}`}
-              />
-            ))}
+            <Mensagem mensagem={{ conteudo: c.descricao, autor: c.cliente, criado_em: c.criado_em }} />
+            {mensagens.dados?.items.map((m) => <Mensagem key={m.id_mensagem} mensagem={m} />)}
           </ol>
           {mensagens.erro && <Aviso mensagem={mensagens.erro} />}
 
-          {!concluido && (
-            <form onSubmit={responder} className="border">
-              <div className="px-3 pt-2">
-                <Abas
-                  rotulo="Tipo de resposta"
-                  valor={modo}
-                  aoMudar={setModo}
-                  abas={[{ valor: 'cliente', rotulo: 'Responder' }, { valor: 'interna', rotulo: 'Nota interna' }]}
-                />
-              </div>
-              <label htmlFor="resposta" className="sr-only">Mensagem</label>
-              <textarea
-                id="resposta"
-                rows={4}
-                value={texto}
-                onChange={(e) => setTexto(e.target.value)}
-                maxLength={5000}
-                placeholder={modo === 'interna' ? 'Só a equipe vê esta nota' : `Escreva para ${c.cliente.split(' ')[0]}`}
-                className={cn('block w-full resize-y px-4 py-3 text-sm outline-none', modo === 'interna' && 'bg-ferrugem-fundo/60')}
-              />
-              <div className="flex justify-end border-t p-2">
-                <Button type="submit" size="lg" className="h-10 px-4" disabled={enviando || !texto.trim()}>
-                  <Send aria-hidden="true" /> {modo === 'interna' ? 'Salvar nota' : 'Enviar'}
-                </Button>
-              </div>
-            </form>
-          )}
-          {erro && <Aviso mensagem={erro} />}
+          {!concluido && <Responder chamado={c} aoEnviar={aposResponder} />}
         </div>
 
         <aside className="space-y-6">
+          {erro && <Aviso mensagem={erro} />}
           <section className="space-y-1">
             <h2 className="text-lg font-medium">{c.cliente}</h2>
             <p className="text-sm text-muted-foreground">Status: {STATUS_CHAMADO[c.status]}</p>
@@ -343,15 +298,143 @@ function ChamadoAberto({ idChamado, aoMudar }) {
   )
 }
 
-function Mensagem({ doCliente, interna, texto, anexo, rodape }) {
+// balão da conversa: cliente à esquerda, equipe à direita; nota interna em ardósia-claro com
+// "Só a equipe vê" (design, seção Atendimento). A primeira mensagem é a descrição do chamado.
+function Mensagem({ mensagem: m }) {
+  const daEquipe = Boolean(m.da_equipe)
   return (
-    <li className={cn('flex flex-col gap-1', doCliente ? 'items-start' : 'items-end')}>
-      <div className={cn('max-w-[85%] whitespace-pre-line px-4 py-3 text-sm', interna ? 'bg-ferrugem-fundo' : 'bg-superficie')}>
-        {interna && <span className="mb-1 block text-xs font-medium text-ferrugem">Só a equipe vê esta nota</span>}
-        {texto}
-        {anexo && <span className="mt-1 block text-xs underline">{anexo}</span>}
+    <li className={cn('flex flex-col gap-1', daEquipe ? 'items-end' : 'items-start')}>
+      <div className={cn('max-w-[85%] space-y-2 px-4 py-3 text-sm', m.interna ? 'bg-ardosia-clara' : daEquipe ? 'bg-aco-fundo' : 'bg-superficie')}>
+        {m.interna && <span className="block text-xs font-medium text-ardosia">Só a equipe vê</span>}
+        {m.conteudo && <p className="whitespace-pre-line">{m.conteudo}</p>}
+        {m.anexo_nome && <Anexo mensagem={m} />}
       </div>
-      <span className="text-xs text-muted-foreground">{rodape}</span>
+      <span className="text-xs text-muted-foreground">
+        {m.autor}{m.interna && ', nota interna'}, {dataHora(m.criado_em)}
+      </span>
     </li>
+  )
+}
+
+// o arquivo fica na área privada do Storage: o link é pedido na hora e vale por pouco tempo.
+// A aba nova abre antes da chamada para o navegador não bloquear a janela.
+function Anexo({ mensagem: m }) {
+  const [erro, setErro] = useState(null)
+
+  async function abrir() {
+    setErro(null)
+    const janela = window.open('', '_blank')
+    try {
+      const { url } = await api(`/atendimento/chamados/${m.id_chamado}/mensagens/${m.id_mensagem}/anexo`)
+      if (janela) janela.location.href = url
+      else window.location.href = url
+    } catch (falha) {
+      janela?.close()
+      setErro(falha instanceof ErroApi ? falha.message : 'Não foi possível abrir o anexo. Tente de novo.')
+    }
+  }
+
+  return (
+    <div>
+      <button type="button" onClick={abrir} className="flex items-center gap-2 border bg-background px-3 py-2 text-left text-xs hover:border-foreground">
+        <Paperclip className="size-3.5 shrink-0" aria-hidden="true" />
+        <span className="truncate underline underline-offset-2">{m.anexo_nome}</span>
+        <span className="shrink-0 text-muted-foreground">{tamanhoArquivo(m.anexo_tamanho)}</span>
+      </button>
+      {erro && <p className="pt-1 text-xs text-destructive">{erro}</p>}
+    </div>
+  )
+}
+
+// mesmas regras do backend para anexo de chamado
+const TIPOS_ANEXO = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf']
+const ANEXO_MAXIMO = 10 * 1024 * 1024
+
+// campo de resposta: responder ao cliente ou nota interna, com texto e um anexo opcional
+function Responder({ chamado: c, aoEnviar }) {
+  const [modo, setModo] = useState('cliente')
+  const [texto, setTexto] = useState('')
+  const [arquivo, setArquivo] = useState(null)
+  const [erroArquivo, setErroArquivo] = useState(null)
+  const seletor = useRef(null)
+  const { enviar, enviando, erro } = useEnviar()
+  const interna = modo === 'interna'
+
+  function escolher(evento) {
+    const escolhido = evento.target.files?.[0]
+    evento.target.value = ''
+    if (!escolhido) return
+    if (!TIPOS_ANEXO.includes(escolhido.type)) {
+      setErroArquivo('Esse tipo de arquivo não é aceito. Envie JPG, PNG, WEBP ou PDF.')
+      return
+    }
+    if (escolhido.size > ANEXO_MAXIMO) {
+      setErroArquivo(`O arquivo tem ${tamanhoArquivo(escolhido.size)}. Envie um de até 10 MB.`)
+      return
+    }
+    setErroArquivo(null)
+    setArquivo(escolhido)
+  }
+
+  async function responder(evento) {
+    evento.preventDefault()
+    const conteudo = texto.trim()
+    const caminho = `/atendimento/chamados/${c.id_chamado}`
+    const ok = await enviar(() => {
+      if (!arquivo) return api(`${caminho}/mensagens`, { metodo: 'POST', corpo: { conteudo, interna } })
+      const formulario = new FormData()
+      formulario.append('arquivo', arquivo)
+      if (conteudo) formulario.append('conteudo', conteudo)
+      formulario.append('interna', String(interna))
+      return api(`${caminho}/anexos`, { metodo: 'POST', corpo: formulario })
+    })
+    if (ok) {
+      setTexto('')
+      setArquivo(null)
+      aoEnviar()
+    }
+  }
+
+  return (
+    <form onSubmit={responder} className={cn('border', interna && 'border-ardosia')}>
+      <div className="px-3 pt-2">
+        <Abas
+          rotulo="Tipo de resposta"
+          valor={modo}
+          aoMudar={setModo}
+          abas={[{ valor: 'cliente', rotulo: `Responder a ${c.cliente.split(' ')[0]}` }, { valor: 'interna', rotulo: 'Nota interna' }]}
+        />
+      </div>
+      <label htmlFor="resposta" className="sr-only">{interna ? 'Nota interna' : 'Mensagem'}</label>
+      <textarea
+        id="resposta"
+        rows={4}
+        value={texto}
+        onChange={(e) => setTexto(e.target.value)}
+        maxLength={5000}
+        placeholder={interna ? 'Só a equipe vê esta nota' : `Escreva para ${c.cliente.split(' ')[0]}`}
+        className={cn('block w-full resize-y px-4 py-3 text-sm outline-none', interna && 'bg-ardosia-clara')}
+      />
+      {arquivo && (
+        <div className="flex items-center gap-2 border-t px-3 py-2 text-xs">
+          <Paperclip className="size-3.5 shrink-0" aria-hidden="true" />
+          <span className="truncate">{arquivo.name}</span>
+          <span className="shrink-0 text-muted-foreground">{tamanhoArquivo(arquivo.size)}</span>
+          <Button type="button" variant="ghost" size="icon" className="ml-auto size-7" aria-label="Tirar o anexo" onClick={() => setArquivo(null)}>
+            <X />
+          </Button>
+        </div>
+      )}
+      <div className="flex items-center justify-between gap-2 border-t p-2">
+        <input ref={seletor} type="file" accept={TIPOS_ANEXO.join(',')} onChange={escolher} className="sr-only" tabIndex={-1} aria-hidden="true" />
+        <Button type="button" variant="ghost" size="sm" onClick={() => seletor.current?.click()}>
+          <Paperclip aria-hidden="true" /> Anexar
+        </Button>
+        <Button type="submit" size="lg" className="h-10 px-4" disabled={enviando || (!texto.trim() && !arquivo)}>
+          <Send aria-hidden="true" /> {enviando ? 'Enviando...' : interna ? 'Salvar nota' : 'Enviar'}
+        </Button>
+      </div>
+      {(erroArquivo || erro) && <div className="border-t p-3"><Aviso mensagem={erroArquivo || erro} /></div>}
+    </form>
   )
 }
