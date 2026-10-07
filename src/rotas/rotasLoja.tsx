@@ -6,11 +6,13 @@ import { LayoutCliente } from '@/layouts/LayoutCliente'
 import { EmConstrucao } from '@/pages/Basicas'
 import { Cadastro, Entrar } from '@/pages/Entrar'
 import { AjudaLoja } from '@/pages/loja/Ajuda'
+import { AvaliarPeca } from '@/pages/loja/Avaliar'
 import { CarrinhoLoja } from '@/pages/loja/Carrinho'
 import { ChamadosCliente, ConversaCliente, NovoChamadoCliente, SemChamadoEscolhido } from '@/pages/loja/Chamados'
 import { CheckoutLoja } from '@/pages/loja/Checkout'
 import { ConfirmacaoPedido } from '@/pages/loja/Confirmacao'
 import { InicioLoja } from '@/pages/loja/Inicio'
+import { MeusPedidos } from '@/pages/loja/MeusPedidos'
 import { ProdutoLoja } from '@/pages/loja/Produto'
 import { ProdutosLoja } from '@/pages/loja/Produtos'
 
@@ -65,7 +67,15 @@ export const rotasLoja: RouteObject[] = [
         path: 'pedidos',
         element: (
           <ExigeLogin tipo="cliente">
-            {emConstrucao('Meus pedidos', 'O acompanhamento dos seus pedidos está em construção.')}
+            <MeusPedidos />
+          </ExigeLogin>
+        ),
+      },
+      {
+        path: 'avaliar/:idItem',
+        element: (
+          <ExigeLogin tipo="cliente">
+            <AvaliarPeca />
           </ExigeLogin>
         ),
       },
