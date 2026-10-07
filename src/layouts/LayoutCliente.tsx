@@ -15,6 +15,9 @@ import {
 import { api, type Esquema } from '@/lib/api'
 import { useCategorias } from '@/lib/listas'
 import { useCarregar } from '@/lib/useCarregar'
+import { CarrinhoProvider } from '@/pages/loja/carrinho/CarrinhoProvider'
+import { useCarrinho } from '@/pages/loja/carrinho/contexto'
+import { GavetaCarrinho } from '@/pages/loja/carrinho/GavetaCarrinho'
 
 // plataforma do cliente: a vitrine é pública; a conta aparece à direita do topo
 export function LayoutCliente() {
@@ -22,31 +25,55 @@ export function LayoutCliente() {
   const ativas = (categorias ?? []).filter((c) => c.ativo)
 
   return (
-    <div className="flex min-h-svh flex-col bg-background text-foreground">
-      <p className="bg-marinho-escuro px-4 py-2 text-center text-[0.7rem] font-medium tracking-[0.12em] text-white uppercase">
-        Frete grátis a partir de R$ 299 e retirada grátis na loja
-      </p>
+    <CarrinhoProvider>
+      <div className="flex min-h-svh flex-col bg-background text-foreground">
+        <p className="bg-marinho-escuro px-4 py-2 text-center text-[0.7rem] font-medium tracking-[0.12em] text-white uppercase">
+          Frete grátis a partir de R$ 299 e retirada grátis na loja
+        </p>
 
-      <header className="border-b">
-        <div className="mx-auto grid max-w-7xl grid-cols-[auto_minmax(0,1fr)] items-center gap-x-4 gap-y-3 px-4 py-4 sm:px-6 lg:grid-cols-[auto_minmax(0,1fr)_auto_auto] lg:gap-x-8">
-          <Logo para="/loja" className="text-lg sm:text-2xl" />
-          <Categorias categorias={ativas} />
-          <BuscaDaLoja />
-          <div className="col-start-2 row-start-1 flex items-center justify-end gap-5 lg:col-start-auto lg:row-start-auto">
-            <Conta />
-            <Link to="/loja/carrinho" aria-label="Carrinho" className="hover:text-aco">
-              <ShoppingBag className="size-5" aria-hidden="true" />
-            </Link>
+        <header className="border-b">
+          <div className="mx-auto grid max-w-7xl grid-cols-[auto_minmax(0,1fr)] items-center gap-x-4 gap-y-3 px-4 py-4 sm:px-6 lg:grid-cols-[auto_minmax(0,1fr)_auto_auto] lg:gap-x-8">
+            <Logo para="/loja" className="text-lg sm:text-2xl" />
+            <Categorias categorias={ativas} />
+            <BuscaDaLoja />
+            <div className="col-start-2 row-start-1 flex items-center justify-end gap-5 lg:col-start-auto lg:row-start-auto">
+              <Conta />
+              <BotaoCarrinho />
+            </div>
           </div>
-        </div>
-      </header>
+        </header>
 
-      <main className="flex-1">
-        <Outlet />
-      </main>
+        <main className="flex-1">
+          <Outlet />
+        </main>
 
-      <Rodape categorias={ativas} />
-    </div>
+        <Rodape categorias={ativas} />
+        <GavetaCarrinho />
+      </div>
+    </CarrinhoProvider>
+  )
+}
+
+// ícone do carrinho com o número de peças; abre a gaveta em vez de trocar de página
+function BotaoCarrinho() {
+  const { quantidadeTotal, abrirGaveta } = useCarrinho()
+  return (
+    <button
+      type="button"
+      onClick={abrirGaveta}
+      aria-label={quantidadeTotal > 0 ? `Carrinho, ${quantidadeTotal} ${quantidadeTotal === 1 ? 'peça' : 'peças'}` : 'Carrinho'}
+      className="relative hover:text-aco"
+    >
+      <ShoppingBag className="size-5" aria-hidden="true" />
+      {quantidadeTotal > 0 && (
+        <span
+          aria-hidden="true"
+          className="absolute -top-2 -right-2.5 flex size-4.5 items-center justify-center rounded-full bg-terracota text-[0.65rem] font-medium text-white tabular-nums"
+        >
+          {quantidadeTotal}
+        </span>
+      )}
+    </button>
   )
 }
 
