@@ -43,9 +43,9 @@ Etiqueta reta, texto curto: neutro (aguardando pagamento, aberto, solicitada) ·
 
 ## Plataforma do cliente (loja)
 
-- **Topo (estilo C&A, uma linha):** faixa marinho-escura "FRETE GRÁTIS A PARTIR DE R$ 299 E RETIRADA GRÁTIS NA LOJA"; logo à esquerda, categorias, busca em pílula, conta e carrinho. Deslogado: "Entrar ou criar conta". Logado: "Olá, Marina" com menu (Meus pedidos, Chamados, Endereços, Ajuda, Sair) e ponto terracota quando há resposta nova. Sem "Ajuda" solto no topo.
+- **Topo (estilo C&A, uma linha):** faixa marinho-escura "FRETE GRÁTIS A PARTIR DE R$ 299 E RETIRADA GRÁTIS NA LOJA"; logo à esquerda, categorias, busca, conta, "Pedidos" e carrinho. Deslogado: "Entrar ou criar conta". Logado: "Olá, Marina" com menu "Minha conta" (Meus pedidos, Chamados, Endereços, Ajuda, Sair) e ponto terracota quando há resposta nova. "Pedidos" fica à vista no topo (ícone e texto no desktop, só ícone no celular) porque dentro do menu pouca gente achava. Sem "Ajuda" solto no topo.
 - **Início:** carrossel de largura total (estilo Renner), 3 slides (Linho, Alfaiataria, Retire grátis na loja), título em Newsreader branco e um botão; troca a cada 6 s, pausa no mouse, setas e pontinhos. Abaixo, faixa de vantagens em aço, Novidades, categorias em blocos ardósia, rodapé marinho-escuro.
-- **Rodapé:** coluna "Ajuda" com Central de ajuda, Trocas e devoluções, Prazos de entrega, Fale com a gente.
+- **Rodapé:** coluna "Minha conta" (Meus pedidos, Chamados, Endereços); coluna "Ajuda" com Central de ajuda, Trocas e devoluções, Prazos de entrega, Fale com a gente.
 - **Central de ajuda:** 4 assuntos em grade (Pedidos e entrega, Trocas e devoluções, Pagamento, Sua conta); embaixo, bloco ardósia "Não achou? Fale com a gente pelo chat" (pede login se precisar).
 - **Lista:** caminho de navegação, título em Newsreader, filtros de tamanho e estoque, ordenação, "Mostrar mais peças".
 - **Produto:** miniaturas verticais à esquerda, foto grande, informações à direita; cores como amostras (trocar a cor troca as fotos), tamanhos quadrados (esgotado riscado), "Adicionar ao carrinho" 44px, frete/retirada/troca abaixo. Celular: fotos deslizando com pontinhos.
