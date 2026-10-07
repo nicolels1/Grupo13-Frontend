@@ -144,6 +144,14 @@ function Conta() {
 function MenuDaConta({ nome }: { nome: string }) {
   const { sair } = useAuth()
   const local = useLocation()
+  const navegar = useNavigate()
+
+  // volta ao início da loja antes de encerrar a sessão: numa página que pede login
+  // (ex.: Chamados) a proteção mandaria para /entrar
+  function sairDaConta() {
+    navegar('/loja', { replace: true })
+    void sair()
+  }
   // confere de novo a cada troca de página, para o aviso sumir depois de ler a resposta
   const { dados } = useCarregar(
     () => api<Esquema<'Pagina_ChamadoSaida_'>>('/chamados', { params: { limit: 100 } }),
@@ -172,7 +180,7 @@ function MenuDaConta({ nome }: { nome: string }) {
         <DropdownMenuItem render={<Link to="/loja/enderecos" />}>Endereços</DropdownMenuItem>
         <DropdownMenuItem render={<Link to="/loja/ajuda" />}>Ajuda</DropdownMenuItem>
         <DropdownMenuSeparator />
-        <DropdownMenuItem onClick={() => void sair()}>Sair</DropdownMenuItem>
+        <DropdownMenuItem onClick={sairDaConta}>Sair</DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
   )

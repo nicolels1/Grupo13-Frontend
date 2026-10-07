@@ -18,6 +18,9 @@ function MolduraConta({ children }) {
     <main className="flex min-h-svh flex-col items-center bg-superficie px-4 py-10">
       <Logo para="/loja" className="mb-10 text-2xl" />
       <div className="w-full max-w-md bg-background p-8 shadow-sm sm:p-10">{children}</div>
+      <Link to="/loja" className="mt-6 text-sm underline underline-offset-4 hover:text-aco">
+        Voltar para a loja
+      </Link>
     </main>
   )
 }

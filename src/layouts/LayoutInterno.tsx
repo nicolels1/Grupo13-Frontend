@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { ChevronDown, Store } from 'lucide-react'
-import { NavLink, Outlet } from 'react-router'
+import { NavLink, Outlet, useNavigate } from 'react-router'
 import { cn } from 'cn'
 
 import { AREAS, podeVerArea } from '@/auth/areas'
@@ -93,7 +93,14 @@ export function LayoutInterno() {
 
 function MenuDaPessoa() {
   const { perfil, sair } = useAuth()
+  const navegar = useNavigate()
   if (!perfil) return null
+
+  // vai para a loja antes de encerrar a sessão: sem isso a proteção do interno manda para /entrar
+  function sairDaConta() {
+    navegar('/loja', { replace: true })
+    void sair()
+  }
   const primeiroNome = perfil.nome.split(' ')[0]
 
   return (
@@ -113,7 +120,7 @@ function MenuDaPessoa() {
           </DropdownMenuLabel>
         </DropdownMenuGroup>
         <DropdownMenuSeparator />
-        <DropdownMenuItem onClick={() => void sair()}>Sair</DropdownMenuItem>
+        <DropdownMenuItem onClick={sairDaConta}>Sair</DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
   )
