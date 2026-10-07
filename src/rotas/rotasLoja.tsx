@@ -1,4 +1,5 @@
-import type { RouteObject } from 'react-router'
+import { Hammer } from 'lucide-react'
+import { Link, type RouteObject } from 'react-router'
 
 import { ExigeLogin } from '@/auth/Protecao'
 import { LayoutCliente } from '@/layouts/LayoutCliente'
@@ -12,10 +13,19 @@ import { ProdutosLoja } from '@/pages/loja/Produtos'
 
 // telas da loja que ainda vão ser feitas: o caminho já existe para o menu e os botões
 // levarem a algum lugar, e cada etapa troca o aviso pela tela de verdade
+// bloco aço-claro para a página não parecer quebrada enquanto a tela de verdade não chega
 function emConstrucao(titulo: string, descricao: string) {
   return (
     <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6">
-      <EmConstrucao titulo={titulo} descricao={descricao} />
+      <div className="flex flex-col gap-5 border-l-4 border-aco bg-aco-fundo p-8 sm:flex-row sm:items-start">
+        <Hammer className="size-8 shrink-0 text-aco" aria-hidden="true" />
+        <div className="space-y-4">
+          <EmConstrucao titulo={titulo} descricao={descricao} />
+          <Link to="/loja/produtos" className="inline-block text-sm font-medium underline underline-offset-4">
+            Continuar comprando
+          </Link>
+        </div>
+      </div>
     </div>
   )
 }
