@@ -75,10 +75,10 @@ export function Movimentacoes() {
       <Cabecalho
         titulo="Estoque"
         subtitulo={`Tudo o que entrou e saiu do estoque ${unidade ? `da ${nomeUnidade(unidades, Number(unidade))}` : 'da rede'}, com quem fez e por quê.`}
+        abas={<AbasEstoque />}
       >
         <AcoesEstoque />
       </Cabecalho>
-      <AbasEstoque />
 
       <div className="min-w-0">
         {feito && <div className="mb-4"><Sucesso>{feito}</Sucesso></div>}

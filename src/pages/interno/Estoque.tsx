@@ -24,12 +24,12 @@ type Grupo = ItemEstoque & { chave: string; canais: Partial<Record<Canal, ItemEs
 
 const PRODUTOS_POR_PAGINA = 30
 
-// subabas da área Estoque: Saldo, Movimentações e Histórico do estoque
+// subabas da área Estoque: Saldo, Movimentações e Histórico do estoque (vão no bloco do Cabecalho)
 export function AbasEstoque() {
   const aba = ({ isActive }: { isActive: boolean }) =>
-    cn('-mb-px border-b-2 pb-2 text-sm', isActive ? 'border-foreground font-medium' : 'border-transparent text-muted-foreground hover:text-foreground')
+    cn('border-b-2 pb-2 text-sm', isActive ? 'border-foreground font-medium' : 'border-transparent text-muted-foreground hover:text-foreground')
   return (
-    <nav aria-label="Estoque" className="mb-8 flex gap-6 border-b">
+    <nav aria-label="Estoque" className="flex gap-6">
       <NavLink to="/interno/estoque" end className={aba}>Saldo</NavLink>
       <NavLink to="/interno/estoque/movimentacoes" className={aba}>Movimentações</NavLink>
       <NavLink to="/interno/estoque/historico" className={aba}>Histórico do estoque</NavLink>
@@ -104,10 +104,9 @@ export function Estoque() {
 
   return (
     <>
-      <Cabecalho titulo="Estoque" subtitulo={`Saldo de cada peça ${ondeTexto}. Troque a unidade no topo.`}>
+      <Cabecalho titulo="Estoque" subtitulo={`Saldo de cada peça ${ondeTexto}. Troque a unidade no topo.`} abas={<AbasEstoque />}>
         <AcoesEstoque />
       </Cabecalho>
-      <AbasEstoque />
 
       <div className="mb-4 flex flex-wrap gap-2">
         <label className="flex h-9 min-w-56 flex-1 items-center gap-2 border border-input px-3 sm:max-w-80">

@@ -4,6 +4,7 @@ import { Link, useNavigate, useParams } from 'react-router'
 import { cn } from 'cn'
 
 import { Aviso, Carregando, Sucesso } from '@/components/Estados'
+import { Cabecalho } from '@/components/Navegacao'
 import { Etiqueta } from '@/components/Peca'
 import { Button, buttonVariants } from '@/components/ui/button'
 import { Campo, Input, Select, Textarea } from '@/components/ui/input'
@@ -116,21 +117,16 @@ function FormularioProduto({ produto, recarregar }: { produto: Produto | null; r
       <Link to="/interno/catalogo" className="mb-3 inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
         <ChevronLeft className="size-4" aria-hidden="true" /> Produtos
       </Link>
-      <div className="mb-10 flex flex-wrap items-end justify-between gap-4">
-        <div className="space-y-1">
-          <h1 className="font-heading text-3xl font-medium tracking-tight">{produto ? produto.nome : 'Novo produto'}</h1>
-          {produto && (
-            <p className="text-sm text-muted-foreground">
-              {plural(produto.variantes.length, 'variação', 'variações')}, {produto.ativo ? 'à venda' : 'fora de venda'}.
-            </p>
-          )}
-        </div>
+      <Cabecalho
+        titulo={produto ? produto.nome : 'Novo produto'}
+        subtitulo={produto ? `${plural(produto.variantes.length, 'variação', 'variações')}, ${produto.ativo ? 'à venda' : 'fora de venda'}.` : undefined}
+      >
         {produto?.ativo && (
           <Link to={`/loja/produtos/${produto.id_produto}`} target="_blank" className={cn(buttonVariants({ variant: 'outline', size: 'lg' }), 'h-11 px-4')}>
             Ver na loja online <ExternalLink aria-hidden="true" />
           </Link>
         )}
-      </div>
+      </Cabecalho>
 
       <form onSubmit={salvar} className="space-y-12">
         <section>

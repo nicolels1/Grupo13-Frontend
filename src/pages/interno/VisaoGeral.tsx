@@ -6,6 +6,7 @@ import { cn } from 'cn'
 import { useAuth } from '@/auth/contexto'
 import { ehAdmin, temPermissao } from '@/auth/areas'
 import { Aviso, Carregando } from '@/components/Estados'
+import { Cabecalho } from '@/components/Navegacao'
 import { buttonVariants } from '@/components/ui/button'
 import { useUnidadeEscolhida } from '@/layouts/unidadeEscolhida'
 import { api, type Esquema, type OpcoesApi } from '@/lib/api'
@@ -111,16 +112,17 @@ export function VisaoGeral() {
 
   return (
     <div className="space-y-12">
-      <div className="flex flex-wrap items-end justify-between gap-4">
-        <div className="space-y-1">
-          <h1 className="font-heading text-3xl font-medium tracking-tight">{titulo}</h1>
-          <p className="text-sm text-muted-foreground first-letter:uppercase">
+      <Cabecalho
+        titulo={titulo}
+        subtitulo={
+          <span className="block first-letter:uppercase">
             {dia}.{' '}
             {pendencias.dados && (abertas ? `${plural(abertas, 'pendência', 'pendências')} para resolver.` : 'Tudo em dia.')}
-          </p>
-        </div>
+          </span>
+        }
+      >
         <Atalhos pode={pode} />
-      </div>
+      </Cabecalho>
 
       <div className={cn('grid gap-12', teraNumeros && 'lg:grid-cols-[25rem_1fr]')}>
         {/* linha vertical entre pendências e números, com o mesmo respiro dos dois lados */}

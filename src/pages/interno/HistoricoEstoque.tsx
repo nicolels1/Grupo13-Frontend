@@ -95,8 +95,7 @@ export function HistoricoEstoque() {
 
   return (
     <>
-      <Cabecalho titulo="Estoque"><AcoesEstoque /></Cabecalho>
-      <AbasEstoque />
+      <Cabecalho titulo="Estoque" abas={<AbasEstoque />}><AcoesEstoque /></Cabecalho>
 
       <section aria-label="Momento do histórico" className="mb-8 space-y-4 bg-superficie p-5">
         <p className="flex flex-wrap items-center gap-x-2 gap-y-3 text-lg">

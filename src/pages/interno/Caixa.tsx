@@ -59,7 +59,11 @@ export function Caixa() {
 
   return (
     <>
-      <Cabecalho titulo="Caixa" subtitulo={vendendo ? `Vendendo na ${loja.nome}` : undefined} />
+      <Cabecalho
+        titulo="Caixa"
+        subtitulo={vendendo ? `Vendendo na ${loja.nome}` : undefined}
+        abas={vendendo ? <Abas semLinha rotulo="Caixa" valor={aba} aoMudar={setAba} abas={abas} /> : undefined}
+      />
 
       {travada && loja && !vendendo ? (
         <Aviso titulo="Sua unidade não tem caixa" mensagem="Venda, retirada e troca no balcão acontecem nas lojas ativas. Peça ao Admin para revisar a unidade da sua conta." />
@@ -79,7 +83,6 @@ export function Caixa() {
         )
       ) : (
         <>
-          <Abas rotulo="Caixa" valor={aba} aoMudar={setAba} abas={abas} className="mb-8" />
           {aba === 'nova' && <NovaVenda key={idLoja} loja={loja} />}
           {aba === 'retiradas' && <Retiradas key={idLoja} loja={loja} />}
           {aba === 'hoje' && <VendasDeHoje key={idLoja} loja={loja} />}
