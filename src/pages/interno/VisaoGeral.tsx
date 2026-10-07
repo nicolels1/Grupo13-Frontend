@@ -122,8 +122,9 @@ export function VisaoGeral() {
         <Atalhos pode={pode} />
       </div>
 
-      <div className={cn('grid gap-12', teraNumeros && 'lg:grid-cols-[22rem_1fr]')}>
-        <section aria-labelledby="titulo-pendencias" className={cn(!teraNumeros && 'max-w-md')}>
+      <div className={cn('grid gap-12', teraNumeros && 'lg:grid-cols-[25rem_1fr]')}>
+        {/* linha vertical entre pendências e números, com o mesmo respiro dos dois lados */}
+        <section aria-labelledby="titulo-pendencias" className={cn(teraNumeros ? 'lg:border-r lg:pr-12' : 'max-w-md')}>
           <h2 id="titulo-pendencias" className="border-b border-foreground pb-3 text-lg font-medium">Pendências</h2>
           {pendencias.erro && <div className="mt-4"><Aviso mensagem={pendencias.erro} /></div>}
           {pendencias.carregando && !pendencias.dados && <Carregando texto="Conferindo as pendências..." />}
