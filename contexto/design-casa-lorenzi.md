@@ -36,7 +36,7 @@ Etiqueta reta, texto curto: neutro (aguardando pagamento, aberto, solicitada) ·
 - Botões principais da loja com 44px (largura total no celular). Um botão principal por tela.
 - Sucesso inline, perto da ação. Sem toasts. A gaveta do carrinho é a confirmação de "adicionado".
 - Erros dizem o que aconteceu e como resolver.
-- Animação: só a gaveta do carrinho e o carrossel. Respeitar `prefers-reduced-motion`.
+- Animação: só a gaveta do carrinho, o carrossel e o abrir e fechar do acordeão (o padrão do shadcn). Respeitar `prefers-reduced-motion`.
 - Gráficos só na Visão Geral e no Histórico do estoque. Séries: marinho → aço → terracota → ardósia.
 - Responsivo de 360px ao desktop; polimento máximo no desktop; loja e checkout conferidos no celular.
 
