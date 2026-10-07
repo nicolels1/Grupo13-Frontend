@@ -699,6 +699,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/atendimento/equipe": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Equipe
+         * @description Contas ativas que atendem chamados, por nome: para quem dá para repassar um chamado.
+         */
+        get: operations["equipe_atendimento_equipe_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/atendimento/chamados/{id_chamado}": {
         parameters: {
             query?: never;
@@ -2590,6 +2610,11 @@ export interface components {
             /** Items */
             items: components["schemas"]["PermissaoSaida"][];
         };
+        /** Lista[PessoaDaEquipe] */
+        Lista_PessoaDaEquipe_: {
+            /** Items */
+            items: components["schemas"]["PessoaDaEquipe"][];
+        };
         /** Lista[UnidadeSaida] */
         Lista_UnidadeSaida_: {
             /** Items */
@@ -3135,6 +3160,18 @@ export interface components {
             /** So Admin */
             so_admin: boolean;
         };
+        /** PessoaDaEquipe */
+        PessoaDaEquipe: {
+            /**
+             * Id Usuario
+             * Format: uuid
+             */
+            id_usuario: string;
+            /** Nome */
+            nome: string;
+            /** Id Unidade */
+            id_unidade: number | null;
+        };
         /** PontoEvolucao */
         PontoEvolucao: {
             /**
@@ -3282,6 +3319,11 @@ export interface components {
              * @description Grátis a partir do valor mínimo; zero na retirada
              */
             frete_entrega: string;
+            /**
+             * Frete Gratis A Partir De
+             * @description Valor mínimo em itens para o frete da entrega sair grátis (para a loja mostrar quanto falta)
+             */
+            frete_gratis_a_partir_de: string;
             /** Total Entrega */
             total_entrega: string;
             /** Total Retirada */
@@ -4461,9 +4503,9 @@ export interface operations {
                 ativo?: boolean | null;
                 /** @description Parte do nome do produto */
                 busca?: string | null;
-                /** @description Só produtos com esse tamanho à venda */
-                tamanho?: string | null;
-                /** @description true: só produtos com peça para vender online (no tamanho, se informado) */
+                /** @description Só produtos com algum desses tamanhos à venda; repita para vários (?tamanho=P&tamanho=M) */
+                tamanho?: string[] | null;
+                /** @description true: só produtos com peça para vender online (nos tamanhos, se informados) */
                 disponivel?: boolean | null;
                 /** @description nome, novidades, menor_preco ou maior_preco (pela variante mais barata) */
                 ordem?: "nome" | "novidades" | "menor_preco" | "maior_preco";
@@ -6036,6 +6078,51 @@ export interface operations {
             };
             /** @description Chamado não encontrado */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    equipe_atendimento_equipe_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Lista_PessoaDaEquipe_"];
+                };
+            };
+            /** @description Sem login válido */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Sem permissão */
+            403: {
                 headers: {
                     [name: string]: unknown;
                 };
