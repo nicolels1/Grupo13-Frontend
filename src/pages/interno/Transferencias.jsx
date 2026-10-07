@@ -8,11 +8,12 @@ import { temPermissao } from '@/auth/areas'
 import { Aviso, Carregando, Vazio } from '@/components/Estados'
 import { Abas, Cabecalho } from '@/components/Navegacao'
 import { Etiqueta, NomePeca } from '@/components/Peca'
+import { Status } from '@/components/Status'
 import { Button } from '@/components/ui/button'
 import { Campo, Input, Label, Select } from '@/components/ui/input'
 import { useUnidadeEscolhida } from '@/layouts/unidadeEscolhida'
 import { api } from '@/lib/api'
-import { CANAIS, codigoTransferencia, dataCurta, hora, plural, STATUS_TRANSFERENCIA } from '@/lib/formato'
+import { CANAIS, codigoTransferencia, dataCurta, hora, plural } from '@/lib/formato'
 import { nomeUnidade, useVariantes } from '@/lib/listas'
 import { useCarregar, useEnviar } from '@/lib/useCarregar'
 
@@ -91,7 +92,7 @@ export function Transferencias() {
                 >
                   <span className="flex items-center justify-between">
                     <Etiqueta>{codigoTransferencia(t.id_transferencia)}</Etiqueta>
-                    <span className="text-sm text-muted-foreground">{STATUS_TRANSFERENCIA[t.status]}</span>
+                    <Status tipo="transferencia" valor={t.status} />
                   </span>
                   <span className="block text-sm">{descricao(t)}</span>
                 </button>
@@ -369,7 +370,7 @@ function NovaTransferencia({ aoCriar, aoFechar }) {
               {linhasAchadas.map((l) => (
                 <li key={`${l.id_variante}-${l.canal}`}>
                   <button type="button" onClick={() => adicionar(l)} className="flex w-full items-center justify-between gap-3 px-3 py-2 text-left hover:bg-superficie">
-                    <NomePeca produto={l.produto} cor={l.cor} tamanho={`${l.tamanho} · ${l.sku}`} />
+                    <NomePeca produto={l.produto} cor={l.cor} tamanho={`${l.tamanho}, ${l.sku}`} />
                     <span className="shrink-0 text-xs text-muted-foreground">{CANAIS[l.canal]}: {l.disponivel}</span>
                   </button>
                 </li>
