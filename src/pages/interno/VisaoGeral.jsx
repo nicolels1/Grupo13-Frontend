@@ -172,8 +172,8 @@ function BlocoTarefas({ titulo, tarefas }) {
               </p>
             </div>
             {tarefa.alerta && (
-              <span className="flex items-center gap-1.5 text-sm text-ferrugem">
-                <span className="size-1.5 rounded-full bg-ferrugem" aria-hidden="true" />
+              <span className="flex items-center gap-1.5 text-sm font-medium">
+                <span className="size-1.5 rounded-full bg-terracota" aria-hidden="true" />
                 {tarefa.alerta}
               </span>
             )}
@@ -194,7 +194,7 @@ function Numero({ rotulo, valor, alerta }) {
   return (
     <div className="flex items-baseline justify-between border-b py-4">
       <span className="text-sm text-muted-foreground">{rotulo}</span>
-      <span className={cn('text-2xl font-medium', alerta && valor > 0 && 'text-ferrugem')}>{valor ?? '—'}</span>
+      <span className={cn('text-2xl font-medium', alerta && valor > 0 && 'text-terracota')}>{valor ?? '—'}</span>
     </div>
   )
 }

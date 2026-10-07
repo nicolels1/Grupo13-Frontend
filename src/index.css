@@ -23,6 +23,7 @@
     --color-terracota: var(--terracota);
     --color-ferrugem: var(--ferrugem);
     --color-ferrugem-fundo: var(--ferrugem-fundo);
+    --color-terracota-fundo: var(--terracota-fundo);
     --color-superficie: var(--superficie);
     --color-aco-fundo: var(--aco-fundo);
     --color-ardosia-clara: var(--ardosia-clara);
@@ -82,8 +83,9 @@
     --ferrugem: #a64e33;
     --ferrugem-fundo: #f6ebe6;
     --superficie: #f4f4f2;
-    /* fundos claros derivados da paleta (etiqueta em aço, nota interna do chamado) */
+    /* fundos claros derivados da paleta (etiqueta em aço, pendência em terracota, nota interna do chamado) */
     --aco-fundo: #e6eff5;
+    --terracota-fundo: #f8ebe5;
     --ardosia-clara: #e9ecf2;
 
     --background: #ffffff;

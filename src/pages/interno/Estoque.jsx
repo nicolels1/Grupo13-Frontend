@@ -19,15 +19,27 @@ import { GraficoEvolucao } from './GraficoEvolucao'
 const POR_PAGINA = 60
 const DIAS_NA_REGUA = 31
 
-// abas da área Estoque (saldo e movimentações)
+// subabas da área Estoque: Saldo, Movimentações e Histórico do estoque
 export function AbasEstoque() {
   const aba = ({ isActive }) =>
     cn('-mb-px border-b-2 pb-2 text-sm', isActive ? 'border-foreground font-medium' : 'border-transparent text-muted-foreground hover:text-foreground')
   return (
     <nav aria-label="Estoque" className="mb-8 flex gap-6 border-b">
-      <NavLink to="/interno/estoque" end className={aba}>Saldo por peça</NavLink>
+      <NavLink to="/interno/estoque" end className={aba}>Saldo</NavLink>
       <NavLink to="/interno/estoque/movimentacoes" className={aba}>Movimentações</NavLink>
+      <NavLink to="/interno/estoque/historico" className={aba}>Histórico do estoque</NavLink>
     </nav>
+  )
+}
+
+// Histórico do estoque: em construção até a Etapa 6 (frase-filtro, atalhos, régua e "naquele momento × agora")
+export function HistoricoEstoque() {
+  return (
+    <>
+      <Cabecalho titulo="Estoque"><AcoesEstoque /></Cabecalho>
+      <AbasEstoque />
+      <p className="text-sm text-muted-foreground">Tela em construção.</p>
+    </>
   )
 }
 
@@ -226,7 +238,7 @@ export function Estoque() {
 function Qtd({ linha }) {
   if (!linha) return <td className="text-right text-muted-foreground">—</td>
   return (
-    <td className={cn('text-right', linha.abaixo_minimo && 'font-medium text-ferrugem')}>
+    <td className={cn('px-2 text-right', linha.abaixo_minimo && 'bg-terracota-fundo font-medium')}>
       {linha.quantidade}
       {linha.quantidade_reservada > 0 && (
         <span className="block text-xs text-muted-foreground">{linha.quantidade_reservada} reservada(s)</span>
@@ -239,7 +251,8 @@ function Minimo({ fisica, online }) {
   const partes = [['física', fisica], ['online', online]].filter(([, l]) => l?.estoque_minimo !== null && l?.estoque_minimo !== undefined)
   if (partes.length === 0) return <span className="text-muted-foreground">sem mínimo</span>
   return partes.map(([rotulo, l]) => (
-    <span key={rotulo} className={cn('block', l.abaixo_minimo && 'font-medium text-ferrugem')}>
+    <span key={rotulo} className={cn('block', l.abaixo_minimo && 'font-medium')}>
+      {l.abaixo_minimo && <span className="mr-1.5 inline-block size-1.5 rounded-full bg-terracota align-middle" aria-label="abaixo do mínimo" />}
       {l.estoque_minimo} <span className="text-xs text-muted-foreground">{rotulo}</span>
     </span>
   ))

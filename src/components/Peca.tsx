@@ -14,13 +14,13 @@ export function Miniatura({ cor, className }: { cor: string | null | undefined; 
   )
 }
 
-// código da peça (SKU) ou referência, como uma etiqueta
+// código da peça (SKU) ou referência, como uma etiqueta; `alerta` marca pendência (ex.: abaixo do mínimo)
 export function Etiqueta({ children, alerta, className }: { children: ReactNode; alerta?: boolean; className?: string }) {
   return (
     <span
       className={cn(
         'inline-flex items-center px-2 py-0.5 text-xs font-medium tabular-nums',
-        alerta ? 'bg-ferrugem-fundo text-ferrugem' : 'bg-superficie text-foreground',
+        alerta ? 'bg-terracota-fundo text-marinho-escuro shadow-[inset_2px_0_0_var(--terracota)]' : 'bg-superficie text-foreground',
         className,
       )}
     >
