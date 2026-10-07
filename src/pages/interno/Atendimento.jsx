@@ -6,14 +6,17 @@ import { cn } from 'cn'
 import { useAuth } from '@/auth/contexto'
 import { Aviso, Carregando, Vazio } from '@/components/Estados'
 import { Abas, Cabecalho, Paginacao } from '@/components/Navegacao'
-import { Etiqueta } from '@/components/Peca'
+import { Etiqueta, NomePeca } from '@/components/Peca'
+import { Status } from '@/components/Status'
 import { Button } from '@/components/ui/button'
 import { Campo, Select } from '@/components/ui/input'
 import { useUnidadeEscolhida } from '@/layouts/unidadeEscolhida'
 import { api, ErroApi } from '@/lib/api'
 import {
-  CATEGORIAS_CHAMADO, dataHora, dataLonga, haQuanto, hora, MOTIVOS_CONCLUSAO, plural, PRIORIDADES, STATUS_CHAMADO, tamanhoArquivo,
+  CATEGORIAS_CHAMADO, dataCurta, dataHora, dataLonga, haQuanto, hora, moeda, MOTIVOS_CONCLUSAO, plural, PRIORIDADES, STATUS_CHAMADO,
+  tamanhoArquivo,
 } from '@/lib/formato'
+import { nomeUnidade } from '@/lib/listas'
 import { useCarregar, useEnviar } from '@/lib/useCarregar'
 
 const POR_PAGINA = 25
@@ -164,20 +167,159 @@ function Prioridade({ valor }) {
 
 // o histórico guarda o id de quem passou a ser responsável; mostra o que aconteceu, não o id
 function textoHistorico(h) {
-  if (h.campo_alterado === 'responsavel') return h.valor_anterior ? `${h.autor} repassou` : `${h.autor} assumiu`
-  if (h.campo_alterado === 'prioridade') return `Prioridade ${PRIORIDADES[h.valor_novo]?.toLowerCase() ?? h.valor_novo}`
-  return STATUS_CHAMADO[h.valor_novo] ?? h.valor_novo
+  if (h.campo_alterado === 'responsavel') return h.valor_anterior ? `${h.autor} repassou o chamado` : `${h.autor} assumiu`
+  if (h.campo_alterado === 'prioridade') return `${h.autor} mudou a prioridade para ${PRIORIDADES[h.valor_novo]?.toLowerCase() ?? h.valor_novo}`
+  if (h.valor_novo === 'concluido') return `${h.autor} concluiu`
+  return `Chamado ${STATUS_CHAMADO[h.valor_novo]?.toLowerCase() ?? h.valor_novo}`
+}
+
+// a troca ou devolução vale até 30 dias depois da entrega (case, seção 5)
+const PRAZO_TROCA_DIAS = 30
+
+// painel à direita da conversa (design, seção Atendimento): cliente e pedido ligado,
+// status, prioridade e responsável, concluir com motivo e o histórico do chamado.
+// Só o responsável muda a prioridade e conclui; quem atende pode assumir um chamado sem responsável.
+function PainelDoChamado({ chamado: c, historico, aoMudar }) {
+  const { perfil } = useAuth()
+  const { unidades } = useUnidadeEscolhida()
+  const [motivo, setMotivo] = useState('resolvido')
+  const { enviar, enviando, erro } = useEnviar()
+  const souResponsavel = c.id_responsavel === perfil.id_usuario
+  const concluido = c.status === 'concluido'
+  const pedido = useCarregar(() => (c.id_pedido ? api(`/vendas/pedidos/${c.id_pedido}`) : null), [c.id_pedido])
+
+  async function acao(caminho, corpo, metodo = 'POST') {
+    const ok = await enviar(() => api(`/atendimento/chamados/${c.id_chamado}${caminho}`, { metodo, corpo }))
+    if (ok) aoMudar()
+  }
+
+  return (
+    <aside aria-label="Dados do chamado" className="space-y-6 xl:border-l xl:pl-6">
+      {erro && <Aviso mensagem={erro} />}
+
+      <section className="space-y-3">
+        <h3 className="text-lg font-medium">{c.cliente}</h3>
+        {c.id_pedido && <PedidoLigado chamado={c} pedido={pedido} />}
+        {c.id_chamado_anterior && (
+          <p className="text-sm">
+            Continua o{' '}
+            <Link to={`/interno/atendimento/${c.id_chamado_anterior}`} className="text-aco underline underline-offset-2">chamado {c.id_chamado_anterior}</Link>
+          </p>
+        )}
+      </section>
+
+      <dl className="space-y-2 border-t pt-4 text-sm">
+        <div className="flex items-center justify-between gap-3">
+          <dt className="text-muted-foreground">Status</dt>
+          <dd><Status tipo="chamado" valor={c.status} /></dd>
+        </div>
+        <div className="flex items-center justify-between gap-3">
+          <dt className="text-muted-foreground">Categoria</dt>
+          <dd>{CATEGORIAS_CHAMADO[c.categoria]}</dd>
+        </div>
+        {c.id_unidade && (
+          <div className="flex items-center justify-between gap-3">
+            <dt className="text-muted-foreground">Unidade</dt>
+            <dd>{nomeUnidade(unidades, c.id_unidade)}</dd>
+          </div>
+        )}
+        <div className="flex items-center justify-between gap-3">
+          <dt className="text-muted-foreground"><label htmlFor="prioridade">Prioridade</label></dt>
+          <dd>
+            {souResponsavel && !concluido ? (
+              <Select id="prioridade" value={c.prioridade ?? ''} onChange={(e) => acao('', { prioridade: e.target.value }, 'PATCH')} disabled={enviando} className="h-8 w-32">
+                <option value="" disabled>Definir</option>
+                {Object.entries(PRIORIDADES).map(([v, r]) => <option key={v} value={v}>{r}</option>)}
+              </Select>
+            ) : (
+              c.prioridade ? PRIORIDADES[c.prioridade] : <span className="text-muted-foreground">sem</span>
+            )}
+          </dd>
+        </div>
+        <div className="flex items-center justify-between gap-3">
+          <dt className="text-muted-foreground">Responsável</dt>
+          <dd>{souResponsavel ? 'Você' : c.responsavel ?? <span className="text-muted-foreground">ninguém ainda</span>}</dd>
+        </div>
+      </dl>
+
+      {!c.id_responsavel && !concluido && (
+        <Button variant="outline" size="lg" className="h-11 w-full" disabled={enviando} onClick={() => acao('/assumir')}>
+          Assumir chamado
+        </Button>
+      )}
+
+      {souResponsavel && !concluido && (
+        <form onSubmit={(e) => { e.preventDefault(); acao('/concluir', { motivo }) }} className="flex items-end gap-2 border-t pt-4">
+          <Campo id="motivo-conclusao" rotulo="Concluir como" className="flex-1">
+            <Select id="motivo-conclusao" value={motivo} onChange={(e) => setMotivo(e.target.value)}>
+              {Object.entries(MOTIVOS_CONCLUSAO).map(([v, r]) => <option key={v} value={v}>{r}</option>)}
+            </Select>
+          </Campo>
+          <Button type="submit" variant="outline" className="h-9 px-4" disabled={enviando}>Concluir</Button>
+        </form>
+      )}
+      {c.id_responsavel && !souResponsavel && !concluido && (
+        <p className="text-xs text-muted-foreground">Só {c.responsavel} muda a prioridade e conclui este chamado.</p>
+      )}
+      {concluido && (
+        <p className="bg-superficie p-4 text-sm">
+          Concluído em {dataHora(c.concluido_em)} como {MOTIVOS_CONCLUSAO[c.motivo_encerramento]?.toLowerCase()}. Chamado concluído não reabre.
+        </p>
+      )}
+
+      <section className="border-t pt-4">
+        <h3 className="mb-1 text-sm font-medium">Histórico deste chamado</h3>
+        {historico.erro && <Aviso mensagem={historico.erro} />}
+        {historico.dados?.items.length === 0 && <p className="text-sm text-muted-foreground">Sem alterações ainda.</p>}
+        <ul className="text-sm">
+          {historico.dados?.items.map((h) => (
+            <li key={h.id_historico} className="grid grid-cols-[6.5rem_1fr] gap-3 border-b py-2">
+              <span className="text-muted-foreground tabular-nums">{dataHora(h.criado_em)}</span>
+              <span>{textoHistorico(h)}</span>
+            </li>
+          ))}
+        </ul>
+      </section>
+    </aside>
+  )
+}
+
+// pedido ligado ao chamado: código, status, a peça apontada (ou os itens) e o prazo de troca
+function PedidoLigado({ chamado: c, pedido }) {
+  const [agora] = useState(() => Date.now())
+  if (pedido.erro) return <p className="text-sm text-muted-foreground">Pedido {c.id_pedido}</p>
+  if (!pedido.dados) return <p className="text-sm text-muted-foreground">Carregando o pedido {c.id_pedido}...</p>
+  const p = pedido.dados
+  const apontados = p.itens.filter((i) => i.id_item === c.id_item_pedido || (!c.id_item_pedido && i.id_variante === c.id_variante))
+  const itens = apontados.length ? apontados : p.itens
+  const prazo = p.entregue_em ? new Date(new Date(p.entregue_em).getTime() + PRAZO_TROCA_DIAS * 86400000) : null
+
+  return (
+    <div className="space-y-2 bg-superficie p-3 text-sm">
+      <p className="flex flex-wrap items-center justify-between gap-2">
+        <Etiqueta>{p.codigo_venda}</Etiqueta>
+        <Status tipo="pedido" valor={p.status} />
+      </p>
+      <ul className="space-y-2">
+        {itens.map((i) => (
+          <li key={i.id_item}><NomePeca produto={i.produto} cor={i.cor} tamanho={`${i.tamanho}${i.quantidade > 1 ? `, ${i.quantidade} peças` : ''}`} /></li>
+        ))}
+      </ul>
+      <p className="text-xs text-muted-foreground">
+        {p.entregue_em
+          ? `Entregue em ${dataCurta(p.entregue_em)}; troca ou devolução até ${dataCurta(prazo.toISOString())}${prazo.getTime() < agora ? ', prazo encerrado' : ''}.`
+          : `${moeda(p.valor_total)}, ${p.canal === 'loja_fisica' ? 'compra na loja' : 'compra no site'}.`}
+      </p>
+    </div>
+  )
 }
 
 // conversa e painel do chamado aberto, na terceira coluna da caixa de entrada.
 // `aoMudar` atualiza a lista e as contagens quando o chamado muda (assumir, concluir, prioridade)
 function ChamadoAberto({ idChamado, aoMudar }) {
-  const { perfil } = useAuth()
   const chamado = useCarregar(() => api(`/atendimento/chamados/${idChamado}`), [idChamado])
   const mensagens = useCarregar(() => api(`/atendimento/chamados/${idChamado}/mensagens`), [idChamado])
   const historico = useCarregar(() => api(`/atendimento/chamados/${idChamado}/historico`), [idChamado])
-  const [motivo, setMotivo] = useState('resolvido')
-  const { enviar, enviando, erro } = useEnviar()
   const { recarregar: recarregarMensagens } = mensagens
 
   useEffect(() => {
@@ -188,19 +330,12 @@ function ChamadoAberto({ idChamado, aoMudar }) {
   if (chamado.carregando && !chamado.dados) return <Carregando />
   if (chamado.erro) return <Aviso mensagem={chamado.erro} />
   const c = chamado.dados
-  const souResponsavel = c.id_responsavel === perfil.id_usuario
   const concluido = c.status === 'concluido'
 
   function atualizarTudo() {
     chamado.recarregar()
     historico.recarregar()
     aoMudar()
-  }
-
-  async function acao(caminho, corpo, metodo = 'POST') {
-    const ok = await enviar(() => api(`/atendimento/chamados/${idChamado}${caminho}`, { metodo, corpo }))
-    if (ok) atualizarTudo()
-    return ok
   }
 
   function aposResponder() {
@@ -231,68 +366,8 @@ function ChamadoAberto({ idChamado, aoMudar }) {
           {!concluido && <Responder chamado={c} aoEnviar={aposResponder} />}
         </div>
 
-        <aside className="space-y-6">
-          {erro && <Aviso mensagem={erro} />}
-          <section className="space-y-1">
-            <h2 className="text-lg font-medium">{c.cliente}</h2>
-            <p className="text-sm text-muted-foreground">Status: {STATUS_CHAMADO[c.status]}</p>
-            <p className="text-sm text-muted-foreground">Responsável: {c.responsavel ?? 'ninguém ainda'}</p>
-            {(c.id_pedido || c.id_variante || c.id_chamado_anterior) && (
-              <p className="flex flex-wrap gap-1.5 pt-2">
-                {c.id_pedido && <Etiqueta>Pedido {c.id_pedido}</Etiqueta>}
-                {c.id_variante && <Etiqueta>Peça {c.id_variante}</Etiqueta>}
-                {c.id_chamado_anterior && (
-                  <Link to={`/interno/atendimento/${c.id_chamado_anterior}`}><Etiqueta>Chamado anterior {c.id_chamado_anterior}</Etiqueta></Link>
-                )}
-              </p>
-            )}
-          </section>
+        <PainelDoChamado chamado={c} historico={historico} aoMudar={atualizarTudo} />
 
-          {!c.id_responsavel && !concluido && (
-            <Button size="lg" className="h-11 w-full" disabled={enviando} onClick={() => acao('/assumir')}>Assumir chamado</Button>
-          )}
-
-          {souResponsavel && !concluido && (
-            <Campo id="prioridade" rotulo="Prioridade">
-              <Select id="prioridade" value={c.prioridade ?? ''} onChange={(e) => acao('', { prioridade: e.target.value }, 'PATCH')} disabled={enviando}>
-                <option value="" disabled>Definir</option>
-                {Object.entries(PRIORIDADES).map(([v, r]) => <option key={v} value={v}>{r}</option>)}
-              </Select>
-            </Campo>
-          )}
-
-          <section>
-            <h2 className="mb-1 text-sm font-medium">Histórico deste chamado</h2>
-            {historico.dados?.items.length === 0 && <p className="text-sm text-muted-foreground">Sem alterações ainda.</p>}
-            <ul className="text-sm">
-              {historico.dados?.items.map((h) => (
-                <li key={h.id_historico} className="flex justify-between gap-3 border-b py-2.5">
-                  <span className="text-muted-foreground">{dataHora(h.criado_em)}</span>
-                  <span className="text-right">{textoHistorico(h)}</span>
-                </li>
-              ))}
-            </ul>
-          </section>
-
-          {souResponsavel && !concluido && (
-            <form
-              onSubmit={(e) => { e.preventDefault(); acao('/concluir', { motivo }) }}
-              className="flex items-end gap-2"
-            >
-              <Campo id="motivo-conclusao" rotulo="Concluir como" className="flex-1">
-                <Select id="motivo-conclusao" value={motivo} onChange={(e) => setMotivo(e.target.value)}>
-                  {Object.entries(MOTIVOS_CONCLUSAO).map(([v, r]) => <option key={v} value={v}>{r}</option>)}
-                </Select>
-              </Campo>
-              <Button type="submit" variant="outline" className="h-9 px-4" disabled={enviando}>Concluir</Button>
-            </form>
-          )}
-          {concluido && (
-            <p className="bg-superficie p-4 text-sm">
-              Concluído em {dataHora(c.concluido_em)} como {MOTIVOS_CONCLUSAO[c.motivo_encerramento]?.toLowerCase()}.
-            </p>
-          )}
-        </aside>
       </div>
     </>
   )
