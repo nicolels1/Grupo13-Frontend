@@ -9,11 +9,11 @@ export function RotaInicial() {
   const { sessao, perfil, carregando, erroPerfil } = useAuth()
   if (carregando) return <Carregando />
   if (!sessao || erroPerfil) return <Navigate to={sessao ? '/interno' : '/loja'} replace />
-  return <Navigate to={perfil.tipo_conta === 'interna' ? '/interno' : '/loja'} replace />
+  return <Navigate to={perfil?.tipo_conta === 'interna' ? '/interno' : '/loja'} replace />
 }
 
 // lugar de uma tela que ainda vai ser feita
-export function EmConstrucao({ titulo, descricao }) {
+export function EmConstrucao({ titulo, descricao }: { titulo: string; descricao?: string }) {
   return (
     <section className="space-y-2">
       <h1 className="font-heading text-2xl font-semibold">{titulo}</h1>

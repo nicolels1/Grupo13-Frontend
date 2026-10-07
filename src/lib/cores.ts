@@ -1,5 +1,5 @@
 // enquanto não há fotos dos produtos, a peça aparece como um bloco na cor dela (como no design)
-const CORES = {
+const CORES: Record<string, string> = {
   areia: '#d6cab5',
   'off-white': '#eae6de',
   branco: '#edebe7',
@@ -21,28 +21,32 @@ const CORES = {
 
 const NEUTRAS = ['#dad0bf', '#c7cfd5', '#bfa38b', '#eae6de', '#a3a189', '#c59a87', '#9a7c7c']
 
-function normalizar(texto) {
+function normalizar(texto: string | null | undefined) {
   return String(texto ?? '').trim().toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
 }
 
-export function corDaPeca(cor, semente = 0) {
+export function corDaPeca(cor: string | null | undefined, semente: number | string = 0) {
   const chave = normalizar(cor)
-  if (CORES[chave]) return CORES[chave]
+  const exata = CORES[chave]
+  if (exata) return exata
   const parcial = Object.keys(CORES).find((nome) => chave.includes(nome))
-  if (parcial) return CORES[parcial]
+  if (parcial) return CORES[parcial]!
   // cor sem mapa: um tom neutro estável para a mesma peça
   const soma = [...chave].reduce((total, letra) => total + letra.charCodeAt(0), Number(semente) || 0)
-  return NEUTRAS[soma % NEUTRAS.length]
+  return NEUTRAS[soma % NEUTRAS.length]!
 }
 
+// produto com variantes (só os campos que estas funções leem)
+type ComVariantes = { variantes?: { cor: string; preco: string; ativo?: boolean }[] } | null | undefined
+
 // cores e tamanhos distintos das variantes, na ordem em que aparecem
-export function coresDoProduto(produto) {
+export function coresDoProduto(produto: ComVariantes) {
   return [...new Set((produto?.variantes ?? []).map((v) => v.cor))]
 }
 
 const ORDEM_TAMANHOS = ['PP', 'P', 'M', 'G', 'GG', 'XG', 'U']
 
-export function ordenarTamanhos(tamanhos) {
+export function ordenarTamanhos(tamanhos: Iterable<string>) {
   return [...tamanhos].sort((a, b) => {
     const ia = ORDEM_TAMANHOS.indexOf(a)
     const ib = ORDEM_TAMANHOS.indexOf(b)
@@ -52,7 +56,7 @@ export function ordenarTamanhos(tamanhos) {
   })
 }
 
-export function faixaDePreco(produto) {
+export function faixaDePreco(produto: ComVariantes) {
   const precos = (produto?.variantes ?? []).filter((v) => v.ativo !== false).map((v) => Number(v.preco))
   if (precos.length === 0) return null
   return { menor: Math.min(...precos), maior: Math.max(...precos) }

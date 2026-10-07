@@ -1,9 +1,10 @@
+import type { ReactNode } from 'react'
 import { cn } from 'cn'
 
 import { corDaPeca } from '@/lib/cores'
 
 // bloco na cor da peça, no lugar da foto
-export function Miniatura({ cor, className }) {
+export function Miniatura({ cor, className }: { cor: string | null | undefined; className?: string }) {
   return (
     <span
       aria-hidden="true"
@@ -14,7 +15,7 @@ export function Miniatura({ cor, className }) {
 }
 
 // código da peça (SKU) ou referência, como uma etiqueta
-export function Etiqueta({ children, alerta, className }) {
+export function Etiqueta({ children, alerta, className }: { children: ReactNode; alerta?: boolean; className?: string }) {
   return (
     <span
       className={cn(
@@ -29,7 +30,17 @@ export function Etiqueta({ children, alerta, className }) {
 }
 
 // nome da peça com cor e tamanho embaixo
-export function NomePeca({ produto, cor, tamanho, className }) {
+export function NomePeca({
+  produto,
+  cor,
+  tamanho,
+  className,
+}: {
+  produto: ReactNode
+  cor?: string | null
+  tamanho?: string | null
+  className?: string
+}) {
   return (
     <span className={cn('flex min-w-0 items-center gap-3', className)}>
       <Miniatura cor={cor} />

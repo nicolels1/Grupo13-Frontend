@@ -1,6 +1,18 @@
+import type { Esquema } from '@/lib/api'
+
+type Perfil = Esquema<'Perfil'>
+
+export type Area = {
+  caminho: string
+  rotulo: string
+  // null = qualquer conta interna
+  permissoes: string[] | null
+  somenteAdmin?: boolean
+}
+
 // áreas da plataforma interna (barra no topo, case seção 8). Cada área aparece para quem tem
 // pelo menos uma das permissões; a Gestão é exclusiva do Admin.
-export const AREAS = [
+export const AREAS: Area[] = [
   { caminho: '', rotulo: 'Visão Geral', permissoes: null },
   {
     caminho: 'estoque',
@@ -20,19 +32,19 @@ export const AREAS = [
   { caminho: 'atendimento', rotulo: 'Atendimento', permissoes: ['atender_chamado'] },
   { caminho: 'avaliacoes', rotulo: 'Avaliações', permissoes: ['moderar_avaliacoes'] },
   { caminho: 'catalogo', rotulo: 'Catálogo', permissoes: ['gerenciar_catalogo'] },
-  { caminho: 'gestao', rotulo: 'Gestão', somenteAdmin: true },
+  { caminho: 'gestao', rotulo: 'Gestão', permissoes: null, somenteAdmin: true },
 ]
 
-export function ehAdmin(perfil) {
+export function ehAdmin(perfil: Perfil | null | undefined) {
   return Boolean(perfil?.modelo_acesso?.eh_admin)
 }
 
-export function temPermissao(perfil, codigo) {
+export function temPermissao(perfil: Perfil | null | undefined, codigo: string) {
   return ehAdmin(perfil) || Boolean(perfil?.permissoes?.includes(codigo))
 }
 
 // a conta interna vê a área? (permissoes null = qualquer conta interna)
-export function podeVerArea(perfil, area) {
+export function podeVerArea(perfil: Perfil | null | undefined, area: Area) {
   if (perfil?.tipo_conta !== 'interna') return false
   if (area.somenteAdmin) return ehAdmin(perfil)
   if (!area.permissoes) return true

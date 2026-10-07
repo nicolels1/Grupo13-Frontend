@@ -1,23 +1,30 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
+import type { AuthError, Session } from '@supabase/supabase-js'
 
-import { api, ErroApi } from '@/lib/api'
+import { api, ErroApi, type Esquema } from '@/lib/api'
 import { supabase } from '@/lib/supabaseClient'
-import { AuthContext } from './contexto'
+import { AuthContext, type ValorAuth } from './contexto'
+
+type Perfil = Esquema<'Perfil'>
 
 // mensagens do Supabase Auth em português
-function traduzirErroLogin(erro) {
-  const mensagem = erro?.message ?? ''
+function traduzirErroLogin(erro: AuthError) {
+  const mensagem = erro.message
   if (mensagem.includes('Invalid login credentials')) return 'E-mail ou senha inválidos'
   if (mensagem.includes('Email not confirmed')) return 'E-mail ainda não confirmado'
-  if (erro?.status === 429) return 'Muitas tentativas. Aguarde alguns minutos e tente de novo'
+  if (erro.status === 429) return 'Muitas tentativas. Aguarde alguns minutos e tente de novo'
   return 'Não foi possível entrar. Tente de novo.'
 }
 
-export function AuthProvider({ children }) {
+export function AuthProvider({ children }: { children: ReactNode }) {
   // undefined = ainda lendo a sessão salva; null = ninguém logado
-  const [sessao, setSessao] = useState(undefined)
+  const [sessao, setSessao] = useState<Session | null | undefined>(undefined)
   // resultado do GET /me guardado com o id de quem foi buscado
-  const [resultado, setResultado] = useState({ id: null, perfil: null, erro: null })
+  const [resultado, setResultado] = useState<{ id: string | null; perfil: Perfil | null; erro: string | null }>({
+    id: null,
+    perfil: null,
+    erro: null,
+  })
   const [versao, setVersao] = useState(0)
   const idUsuario = sessao?.user?.id ?? null
 
@@ -31,9 +38,11 @@ export function AuthProvider({ children }) {
   useEffect(() => {
     if (!idUsuario) return undefined
     let ativo = true
-    api('/me')
-      .then((perfil) => ativo && setResultado({ id: idUsuario, perfil, erro: null }))
-      .catch((erro) => {
+    api<Perfil>('/me')
+      .then((perfil) => {
+        if (ativo) setResultado({ id: idUsuario, perfil, erro: null })
+      })
+      .catch((erro: unknown) => {
         const mensagem = erro instanceof ErroApi ? erro.message : 'Não foi possível carregar sua conta'
         if (ativo) setResultado({ id: idUsuario, perfil: null, erro: mensagem })
       })
@@ -50,14 +59,14 @@ export function AuthProvider({ children }) {
     setVersao((v) => v + 1)
   }, [])
 
-  const entrarComEmail = useCallback(async (email, senha) => {
+  const entrarComEmail = useCallback(async (email: string, senha: string) => {
     const { error } = await supabase.auth.signInWithPassword({ email: email.trim(), password: senha })
     if (error) throw new Error(traduzirErroLogin(error))
   }, [])
 
   // login por CPF: o backend devolve a sessão do Supabase, que é entregue ao cliente do Supabase
-  const entrarComCpf = useCallback(async (cpf, senha) => {
-    const sessaoCpf = await api('/login/cpf', { metodo: 'POST', corpo: { cpf, senha }, autenticado: false })
+  const entrarComCpf = useCallback(async (cpf: string, senha: string) => {
+    const sessaoCpf = await api<Esquema<'Sessao'>>('/login/cpf', { metodo: 'POST', corpo: { cpf, senha }, autenticado: false })
     const { error } = await supabase.auth.setSession({
       access_token: sessaoCpf.access_token,
       refresh_token: sessaoCpf.refresh_token,
@@ -67,7 +76,7 @@ export function AuthProvider({ children }) {
 
   const sair = useCallback(() => supabase.auth.signOut(), [])
 
-  const valor = useMemo(
+  const valor = useMemo<ValorAuth>(
     () => ({
       sessao,
       perfil: atual?.perfil ?? null,

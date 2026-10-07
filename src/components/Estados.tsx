@@ -1,6 +1,7 @@
+import type { ReactNode } from 'react'
 import { CircleCheck, LoaderCircle, TriangleAlert } from 'lucide-react'
 
-export function Carregando({ texto = 'Carregando...' }) {
+export function Carregando({ texto = 'Carregando...' }: { texto?: string }) {
   return (
     <div role="status" className="flex items-center justify-center gap-2 p-8 text-sm text-muted-foreground">
       <LoaderCircle className="size-4 animate-spin" aria-hidden="true" />
@@ -10,7 +11,7 @@ export function Carregando({ texto = 'Carregando...' }) {
 }
 
 // mensagem de erro ou aviso; `children` pode trazer uma ação (ex.: botão de tentar de novo)
-export function Aviso({ titulo, mensagem, children }) {
+export function Aviso({ titulo, mensagem, children }: { titulo?: string; mensagem?: string | null; children?: ReactNode }) {
   return (
     <div role="alert" className="flex gap-3 rounded-lg border border-destructive/30 bg-destructive/5 p-4 text-sm">
       <TriangleAlert className="mt-0.5 size-4 shrink-0 text-destructive" aria-hidden="true" />
@@ -24,12 +25,12 @@ export function Aviso({ titulo, mensagem, children }) {
 }
 
 // lista sem itens
-export function Vazio({ children }) {
+export function Vazio({ children }: { children: ReactNode }) {
   return <p className="border-y py-10 text-center text-sm text-muted-foreground">{children}</p>
 }
 
 // confirmação curta depois de salvar
-export function Sucesso({ children }) {
+export function Sucesso({ children }: { children: ReactNode }) {
   return (
     <p role="status" className="flex items-center gap-2 bg-aco/10 px-3 py-2 text-sm text-marinho">
       <CircleCheck className="size-4 shrink-0 text-aco" aria-hidden="true" />
