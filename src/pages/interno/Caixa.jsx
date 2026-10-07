@@ -10,9 +10,8 @@ import { Etiqueta, NomePeca } from '@/components/Peca'
 import { Button } from '@/components/ui/button'
 import { Campo, Input, Label, Select } from '@/components/ui/input'
 import { useUnidadeEscolhida } from '@/layouts/unidadeEscolhida'
-import { EmConstrucao } from '@/pages/Basicas'
 import { api, ErroApi } from '@/lib/api'
-import { CANAIS, dataHora, haQuanto, hojeIso, hora, mascaraCpf, METODOS_PAGAMENTO, moeda, plural } from '@/lib/formato'
+import { CANAIS, dataCurta, dataHora, haQuanto, hojeIso, hora, mascaraCpf, METODOS_PAGAMENTO, moeda, plural } from '@/lib/formato'
 import { useCarregar, useEnviar } from '@/lib/useCarregar'
 
 // abas do Caixa e a permissão que cada uma pede (as mesmas das rotas do backend)
@@ -68,7 +67,7 @@ export function Caixa() {
           {aba === 'retiradas' && <Retiradas key={idLoja} loja={loja} />}
           {aba === 'hoje' && <VendasDeHoje key={idLoja} loja={loja} />}
           {aba === 'consultar' && <ConsultarPeca key={idLoja} loja={loja} />}
-          {aba === 'troca' && <EmConstrucao titulo="Troca ou devolução" />}
+          {aba === 'troca' && <TrocaOuDevolucao key={idLoja} loja={loja} />}
         </>
       )}
     </>
@@ -329,8 +328,8 @@ function FormularioVenda({ loja, aoFinalizar }) {
   )
 }
 
-// a notinha abre para imprimir assim que a venda fecha; "Nova venda" só depois de imprimir
-function VendaFinalizada({ venda, troco, aoNovaVenda }) {
+// abre a impressão assim que a tela aparece; `imprimiu` libera o próximo atendimento
+function useImprimirAoAbrir() {
   const [imprimiu, setImprimiu] = useState(false)
   const abriu = useRef(false)
 
@@ -341,11 +340,18 @@ function VendaFinalizada({ venda, troco, aoNovaVenda }) {
 
   useEffect(() => {
     // o StrictMode roda o efeito duas vezes no desenvolvimento: abre a impressão uma vez só
-    if (abriu.current) return
+    if (abriu.current) return undefined
     abriu.current = true
     const espera = setTimeout(imprimir, 0)
     return () => clearTimeout(espera)
   }, [])
+
+  return { imprimiu, imprimir }
+}
+
+// a notinha abre para imprimir assim que a venda fecha; "Nova venda" só depois de imprimir
+function VendaFinalizada({ venda, troco, aoNovaVenda }) {
+  const { imprimiu, imprimir } = useImprimirAoAbrir()
 
   return (
     <div className="mx-auto max-w-md space-y-6">
@@ -801,6 +807,368 @@ function ConsultarPeca({ loja }) {
           </div>
         </div>
       )}
+    </div>
+  )
+}
+
+// ---------- Troca ou devolução ----------
+
+const PRAZO_TROCA_DIAS = 30
+const BUSCAS = {
+  codigo_venda: { rotulo: 'Código da venda', dica: 'O código da notinha ou do pedido, como CL...' },
+  cpf: { rotulo: 'CPF', dica: 'Mostra os pedidos entregues nos últimos 30 dias, pela conta ou pelo CPF na nota.' },
+  id_pedido: { rotulo: 'Número do pedido', dica: 'O número que aparece no painel de pedidos.' },
+}
+
+function prazoTroca(pedido) {
+  if (!pedido.entregue_em) return null
+  return new Date(new Date(pedido.entregue_em).getTime() + PRAZO_TROCA_DIAS * 86400000)
+}
+
+// por que o pedido não aceita troca nem devolução (null = aceita); o backend confere de novo
+function motivoBloqueio(pedido, loja) {
+  if (pedido.status !== 'entregue') return 'Só pedido entregue tem troca ou devolução.'
+  if (prazoTroca(pedido) < new Date()) return `Passou o prazo de ${PRAZO_TROCA_DIAS} dias após a entrega.`
+  if (pedido.devolucao === 'total') return 'Todas as peças deste pedido já foram devolvidas.'
+  if (loja.tipo !== 'loja') return 'Troca e devolução são feitas numa loja.'
+  return null
+}
+
+// quanto ainda dá para estornar de cada pagamento aprovado (valor menos os estornos já feitos)
+function estornaveis(pedido) {
+  return pedido.pagamentos
+    .filter((p) => p.tipo === 'pagamento' && p.status === 'aprovado')
+    .map((p) => {
+      const estornado = pedido.pagamentos
+        .filter((e) => e.id_pagamento_original === p.id_pagamento && e.status !== 'recusado')
+        .reduce((t, e) => t + Number(e.valor), 0)
+      return { pagamento: p, restante: Math.round((Number(p.valor) - estornado) * 100) / 100 }
+    })
+    .filter((p) => p.restante > 0)
+}
+
+// reparte o valor da devolução pelos pagamentos, na ordem em que foram feitos (mesmo meio de pagamento)
+function repartirEstorno(pedido, valor) {
+  const estornos = []
+  let falta = Math.round(valor * 100) / 100
+  for (const { pagamento, restante } of estornaveis(pedido)) {
+    if (falta <= 0) break
+    const parte = Math.min(falta, restante)
+    estornos.push({ id_pagamento: pagamento.id_pagamento, metodo: pagamento.metodo, valor: parte.toFixed(2) })
+    falta = Math.round((falta - parte) * 100) / 100
+  }
+  return { estornos, falta }
+}
+
+function TrocaOuDevolucao({ loja }) {
+  const [tipoBusca, setTipoBusca] = useState('codigo_venda')
+  const [termo, setTermo] = useState('')
+  const [filtro, setFiltro] = useState(null)
+  const [idEscolhido, setIdEscolhido] = useState(null)
+  const [feito, setFeito] = useState(null)
+
+  const busca = useCarregar(() => (filtro ? api('/balcao/pedidos', { params: filtro }) : null), [JSON.stringify(filtro)])
+  const achados = busca.dados?.items ?? []
+  const escolhido = achados.length === 1 ? achados[0] : achados.find((p) => p.id_pedido === idEscolhido)
+
+  function buscar(evento) {
+    evento.preventDefault()
+    const valor = tipoBusca === 'codigo_venda' ? termo.trim().toUpperCase() : soDigitos(termo)
+    setIdEscolhido(null)
+    setFiltro({ [tipoBusca]: valor })
+  }
+
+  function recomecar() {
+    setFeito(null)
+    setFiltro(null)
+    setTermo('')
+    setIdEscolhido(null)
+  }
+
+  if (feito) return <ComprovanteFeito feito={feito} loja={loja} aoRecomecar={recomecar} />
+
+  const termoOk = tipoBusca === 'cpf' ? soDigitos(termo).length === 11 : tipoBusca === 'id_pedido' ? soDigitos(termo).length > 0 : termo.trim().length > 0
+
+  return (
+    <div className="space-y-8">
+      <form onSubmit={buscar} className="flex flex-wrap items-end gap-3">
+        <Campo id="troca-tipo" rotulo="Buscar por" className="w-48">
+          <Select id="troca-tipo" value={tipoBusca} onChange={(e) => { setTipoBusca(e.target.value); setTermo('') }}>
+            {Object.entries(BUSCAS).map(([valor, { rotulo }]) => <option key={valor} value={valor}>{rotulo}</option>)}
+          </Select>
+        </Campo>
+        <Campo id="troca-termo" rotulo={BUSCAS[tipoBusca].rotulo} dica={BUSCAS[tipoBusca].dica} className="w-full max-w-sm">
+          <Input
+            id="troca-termo"
+            value={termo}
+            onChange={(e) => setTermo(tipoBusca === 'cpf' ? mascaraCpf(e.target.value) : e.target.value)}
+            inputMode={tipoBusca === 'codigo_venda' ? 'text' : 'numeric'}
+            placeholder={tipoBusca === 'cpf' ? '000.000.000-00' : undefined}
+            autoComplete="off"
+            className={tipoBusca === 'codigo_venda' ? 'uppercase' : undefined}
+          />
+        </Campo>
+        <Button type="submit" size="lg" className="mb-5 h-9 px-4" disabled={!termoOk || busca.carregando}>Buscar</Button>
+      </form>
+
+      {busca.erro && <Aviso mensagem={busca.erro} />}
+      {busca.carregando && filtro && <Carregando />}
+      {busca.dados && achados.length === 0 && <Vazio>Nenhum pedido entregue nos últimos 30 dias com esse CPF.</Vazio>}
+
+      {achados.length > 1 && (
+        <ul className="max-w-2xl border-t">
+          {achados.map((p) => (
+            <li key={p.id_pedido}>
+              <button
+                type="button"
+                onClick={() => setIdEscolhido(p.id_pedido)}
+                aria-current={escolhido?.id_pedido === p.id_pedido ? 'true' : undefined}
+                className={cn('flex w-full items-center justify-between gap-3 border-b px-3 py-3 text-left text-sm hover:bg-superficie', escolhido?.id_pedido === p.id_pedido && 'bg-superficie')}
+              >
+                <span className="flex items-center gap-2">
+                  <Etiqueta>{p.codigo_venda}</Etiqueta>
+                  <span>{p.unidade}, entregue em {dataCurta(p.entregue_em)}</span>
+                </span>
+                <span className="tabular-nums">{moeda(p.valor_total)}</span>
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+
+      {escolhido && (
+        <AtenderPedido
+          key={`${escolhido.id_pedido}-${escolhido.devolucao}`}
+          pedido={escolhido}
+          loja={loja}
+          aoConcluir={setFeito}
+        />
+      )}
+    </div>
+  )
+}
+
+function AtenderPedido({ pedido, loja, aoConcluir }) {
+  const [modo, setModo] = useState('troca')
+  // quantidade escolhida e variante nova de cada item, por id_item
+  const [quantidades, setQuantidades] = useState({})
+  const [novas, setNovas] = useState({})
+  const { enviar, enviando, erro } = useEnviar()
+  const bloqueio = motivoBloqueio(pedido, loja)
+
+  // na troca, as outras cores e tamanhos do mesmo produto com saldo na loja física desta loja
+  const nomes = [...new Set(pedido.itens.map((i) => i.produto))]
+  const opcoes = useCarregar(
+    () => (modo === 'troca' && !bloqueio
+      ? Promise.all(nomes.map((nome) => api('/balcao/estoque', {
+        params: { id_unidade: loja.id_unidade, canal: 'loja_fisica', busca: nome, limit: 200 },
+      }))).then((paginas) => paginas.flatMap((p) => p.items))
+      : null),
+    [modo, loja.id_unidade, nomes.join('|'), Boolean(bloqueio)],
+  )
+  const opcoesDoItem = (item) => (opcoes.dados ?? []).filter((l) => l.produto === item.produto && l.id_variante !== item.id_variante && l.disponivel > 0)
+
+  const escolhidos = pedido.itens
+    .map((item) => ({ item, quantidade: Number(quantidades[item.id_item] || 0), nova: novas[item.id_item] }))
+    .filter((e) => e.quantidade > 0)
+  const valorDevolvido = escolhidos.reduce((t, e) => t + Number(e.item.preco_unitario) * e.quantidade, 0)
+  const { estornos, falta } = repartirEstorno(pedido, valorDevolvido)
+
+  const quantidadesOk = escolhidos.length > 0 && escolhidos.every((e) => e.quantidade <= e.item.quantidade)
+  const pronto = !bloqueio && quantidadesOk && (modo === 'troca' ? escolhidos.every((e) => e.nova) : falta <= 0)
+
+  async function registrar(evento) {
+    evento.preventDefault()
+    const itens = escolhidos.map((e) => ({
+      id_variante: e.item.id_variante,
+      quantidade: e.quantidade,
+      ...(modo === 'troca' && { id_variante_nova: Number(e.nova) }),
+    }))
+    const corpo = modo === 'troca'
+      ? { id_unidade: loja.id_unidade, itens }
+      : { id_unidade: loja.id_unidade, itens, estornos: estornos.map(({ id_pagamento, valor }) => ({ id_pagamento, valor })) }
+    const resposta = await enviar(() => api(`/balcao/pedidos/${pedido.id_pedido}/${modo === 'troca' ? 'troca' : 'devolucao'}`, { metodo: 'POST', corpo }))
+    if (!resposta) return
+    const variantes = Object.fromEntries((opcoes.dados ?? []).map((l) => [l.id_variante, l]))
+    aoConcluir({
+      modo,
+      pedido: resposta,
+      linhas: escolhidos.map((e) => ({ ...e, nova: e.nova ? variantes[e.nova] : null })),
+      estornos: modo === 'devolucao' ? estornos : [],
+    })
+  }
+
+  const prazo = prazoTroca(pedido)
+
+  return (
+    <form onSubmit={registrar} className="max-w-4xl space-y-6">
+      <div className="space-y-1">
+        <div className="flex flex-wrap items-center gap-2">
+          <Etiqueta>{pedido.codigo_venda}</Etiqueta>
+          {pedido.devolucao === 'parcial' && <Etiqueta alerta>Já teve devolução</Etiqueta>}
+        </div>
+        <h2 className="text-2xl font-medium">{pedido.cliente ?? (pedido.cpf_nota ? `CPF ${mascaraCpf(pedido.cpf_nota)}` : 'Cliente sem CPF')}</h2>
+        <p className="text-sm text-muted-foreground">
+          {pedido.unidade}, entregue em {dataCurta(pedido.entregue_em)}
+          {prazo && `, troca e devolução até ${dataCurta(prazo.toISOString())}`}
+        </p>
+      </div>
+
+      <Abas
+        rotulo="Tipo de atendimento"
+        valor={modo}
+        aoMudar={setModo}
+        abas={[{ valor: 'troca', rotulo: 'Troca' }, { valor: 'devolucao', rotulo: 'Devolução' }]}
+      />
+
+      <div className="overflow-x-auto">
+        <table className="w-full min-w-[40rem] text-sm">
+          <thead className="text-left text-xs text-muted-foreground">
+            <tr className="border-b">
+              <th className="py-2 font-medium">Peça</th>
+              <th className="text-right font-medium">Comprou</th>
+              <th className="text-right font-medium">{modo === 'troca' ? 'Trocar' : 'Devolver'}</th>
+              <th className="pl-4 font-medium">{modo === 'troca' ? 'Levar no lugar' : 'Valor'}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {pedido.itens.map((item) => {
+              const quantidade = quantidades[item.id_item] ?? ''
+              const marcada = Number(quantidade) > 0
+              const disponiveis = opcoesDoItem(item)
+              return (
+                <tr key={item.id_item} className="border-b">
+                  <td className="py-3"><NomePeca produto={item.produto} cor={item.cor} tamanho={`${item.tamanho}, ${item.sku}`} /></td>
+                  <td className="text-right tabular-nums">{item.quantidade}</td>
+                  <td className="text-right">
+                    <Input
+                      aria-label={`Quantidade de ${item.produto} para ${modo === 'troca' ? 'trocar' : 'devolver'}`}
+                      type="number"
+                      min={0}
+                      max={item.quantidade}
+                      value={quantidade}
+                      placeholder="0"
+                      onChange={(e) => setQuantidades({ ...quantidades, [item.id_item]: e.target.value })}
+                      disabled={Boolean(bloqueio)}
+                      className="ml-auto w-20 text-right"
+                    />
+                  </td>
+                  <td className="pl-4">
+                    {modo === 'troca' ? (
+                      marcada && (
+                        opcoes.carregando ? (
+                          <span className="text-xs text-muted-foreground">Procurando no estoque...</span>
+                        ) : disponiveis.length === 0 ? (
+                          <span className="text-xs text-muted-foreground">Nenhuma outra cor ou tamanho com saldo nesta loja</span>
+                        ) : (
+                          <Select
+                            aria-label={`Peça nova no lugar de ${item.produto}`}
+                            value={novas[item.id_item] ?? ''}
+                            onChange={(e) => setNovas({ ...novas, [item.id_item]: e.target.value })}
+                            required
+                          >
+                            <option value="" disabled>Escolha cor e tamanho</option>
+                            {disponiveis.map((l) => (
+                              <option key={l.id_variante} value={l.id_variante}>
+                                {l.cor}, {l.tamanho} ({plural(l.disponivel, 'disponível', 'disponíveis')})
+                              </option>
+                            ))}
+                          </Select>
+                        )
+                      )
+                    ) : (
+                      <span className="tabular-nums">{marcada ? moeda(Number(item.preco_unitario) * Number(quantidade)) : moeda(item.preco_unitario)}</span>
+                    )}
+                  </td>
+                </tr>
+              )
+            })}
+          </tbody>
+        </table>
+      </div>
+      {opcoes.erro && <Aviso mensagem={opcoes.erro} />}
+
+      {pedido.devolucao === 'parcial' && !bloqueio && (
+        <p className="text-xs text-muted-foreground">
+          Este pedido já teve peças devolvidas. A lista mostra o que foi comprado; o sistema confere o que o cliente ainda tem ao registrar.
+        </p>
+      )}
+
+      {modo === 'devolucao' && escolhidos.length > 0 && (
+        <div className="space-y-1 border-l-4 border-aco bg-aco/10 p-4 text-sm">
+          <p className="font-medium">Estorno de {moeda(valorDevolvido)}, pelo mesmo meio do pagamento</p>
+          {estornos.map((e) => (
+            <p key={e.id_pagamento} className="text-muted-foreground">{METODOS_PAGAMENTO[e.metodo] ?? e.metodo}: {moeda(e.valor)}</p>
+          ))}
+          {falta > 0 && <p className="text-destructive">Os pagamentos do pedido só cobrem {moeda(valorDevolvido - falta)} de estorno.</p>}
+        </div>
+      )}
+
+      {erro && <Aviso mensagem={erro} />}
+      <div className="flex flex-wrap items-center justify-end gap-3">
+        {bloqueio && <p className="text-sm text-muted-foreground">{bloqueio}</p>}
+        <Button type="submit" size="lg" className="h-11 px-5" disabled={!pronto || enviando}>
+          {enviando ? 'Registrando...' : modo === 'troca' ? 'Registrar troca' : 'Registrar devolução'}
+        </Button>
+      </div>
+    </form>
+  )
+}
+
+// comprovante da troca ou devolução: abre para imprimir na hora, como a notinha da venda
+function ComprovanteFeito({ feito, loja, aoRecomecar }) {
+  const { imprimiu, imprimir } = useImprimirAoAbrir()
+  const troca = feito.modo === 'troca'
+  const [momento] = useState(() => new Date().toISOString())
+
+  return (
+    <div className="mx-auto max-w-md space-y-6">
+      <div className="space-y-1 text-center">
+        <p className="text-lg font-medium">{troca ? 'Troca registrada' : 'Devolução registrada'}</p>
+        <p className="text-sm text-muted-foreground">
+          {imprimiu ? 'Se o comprovante não saiu, imprima de novo antes do próximo atendimento.' : 'Abrindo a impressão do comprovante...'}
+        </p>
+      </div>
+
+      <section aria-label="Comprovante" className="notinha space-y-4 border bg-white p-5 text-sm text-black">
+        <div className="space-y-0.5 text-center">
+          <p className="font-logo uppercase tracking-[0.3em]">Casa Lorenzi</p>
+          <p>{loja.nome}</p>
+          <p>{dataHora(momento)}</p>
+        </div>
+        <p className="text-center font-medium">
+          {troca ? 'Comprovante de troca' : 'Comprovante de devolução'}
+          <span className="block font-normal">Venda <span className="tabular-nums">{feito.pedido.codigo_venda}</span></span>
+        </p>
+        <ul className="space-y-2">
+          {feito.linhas.map(({ item, quantidade, nova }) => (
+            <li key={item.id_item}>
+              {quantidade} × {item.produto}
+              <span className="block text-xs">Devolveu: {item.cor}, {item.tamanho}</span>
+              {nova && <span className="block text-xs">Levou: {nova.cor}, {nova.tamanho}</span>}
+            </li>
+          ))}
+        </ul>
+        {feito.estornos.length > 0 && (
+          <div className="space-y-1 border-t border-dashed border-black pt-3">
+            {feito.estornos.map((e) => (
+              <p key={e.id_pagamento} className="flex justify-between">
+                <span>Estorno em {(METODOS_PAGAMENTO[e.metodo] ?? e.metodo).toLowerCase()}</span>
+                <span className="tabular-nums">{moeda(e.valor)}</span>
+              </p>
+            ))}
+          </div>
+        )}
+      </section>
+
+      <div className="flex flex-wrap justify-center gap-2">
+        <Button type="button" variant="outline" size="lg" className="h-11 px-4" onClick={imprimir}>
+          <Printer aria-hidden="true" /> Imprimir de novo
+        </Button>
+        <Button type="button" size="lg" className="h-11 px-5" disabled={!imprimiu} onClick={aoRecomecar}>
+          Novo atendimento
+        </Button>
+      </div>
     </div>
   )
 }
