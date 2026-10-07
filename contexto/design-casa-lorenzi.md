@@ -27,6 +27,7 @@ O código é a fonte da verdade (o Figma não é referência). Os tokens ficam n
 | branco, superfície `#f4f4f2`, borda `#e2e2e2` | Fundos e divisões |
 
 - A área dos produtos fica neutra (fotos de moda pedem fundo limpo); a cor entra em blocos grandes ao redor.
+- Na loja, a terracota também pode ser cor de bloco (ex.: um dos assuntos da Central de ajuda), só com texto grande por cima: branco sobre terracota não tem contraste para texto pequeno. A ferrugem continua só para erro.
 - Sem modo escuro, sem degradê, cantos retos.
 
 ### Status (iguais nas duas plataformas)
