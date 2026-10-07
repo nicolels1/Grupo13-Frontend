@@ -32,7 +32,9 @@ function mensagemDoErro(corpo: unknown, status: number): string {
   return 'Não foi possível concluir a operação.'
 }
 
-type ValorParametro = string | number | boolean | null | undefined
+type ValorSimples = string | number | boolean | null | undefined
+// uma lista repete o parâmetro na URL (?tamanho=P&tamanho=M)
+type ValorParametro = ValorSimples | ValorSimples[]
 
 export type OpcoesApi = {
   metodo?: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE'
@@ -53,7 +55,9 @@ export async function api<T = unknown>(
 ): Promise<T> {
   const url = new URL(BASE + caminho)
   for (const [chave, valor] of Object.entries(params ?? {})) {
-    if (valor !== undefined && valor !== null && valor !== '') url.searchParams.set(chave, String(valor))
+    for (const item of Array.isArray(valor) ? valor : [valor]) {
+      if (item !== undefined && item !== null && item !== '') url.searchParams.append(chave, String(item))
+    }
   }
 
   const headers: Record<string, string> = {}
