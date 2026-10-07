@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, type FormEvent } from 'react'
 import { Check, Plus, Trash2, X } from 'lucide-react'
 import { useSearchParams } from 'react-router'
 import { cn } from 'cn'
@@ -12,12 +12,20 @@ import { Status } from '@/components/Status'
 import { Button } from '@/components/ui/button'
 import { Campo, Input, Label, Select } from '@/components/ui/input'
 import { useUnidadeEscolhida } from '@/layouts/unidadeEscolhida'
-import { api } from '@/lib/api'
-import { CANAIS, codigoTransferencia, dataCurta, hora, plural } from '@/lib/formato'
+import { api, type Esquema } from '@/lib/api'
+import { CANAIS, codigoTransferencia, dataCurta, hora, plural, rotuloCanal } from '@/lib/formato'
 import { nomeUnidade, useVariantes } from '@/lib/listas'
 import { useCarregar, useEnviar } from '@/lib/useCarregar'
 
-function soma(t, campo) {
+type Transferencia = Esquema<'TransferenciaSaida'>
+type ItemEstoque = Esquema<'EstoqueItem'>
+type Canal = ItemEstoque['canal']
+type CampoQuantidade = 'quantidade_solicitada' | 'quantidade_enviada' | 'quantidade_recebida'
+type AbaTransferencias = 'chegando' | 'enviar' | 'todas'
+// peça escolhida para pedir: a linha de estoque da origem, os canais e a quantidade digitada
+type ItemNovo = { chave: string; linha: ItemEstoque; canal_saida: Canal; canal_entrada: Canal; quantidade: string }
+
+function soma(t: Transferencia, campo: CampoQuantidade) {
   return t.itens.reduce((total, item) => total + (item[campo] ?? 0), 0)
 }
 
@@ -25,29 +33,29 @@ export function Transferencias() {
   const { perfil } = useAuth()
   const { unidade, unidades } = useUnidadeEscolhida()
   const [params, setParams] = useSearchParams()
-  const [aba, setAba] = useState('chegando')
+  const [aba, setAba] = useState<AbaTransferencias>('chegando')
   const idVer = params.get('ver')
   const nova = params.get('nova') === '1'
   const idUnidade = unidade ? Number(unidade) : null
 
-  const lista = useCarregar(() => api('/transferencias', { params: { id_unidade: unidade, limit: 200 } }), [unidade])
+  const lista = useCarregar(() => api<Esquema<'Pagina_TransferenciaSaida_'>>('/transferencias', { params: { id_unidade: unidade, limit: 200 } }), [unidade])
   const todas = lista.dados?.items ?? []
   const chegando = todas.filter((t) => t.status === 'enviada' && (!idUnidade || t.id_unidade_destino === idUnidade))
   const paraEnviar = todas.filter((t) => t.status === 'solicitada' && (!idUnidade || t.id_unidade_origem === idUnidade))
   const visiveis = { chegando, enviar: paraEnviar, todas }[aba]
   const escolhida = todas.find((t) => String(t.id_transferencia) === idVer) ?? (!nova ? visiveis[0] : null)
 
-  function ver(id) {
+  function ver(id: number) {
     setParams({ ver: String(id) }, { replace: true })
   }
 
-  function aposCriar(transferencia) {
+  function aposCriar(transferencia: Transferencia) {
     lista.recarregar()
     setAba('todas')
     ver(transferencia.id_transferencia)
   }
 
-  const descricao = (t) => {
+  const descricao = (t: Transferencia) => {
     const origem = t.id_unidade_origem === idUnidade ? 'Daqui' : `De ${nomeUnidade(unidades, t.id_unidade_origem)}`
     const destino = t.id_unidade_destino === idUnidade ? 'para cá' : `para ${nomeUnidade(unidades, t.id_unidade_destino)}`
     return `${origem} ${destino}, ${plural(soma(t, 'quantidade_solicitada'), 'peça')}`
@@ -116,9 +124,9 @@ export function Transferencias() {
 }
 
 // o que falta acontecer, ao lado da etiqueta de status (só enquanto a transferência anda)
-const PROXIMO_PASSO = { solicitada: 'Esperando envio', enviada: 'Esperando conferência' }
+const PROXIMO_PASSO: Record<string, string> = { solicitada: 'Esperando envio', enviada: 'Esperando conferência' }
 
-function DetalheTransferencia({ transferencia: t, aoMudar }) {
+function DetalheTransferencia({ transferencia: t, aoMudar }: { transferencia: Transferencia; aoMudar: () => void }) {
   const { perfil } = useAuth()
   const { unidades } = useUnidadeEscolhida()
   const pecas = useVariantes(t.itens.map((i) => i.id_variante))
@@ -126,8 +134,8 @@ function DetalheTransferencia({ transferencia: t, aoMudar }) {
   const podeCancelar = t.status === 'solicitada' && temPermissao(perfil, 'solicitar_transferencia')
   const podeReceber = t.status === 'enviada' && temPermissao(perfil, 'receber_transferencia')
   const editando = podeEnviar || podeReceber
-  const campoBase = podeEnviar ? 'quantidade_solicitada' : 'quantidade_enviada'
-  const [quantidades, setQuantidades] = useState(() => Object.fromEntries(t.itens.map((i) => [i.id_item_transferencia, String(i[campoBase] ?? 0)])))
+  const campoBase: CampoQuantidade = podeEnviar ? 'quantidade_solicitada' : 'quantidade_enviada'
+  const [quantidades, setQuantidades] = useState<Record<number, string>>(() => Object.fromEntries(t.itens.map((i) => [i.id_item_transferencia, String(i[campoBase] ?? 0)])))
   const [tipoDiferenca, setTipoDiferenca] = useState('perda')
   const [motivoDiferenca, setMotivoDiferenca] = useState('')
   const [cancelando, setCancelando] = useState(false)
@@ -139,7 +147,7 @@ function DetalheTransferencia({ transferencia: t, aoMudar }) {
     .filter((i) => Number(quantidades[i.id_item_transferencia]) !== i[campoBase])
     .map((i) => ({ id_item_transferencia: i.id_item_transferencia, quantidade: Number(quantidades[i.id_item_transferencia] || 0) }))
 
-  async function confirmar(evento) {
+  async function confirmar(evento: FormEvent) {
     evento.preventDefault()
     const acao = podeEnviar ? 'enviar' : 'receber'
     const corpo = podeEnviar
@@ -149,7 +157,7 @@ function DetalheTransferencia({ transferencia: t, aoMudar }) {
     if (ok) aoMudar()
   }
 
-  async function cancelar(evento) {
+  async function cancelar(evento: { preventDefault: () => void }) {
     evento.preventDefault()
     const ok = await enviar(() => api(`/transferencias/${t.id_transferencia}/cancelar`, { metodo: 'POST', corpo: { motivo: motivoCancelamento } }))
     if (ok) aoMudar()
@@ -210,8 +218,8 @@ function DetalheTransferencia({ transferencia: t, aoMudar }) {
                   <td className="py-3 pl-2">
                     {peca ? <NomePeca produto={peca.produto} cor={peca.cor} tamanho={peca.tamanho} /> : `Peça ${item.id_variante}`}
                   </td>
-                  <td>{CANAIS[item.canal_saida]}</td>
-                  <td>{CANAIS[item.canal_entrada]}</td>
+                  <td>{rotuloCanal(item.canal_saida)}</td>
+                  <td>{rotuloCanal(item.canal_entrada)}</td>
                   <td className="text-right">{item.quantidade_solicitada}</td>
                   <td className="text-right">{item.quantidade_enviada ?? '—'}</td>
                   <td className="py-2 pr-2 text-right">
@@ -222,7 +230,7 @@ function DetalheTransferencia({ transferencia: t, aoMudar }) {
                           id={`qtd-${item.id_item_transferencia}`}
                           type="number"
                           min={0}
-                          max={podeReceber ? item.quantidade_enviada : undefined}
+                          max={podeReceber ? item.quantidade_enviada ?? undefined : undefined}
                           value={valor}
                           onChange={(e) => setQuantidades({ ...quantidades, [item.id_item_transferencia]: e.target.value })}
                           className={cn('ml-auto w-20 text-right', diferente && 'border-terracota bg-terracota-fundo')}
@@ -295,34 +303,34 @@ function DetalheTransferencia({ transferencia: t, aoMudar }) {
   )
 }
 
-function NovaTransferencia({ aoCriar, aoFechar }) {
+function NovaTransferencia({ aoCriar, aoFechar }: { aoCriar: (transferencia: Transferencia) => void; aoFechar: () => void }) {
   const { unidade, unidades } = useUnidadeEscolhida()
   const ativas = unidades.filter((u) => u.ativo)
   const [origem, setOrigem] = useState('')
   const [destino, setDestino] = useState(unidade)
   const [termo, setTermo] = useState('')
-  const [itens, setItens] = useState([])
+  const [itens, setItens] = useState<ItemNovo[]>([])
   const { enviar, enviando, erro } = useEnviar()
-  const tipo = (id) => unidades.find((u) => String(u.id_unidade) === String(id))?.tipo
+  const tipo = (id: string) => unidades.find((u) => String(u.id_unidade) === String(id))?.tipo
 
   const achadas = useCarregar(
-    () => (origem && termo.trim().length >= 2 ? api('/estoque', { params: { id_unidade: origem, busca: termo.trim(), limit: 40 } }) : null),
+    () => (origem && termo.trim().length >= 2 ? api<Esquema<'Pagina_EstoqueItem_'>>('/estoque', { params: { id_unidade: origem, busca: termo.trim(), limit: 40 } }) : null),
     [origem, termo],
   )
 
-  function adicionar(linha) {
-    const canalSaida = tipo(origem) === 'cd' ? 'online' : linha.canal
-    const canalEntrada = tipo(destino) === 'cd' ? 'online' : canalSaida
+  function adicionar(linha: ItemEstoque) {
+    const canalSaida: Canal = tipo(origem) === 'cd' ? 'online' : linha.canal
+    const canalEntrada: Canal = tipo(destino) === 'cd' ? 'online' : canalSaida
     const chave = `${linha.id_variante}-${canalSaida}-${canalEntrada}`
     if (itens.some((i) => i.chave === chave)) return
     setItens([...itens, { chave, linha, canal_saida: canalSaida, canal_entrada: canalEntrada, quantidade: '1' }])
   }
 
-  function mudarItem(chave, campo, valor) {
-    setItens(itens.map((i) => (i.chave === chave ? { ...i, [campo]: valor } : i)))
+  function mudarItem(chave: string, campo: 'canal_entrada' | 'quantidade', valor: string) {
+    setItens(itens.map((i): ItemNovo => (i.chave === chave ? { ...i, [campo]: valor } : i)))
   }
 
-  async function pedir(evento) {
+  async function pedir(evento: FormEvent) {
     evento.preventDefault()
     const corpo = {
       id_unidade_origem: Number(origem),
@@ -334,7 +342,7 @@ function NovaTransferencia({ aoCriar, aoFechar }) {
         quantidade: Number(i.quantidade),
       })),
     }
-    const criada = await enviar(() => api('/transferencias', { metodo: 'POST', corpo }))
+    const criada = await enviar(() => api<Transferencia>('/transferencias', { metodo: 'POST', corpo }))
     if (criada) aoCriar(criada)
   }
 

@@ -55,6 +55,11 @@ export function plural(n: number, singular: string, pluralTexto = `${singular}s`
 
 export const CANAIS: Record<'loja_fisica' | 'online', string> = { loja_fisica: 'Loja física', online: 'Online' }
 
+// rótulo do canal quando a API manda o canal como texto livre (ex.: itens de transferência)
+export function rotuloCanal(canal: string) {
+  return canal in CANAIS ? CANAIS[canal as keyof typeof CANAIS] : canal
+}
+
 export const TIPOS_MOVIMENTACAO: Record<string, string> = {
   saldo_inicial: 'Saldo inicial',
   recebimento: 'Recebimento',
