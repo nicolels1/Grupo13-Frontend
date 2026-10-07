@@ -19,7 +19,7 @@ export function Etiqueta({ children, alerta, className }: { children: ReactNode;
   return (
     <span
       className={cn(
-        'inline-flex items-center px-2 py-0.5 font-mono text-xs font-medium tracking-tight',
+        'inline-flex items-center px-2 py-0.5 text-xs font-medium tabular-nums',
         alerta ? 'bg-ferrugem-fundo text-ferrugem' : 'bg-superficie text-foreground',
         className,
       )}
