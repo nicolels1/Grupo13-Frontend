@@ -97,6 +97,13 @@ export const STATUS_PEDIDO: Record<string, string> = {
   cancelado: 'Cancelado',
 }
 
+export const METODOS_PAGAMENTO: Record<string, string> = {
+  pix: 'Pix',
+  cartao_credito: 'Cartão de crédito',
+  cartao_debito: 'Cartão de débito',
+  dinheiro: 'Dinheiro',
+}
+
 export const STATUS_PAGAMENTO: Record<string, string> = { pendente: 'Pendente', aprovado: 'Aprovado', recusado: 'Recusado' }
 export const PRIORIDADES = { baixa: 'Baixa', media: 'Média', alta: 'Alta' }
 export const MOTIVOS_CONCLUSAO = { resolvido: 'Resolvido', desistencia: 'Desistência', sem_resposta: 'Sem resposta' }
@@ -114,4 +121,13 @@ export function paraApi(data: string, horaTexto?: string) {
 
 export function hojeIso() {
   return new Date().toLocaleDateString('sv-SE', { timeZone: FUSO })
+}
+
+// CPF digitado com a máscara 000.000.000-00 (aceita colar com ou sem pontos)
+export function mascaraCpf(texto: string) {
+  const d = texto.replace(/\D/g, '').slice(0, 11)
+  return d
+    .replace(/^(\d{3})(\d)/, '$1.$2')
+    .replace(/^(\d{3})\.(\d{3})(\d)/, '$1.$2.$3')
+    .replace(/\.(\d{3})(\d{1,2})$/, '.$1-$2')
 }

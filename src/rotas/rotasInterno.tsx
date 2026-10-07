@@ -6,6 +6,7 @@ import { ExigeArea, ExigeLogin } from '@/auth/Protecao'
 import { LayoutInterno } from '@/layouts/LayoutInterno'
 import { EmConstrucao } from '@/pages/Basicas'
 import { Atendimento, ChamadoInterno } from '@/pages/interno/Atendimento'
+import { Caixa } from '@/pages/interno/Caixa'
 import { Catalogo } from '@/pages/interno/Catalogo'
 import { Estoque, HistoricoEstoque } from '@/pages/interno/Estoque'
 import { Gestao } from '@/pages/interno/Gestao'
@@ -14,7 +15,7 @@ import { ProdutoInterno } from '@/pages/interno/ProdutoInterno'
 import { Transferencias } from '@/pages/interno/Transferencias'
 import { VisaoGeral } from '@/pages/interno/VisaoGeral'
 
-// telas de cada área da barra interna. Caixa, Pedidos e Avaliações seguem em construção
+// telas de cada área da barra interna. Pedidos e Avaliações seguem em construção
 // (sem entrada aqui, a área cai no EmConstrucao).
 const TELAS: Record<string, { tela: ReactElement; filhas?: RouteObject[] }> = {
   '': { tela: <VisaoGeral /> },
@@ -26,6 +27,7 @@ const TELAS: Record<string, { tela: ReactElement; filhas?: RouteObject[] }> = {
     ],
   },
   transferencias: { tela: <Transferencias /> },
+  caixa: { tela: <Caixa /> },
   atendimento: { tela: <Atendimento />, filhas: [{ path: ':idChamado', element: <ChamadoInterno /> }] },
   catalogo: { tela: <Catalogo />, filhas: [{ path: ':idProduto', element: <ProdutoInterno /> }] },
   gestao: { tela: <Gestao /> },
