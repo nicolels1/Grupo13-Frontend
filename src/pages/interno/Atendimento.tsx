@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState, type ChangeEvent, type FormEvent, type ReactNode } from 'react'
 import { ChevronLeft, Paperclip, Send, X } from 'lucide-react'
 import { Link, useParams } from 'react-router'
 import { cn } from 'cn'
@@ -12,22 +12,30 @@ import { Button } from '@/components/ui/button'
 import { Campo, Input, Select } from '@/components/ui/input'
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet'
 import { useUnidadeEscolhida } from '@/layouts/unidadeEscolhida'
-import { api, ErroApi } from '@/lib/api'
+import { api, ErroApi, type Esquema } from '@/lib/api'
 import {
   CATEGORIAS_CHAMADO, dataCurta, dataHora, dataLonga, haQuanto, hora, METODOS_PAGAMENTO, moeda, MOTIVOS_CONCLUSAO, plural, PRIORIDADES,
   STATUS_CHAMADO,
   tamanhoArquivo,
 } from '@/lib/formato'
 import { nomeUnidade } from '@/lib/listas'
-import { estornaveis, prazoTroca } from '@/lib/trocaDevolucao'
+import { estornaveis, prazoTroca, type ModoTroca, type TrocaFeita } from '@/lib/trocaDevolucao'
 import { useCarregar, useEnviar } from '@/lib/useCarregar'
 import { AtenderPedido } from './TrocaDevolucao'
+
+type Chamado = Esquema<'ChamadoSaida'>
+type Mensagem = Esquema<'MensagemSaida'>
+type Pedido = Esquema<'PedidoSaida'>
+type Historico = Esquema<'Lista_HistoricoSaida_'>
+type Fila = 'sem' | 'meus' | 'respondeu' | 'andamento' | 'concluidos'
+// o que useCarregar devolve, para passar uma carga a outro componente
+type Carga<T> = { dados: T | null; erro: string | null; carregando: boolean; recarregar: () => void }
 
 const POR_PAGINA = 25
 const INTERVALO_ATUALIZACAO = 20000
 
 // filas do menu da esquerda: cada uma vira os filtros do GET /atendimento/chamados
-const FILAS = [
+const FILAS: { valor: Fila; rotulo: string; filtros: Record<string, string | boolean> }[] = [
   { valor: 'sem', rotulo: 'Sem responsável', filtros: { sem_responsavel: true, status: 'aberto' } },
   { valor: 'meus', rotulo: 'Meus em andamento', filtros: { meus: true, status: 'em_andamento' } },
   { valor: 'respondeu', rotulo: 'Cliente respondeu', filtros: { meus: true, com_mensagem_nova: true } },
@@ -41,18 +49,18 @@ const FILAS = [
 export function Atendimento() {
   const { idChamado } = useParams()
   const { unidade } = useUnidadeEscolhida()
-  const [fila, setFila] = useState('sem')
+  const [fila, setFila] = useState<Fila>('sem')
   const [categoria, setCategoria] = useState('')
   const [offset, setOffset] = useState(0)
-  const filtros = FILAS.find((f) => f.valor === fila).filtros
+  const filtros = FILAS.find((f) => f.valor === fila)?.filtros ?? {}
 
   const lista = useCarregar(
-    () => api('/atendimento/chamados', { params: { ...filtros, categoria, id_unidade: unidade, limit: POR_PAGINA, offset } }),
+    () => api<Esquema<'Pagina_ChamadoSaida_'>>('/atendimento/chamados', { params: { ...filtros, categoria, id_unidade: unidade, limit: POR_PAGINA, offset } }),
     [fila, categoria, unidade, offset],
   )
   // contagem de cada fila (só o total, uma linha por consulta)
   const contagens = useCarregar(
-    () => Promise.all(FILAS.map((f) => api('/atendimento/chamados', { params: { ...f.filtros, id_unidade: unidade, limit: 1 } }).then((r) => r.total))),
+    () => Promise.all(FILAS.map((f) => api<Esquema<'Pagina_ChamadoSaida_'>>('/atendimento/chamados', { params: { ...f.filtros, id_unidade: unidade, limit: 1 } }).then((r) => r.total))),
     [unidade],
   )
   const { recarregar: recarregarLista } = lista
@@ -62,7 +70,7 @@ export function Atendimento() {
     recarregarContagens()
   }, [recarregarLista, recarregarContagens])
 
-  function mudarFila(valor) {
+  function mudarFila(valor: Fila) {
     setFila(valor)
     setOffset(0)
   }
@@ -127,7 +135,7 @@ export function Atendimento() {
 
 // um chamado na lista do meio: número e há quanto tempo, assunto, cliente e pedido;
 // marcador terracota para mensagem nova e prioridade alta (destaques com significado)
-function ItemDaFila({ chamado: c, aberto }) {
+function ItemDaFila({ chamado: c, aberto }: { chamado: Chamado; aberto: boolean }) {
   return (
     <li>
       <Link
@@ -154,7 +162,7 @@ function ItemDaFila({ chamado: c, aberto }) {
   )
 }
 
-function Marcador({ children }) {
+function Marcador({ children }: { children: ReactNode }) {
   return (
     <span className="flex items-center gap-1.5">
       <span className="size-1.5 rounded-full bg-terracota" aria-hidden="true" />
@@ -163,14 +171,14 @@ function Marcador({ children }) {
   )
 }
 
-function Prioridade({ valor }) {
+function Prioridade({ valor }: { valor: Chamado['prioridade'] }) {
   if (!valor) return <span className="text-sm text-muted-foreground">Sem prioridade</span>
   if (valor === 'alta') return <span className="text-sm font-medium"><Marcador>Prioridade alta</Marcador></span>
-  return <span className="text-sm text-muted-foreground">Prioridade {PRIORIDADES[valor].toLowerCase()}</span>
+  return <span className="text-sm text-muted-foreground">Prioridade {PRIORIDADES[valor]?.toLowerCase()}</span>
 }
 
 // o histórico guarda o id de quem passou a ser responsável; mostra o que aconteceu, não o id
-function textoHistorico(h) {
+function textoHistorico(h: Esquema<'HistoricoSaida'>) {
   if (h.campo_alterado === 'responsavel') return h.valor_anterior ? `${h.autor} repassou o chamado` : `${h.autor} assumiu`
   if (h.campo_alterado === 'prioridade') return `${h.autor} mudou a prioridade para ${PRIORIDADES[h.valor_novo]?.toLowerCase() ?? h.valor_novo}`
   if (h.valor_novo === 'concluido') return `${h.autor} concluiu`
@@ -180,18 +188,18 @@ function textoHistorico(h) {
 // painel à direita da conversa (design, seção Atendimento): cliente e pedido ligado,
 // status, prioridade e responsável, concluir com motivo e o histórico do chamado.
 // Só o responsável muda a prioridade e conclui; quem atende pode assumir um chamado sem responsável.
-function PainelDoChamado({ chamado: c, historico, aoMudar }) {
+function PainelDoChamado({ chamado: c, historico, aoMudar }: { chamado: Chamado; historico: Carga<Historico>; aoMudar: () => void }) {
   const { perfil } = useAuth()
   const { unidades } = useUnidadeEscolhida()
   const [motivo, setMotivo] = useState('resolvido')
   const [repassando, setRepassando] = useState(false)
   // 'troca' ou 'devolucao' com o painel lateral aberto; `feito` é a confirmação depois de registrar
-  const [trocando, setTrocando] = useState(null)
-  const [feito, setFeito] = useState(null)
+  const [trocando, setTrocando] = useState<ModoTroca | null>(null)
+  const [feito, setFeito] = useState<string | null>(null)
   const { enviar, enviando, erro } = useEnviar()
-  const souResponsavel = c.id_responsavel === perfil.id_usuario
+  const souResponsavel = c.id_responsavel === perfil?.id_usuario
   const concluido = c.status === 'concluido'
-  const pedido = useCarregar(() => (c.id_pedido ? api(`/vendas/pedidos/${c.id_pedido}`) : null), [c.id_pedido])
+  const pedido = useCarregar(() => (c.id_pedido ? api<Pedido>(`/vendas/pedidos/${c.id_pedido}`) : null), [c.id_pedido])
   // o backend só registra troca ou devolução em chamado dessa categoria, aberto e com pedido
   const podeTrocar = c.categoria === 'troca_devolucao' && c.id_pedido && !concluido && pedido.dados
   // estorno sem troca nem devolução: qualquer chamado aberto com pedido pago que ainda tem o que estornar
@@ -199,8 +207,8 @@ function PainelDoChamado({ chamado: c, historico, aoMudar }) {
   const podeEstornar = !concluido && pedido.dados && !['aguardando_pagamento', 'cancelado'].includes(pedido.dados.status)
     && estornaveis(pedido.dados).length > 0
 
-  async function acao(caminho, corpo, metodo = 'POST') {
-    const ok = await enviar(() => api(`/atendimento/chamados/${c.id_chamado}${caminho}`, { metodo, corpo }))
+  async function acao(caminho: string, corpo?: object, metodo: 'POST' | 'PATCH' = 'POST') {
+    const ok = await enviar(() => api<Chamado>(`/atendimento/chamados/${c.id_chamado}${caminho}`, { metodo, corpo }))
     if (ok) aoMudar()
   }
 
@@ -320,7 +328,7 @@ function PainelDoChamado({ chamado: c, historico, aoMudar }) {
       )}
       {concluido && (
         <p className="bg-superficie p-4 text-sm">
-          Concluído em {dataHora(c.concluido_em)} como {MOTIVOS_CONCLUSAO[c.motivo_encerramento]?.toLowerCase()}. Chamado concluído não reabre.
+          Concluído em {dataHora(c.concluido_em)} como {MOTIVOS_CONCLUSAO[c.motivo_encerramento ?? '']?.toLowerCase()}. Chamado concluído não reabre.
         </p>
       )}
 
@@ -343,7 +351,13 @@ function PainelDoChamado({ chamado: c, historico, aoMudar }) {
 
 // troca ou devolução pelo chamado, num painel lateral (POST /atendimento/chamados/{id}/troca ou
 // /devolucao). A peça volta numa loja: começa pela loja do chamado ou a do topo, e dá para trocar.
-function TrocaPeloChamado({ modo, chamado: c, pedido, aoFechar, aoConcluir }) {
+function TrocaPeloChamado({ modo, chamado: c, pedido, aoFechar, aoConcluir }: {
+  modo: ModoTroca | null
+  chamado: Chamado
+  pedido: Pedido
+  aoFechar: () => void
+  aoConcluir: (resumo: string) => void
+}) {
   const { unidade, unidades } = useUnidadeEscolhida()
   const lojas = unidades.filter((u) => u.ativo && u.tipo === 'loja')
   const inicial = [c.id_unidade, unidade].map(String).find((id) => lojas.some((u) => String(u.id_unidade) === id)) ?? ''
@@ -351,7 +365,8 @@ function TrocaPeloChamado({ modo, chamado: c, pedido, aoFechar, aoConcluir }) {
   const loja = lojas.find((u) => String(u.id_unidade) === idLoja)
   const troca = modo === 'troca'
 
-  function concluir(f) {
+  function concluir(f: TrocaFeita) {
+    if (!loja) return
     const pecas = plural(f.linhas.reduce((t, l) => t + l.quantidade, 0), 'peça')
     const estorno = f.estornos.reduce((t, e) => t + Number(e.valor), 0)
     aoConcluir(troca
@@ -383,7 +398,7 @@ function TrocaPeloChamado({ modo, chamado: c, pedido, aoFechar, aoConcluir }) {
               pedido={pedido}
               loja={loja}
               rota={`/atendimento/chamados/${c.id_chamado}`}
-              modoInicial={modo}
+              modoInicial={modo ?? undefined}
               comAbas={false}
               comCabecalho={false}
               aoConcluir={concluir}
@@ -400,9 +415,15 @@ const PASSOS_ESTORNO = ['Pagamento', 'Valor', 'Confirmar']
 // estorno pelo chamado, sem troca nem devolução (ex.: problema na entrega), num painel lateral
 // passo a passo (design, seção Atendimento): de qual pagamento sai, quanto (pode ser parcial) e
 // a confirmação. Volta pelo mesmo meio do pagamento e fica ligado ao chamado.
-function EstornoPeloChamado({ aberto, chamado: c, pedido, aoFechar, aoConcluir }) {
+function EstornoPeloChamado({ aberto, chamado: c, pedido, aoFechar, aoConcluir }: {
+  aberto: boolean
+  chamado: Chamado
+  pedido: Pedido
+  aoFechar: () => void
+  aoConcluir: (resumo: string) => void
+}) {
   const [passo, setPasso] = useState(0)
-  const [idPagamento, setIdPagamento] = useState(null)
+  const [idPagamento, setIdPagamento] = useState<number | null>(null)
   const [valor, setValor] = useState('')
   const { enviar, enviando, erro, limparErro } = useEnviar()
   const opcoes = estornaveis(pedido)
@@ -420,7 +441,7 @@ function EstornoPeloChamado({ aberto, chamado: c, pedido, aoFechar, aoConcluir }
     aoFechar()
   }
 
-  function escolher(opcao) {
+  function escolher(opcao: ReturnType<typeof estornaveis>[number]) {
     setIdPagamento(opcao.pagamento.id_pagamento)
     setValor(opcao.restante.toFixed(2).replace('.', ','))
     setPasso(1)
@@ -428,7 +449,7 @@ function EstornoPeloChamado({ aberto, chamado: c, pedido, aoFechar, aoConcluir }
 
   async function confirmar() {
     const corpo = { id_pagamento: idPagamento, valor: numero.toFixed(2) }
-    const ok = await enviar(() => api(`/atendimento/chamados/${c.id_chamado}/estornos`, { metodo: 'POST', corpo }))
+    const ok = await enviar(() => api<Pedido>(`/atendimento/chamados/${c.id_chamado}/estornos`, { metodo: 'POST', corpo }))
     if (!ok) return
     setPasso(0)
     setIdPagamento(null)
@@ -543,17 +564,17 @@ function EstornoPeloChamado({ aberto, chamado: c, pedido, aoFechar, aoConcluir }
 
 // repassar o chamado para outra pessoa que atende chamados (GET /atendimento/equipe lista quem pode;
 // o PATCH confere a mesma regra). Depois do repasse, quem repassou deixa de ser o responsável.
-function Repassar({ chamado: c, aoFechar, aoRepassar }) {
+function Repassar({ chamado: c, aoFechar, aoRepassar }: { chamado: Chamado; aoFechar: () => void; aoRepassar: () => void }) {
   const { perfil } = useAuth()
   const { unidades } = useUnidadeEscolhida()
   const [destino, setDestino] = useState('')
   const { enviar, enviando, erro } = useEnviar()
-  const equipe = useCarregar(() => api('/atendimento/equipe'), [])
-  const colegas = (equipe.dados?.items ?? []).filter((p) => p.id_usuario !== perfil.id_usuario)
+  const equipe = useCarregar(() => api<Esquema<'Lista_PessoaDaEquipe_'>>('/atendimento/equipe'), [])
+  const colegas = (equipe.dados?.items ?? []).filter((p) => p.id_usuario !== perfil?.id_usuario)
 
-  async function repassar(evento) {
+  async function repassar(evento: FormEvent) {
     evento.preventDefault()
-    const ok = await enviar(() => api(`/atendimento/chamados/${c.id_chamado}`, { metodo: 'PATCH', corpo: { id_responsavel: destino } }))
+    const ok = await enviar(() => api<Chamado>(`/atendimento/chamados/${c.id_chamado}`, { metodo: 'PATCH', corpo: { id_responsavel: destino } }))
     if (ok) aoRepassar()
   }
 
@@ -582,7 +603,7 @@ function Repassar({ chamado: c, aoFechar, aoRepassar }) {
 }
 
 // pedido ligado ao chamado: código, status, a peça apontada (ou os itens) e o prazo de troca
-function PedidoLigado({ chamado: c, pedido }) {
+function PedidoLigado({ chamado: c, pedido }: { chamado: Chamado; pedido: Carga<Pedido> }) {
   const [agora] = useState(() => Date.now())
   if (pedido.erro) return <p className="text-sm text-muted-foreground">Pedido {c.id_pedido}</p>
   if (!pedido.dados) return <p className="text-sm text-muted-foreground">Carregando o pedido {c.id_pedido}...</p>
@@ -603,7 +624,7 @@ function PedidoLigado({ chamado: c, pedido }) {
         ))}
       </ul>
       <p className="text-xs text-muted-foreground">
-        {p.entregue_em
+        {p.entregue_em && prazo
           ? `Entregue em ${dataCurta(p.entregue_em)}; troca ou devolução até ${dataCurta(prazo.toISOString())}${prazo.getTime() < agora ? ', prazo encerrado' : ''}.`
           : `${moeda(p.valor_total)}, ${p.canal === 'loja_fisica' ? 'compra na loja' : 'compra no site'}.`}
       </p>
@@ -613,10 +634,10 @@ function PedidoLigado({ chamado: c, pedido }) {
 
 // conversa e painel do chamado aberto, na terceira coluna da caixa de entrada.
 // `aoMudar` atualiza a lista e as contagens quando o chamado muda (assumir, concluir, prioridade)
-function ChamadoAberto({ idChamado, aoMudar }) {
-  const chamado = useCarregar(() => api(`/atendimento/chamados/${idChamado}`), [idChamado])
-  const mensagens = useCarregar(() => api(`/atendimento/chamados/${idChamado}/mensagens`), [idChamado])
-  const historico = useCarregar(() => api(`/atendimento/chamados/${idChamado}/historico`), [idChamado])
+function ChamadoAberto({ idChamado, aoMudar }: { idChamado: string; aoMudar: () => void }) {
+  const chamado = useCarregar(() => api<Chamado>(`/atendimento/chamados/${idChamado}`), [idChamado])
+  const mensagens = useCarregar(() => api<Esquema<'Lista_MensagemSaida_'>>(`/atendimento/chamados/${idChamado}/mensagens`), [idChamado])
+  const historico = useCarregar(() => api<Historico>(`/atendimento/chamados/${idChamado}/historico`), [idChamado])
   const { recarregar: recarregarMensagens } = mensagens
 
   useEffect(() => {
@@ -625,7 +646,7 @@ function ChamadoAberto({ idChamado, aoMudar }) {
   }, [recarregarMensagens])
 
   if (chamado.carregando && !chamado.dados) return <Carregando />
-  if (chamado.erro) return <Aviso mensagem={chamado.erro} />
+  if (chamado.erro || !chamado.dados) return <Aviso mensagem={chamado.erro ?? 'Chamado não encontrado.'} />
   const c = chamado.dados
   const concluido = c.status === 'concluido'
 
@@ -646,7 +667,7 @@ function ChamadoAberto({ idChamado, aoMudar }) {
         <div className="space-y-1">
           <h2 className="text-2xl font-medium">{c.assunto}</h2>
           <p className="text-sm text-muted-foreground">
-            Chamado {c.id_chamado}, aberto por {c.cliente} em {dataLonga(c.criado_em)} às {hora(c.criado_em)}, {CATEGORIAS_CHAMADO[c.categoria].toLowerCase()}
+            Chamado {c.id_chamado}, aberto por {c.cliente} em {dataLonga(c.criado_em)} às {hora(c.criado_em)}, {CATEGORIAS_CHAMADO[c.categoria]?.toLowerCase()}
           </p>
         </div>
         <Prioridade valor={c.prioridade} />
@@ -672,14 +693,17 @@ function ChamadoAberto({ idChamado, aoMudar }) {
 
 // balão da conversa: cliente à esquerda, equipe à direita; nota interna em ardósia-claro com
 // "Só a equipe vê" (design, seção Atendimento). A primeira mensagem é a descrição do chamado.
-function Mensagem({ mensagem: m }) {
+// a descrição do chamado entra como a primeira mensagem, sem id nem anexo
+type MensagemNaTela = Pick<Mensagem, 'conteudo' | 'autor' | 'criado_em'> & Partial<Mensagem>
+
+function Mensagem({ mensagem: m }: { mensagem: MensagemNaTela }) {
   const daEquipe = Boolean(m.da_equipe)
   return (
     <li className={cn('flex flex-col gap-1', daEquipe ? 'items-end' : 'items-start')}>
       <div className={cn('max-w-[85%] space-y-2 px-4 py-3 text-sm', m.interna ? 'bg-ardosia-clara' : daEquipe ? 'bg-aco-fundo' : 'bg-superficie')}>
         {m.interna && <span className="block text-xs font-medium text-ardosia">Só a equipe vê</span>}
         {m.conteudo && <p className="whitespace-pre-line">{m.conteudo}</p>}
-        {m.anexo_nome && <Anexo mensagem={m} />}
+        {m.anexo_nome && m.id_mensagem !== undefined && <Anexo mensagem={m as Mensagem} />}
       </div>
       <span className="text-xs text-muted-foreground">
         {m.autor}{m.interna && ', nota interna'}, {dataHora(m.criado_em)}
@@ -690,14 +714,14 @@ function Mensagem({ mensagem: m }) {
 
 // o arquivo fica na área privada do Storage: o link é pedido na hora e vale por pouco tempo.
 // A aba nova abre antes da chamada para o navegador não bloquear a janela.
-function Anexo({ mensagem: m }) {
-  const [erro, setErro] = useState(null)
+function Anexo({ mensagem: m }: { mensagem: Mensagem }) {
+  const [erro, setErro] = useState<string | null>(null)
 
   async function abrir() {
     setErro(null)
     const janela = window.open('', '_blank')
     try {
-      const { url } = await api(`/atendimento/chamados/${m.id_chamado}/mensagens/${m.id_mensagem}/anexo`)
+      const { url } = await api<Esquema<'AnexoLink'>>(`/atendimento/chamados/${m.id_chamado}/mensagens/${m.id_mensagem}/anexo`)
       if (janela) janela.location.href = url
       else window.location.href = url
     } catch (falha) {
@@ -723,16 +747,16 @@ const TIPOS_ANEXO = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf']
 const ANEXO_MAXIMO = 10 * 1024 * 1024
 
 // campo de resposta: responder ao cliente ou nota interna, com texto e um anexo opcional
-function Responder({ chamado: c, aoEnviar }) {
-  const [modo, setModo] = useState('cliente')
+function Responder({ chamado: c, aoEnviar }: { chamado: Chamado; aoEnviar: () => void }) {
+  const [modo, setModo] = useState<'cliente' | 'interna'>('cliente')
   const [texto, setTexto] = useState('')
-  const [arquivo, setArquivo] = useState(null)
-  const [erroArquivo, setErroArquivo] = useState(null)
-  const seletor = useRef(null)
+  const [arquivo, setArquivo] = useState<File | null>(null)
+  const [erroArquivo, setErroArquivo] = useState<string | null>(null)
+  const seletor = useRef<HTMLInputElement>(null)
   const { enviar, enviando, erro } = useEnviar()
   const interna = modo === 'interna'
 
-  function escolher(evento) {
+  function escolher(evento: ChangeEvent<HTMLInputElement>) {
     const escolhido = evento.target.files?.[0]
     evento.target.value = ''
     if (!escolhido) return
@@ -748,17 +772,17 @@ function Responder({ chamado: c, aoEnviar }) {
     setArquivo(escolhido)
   }
 
-  async function responder(evento) {
+  async function responder(evento: FormEvent) {
     evento.preventDefault()
     const conteudo = texto.trim()
     const caminho = `/atendimento/chamados/${c.id_chamado}`
     const ok = await enviar(() => {
-      if (!arquivo) return api(`${caminho}/mensagens`, { metodo: 'POST', corpo: { conteudo, interna } })
+      if (!arquivo) return api<Mensagem>(`${caminho}/mensagens`, { metodo: 'POST', corpo: { conteudo, interna } })
       const formulario = new FormData()
       formulario.append('arquivo', arquivo)
       if (conteudo) formulario.append('conteudo', conteudo)
       formulario.append('interna', String(interna))
-      return api(`${caminho}/anexos`, { metodo: 'POST', corpo: formulario })
+      return api<Mensagem>(`${caminho}/anexos`, { metodo: 'POST', corpo: formulario })
     })
     if (ok) {
       setTexto('')
