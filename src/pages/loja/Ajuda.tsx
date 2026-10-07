@@ -1,5 +1,6 @@
+import { useEffect } from 'react'
 import { CreditCard, MessageCircle, Package, RefreshCcw, UserRound } from 'lucide-react'
-import { Link } from 'react-router'
+import { Link, useLocation } from 'react-router'
 
 import { useAuth } from '@/auth/contexto'
 import { Status } from '@/components/Status'
@@ -79,6 +80,15 @@ const ASSUNTOS = [
 export function AjudaLoja() {
   const { sessao, perfil } = useAuth()
   const ehCliente = Boolean(sessao) && perfil?.tipo_conta === 'cliente'
+  // assunto pedido pela âncora (rodapé ou cartões do topo): desce até ele e abre a primeira pergunta.
+  // Navegando dentro do site o navegador não rola sozinho até a âncora; a chave da página rola de novo
+  // mesmo quando o mesmo link é clicado duas vezes
+  const { hash, key } = useLocation()
+  const alvo = hash.slice(1)
+
+  useEffect(() => {
+    if (alvo) document.getElementById(alvo)?.scrollIntoView()
+  }, [alvo, key])
 
   return (
     <div className="mx-auto max-w-7xl px-4 pt-8 sm:px-6">
@@ -92,13 +102,13 @@ export function AjudaLoja() {
       <ul className="mb-14 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         {ASSUNTOS.map(({ id, titulo, icone: Icone, perguntas }) => (
           <li key={id}>
-            <a href={`#${id}`} className="flex h-full flex-col gap-3 border p-5 transition-colors hover:border-foreground">
+            <Link to={{ hash: id }} className="flex h-full flex-col gap-3 border p-5 transition-colors hover:border-foreground">
               <Icone className="size-5 text-aco" aria-hidden="true" />
               <span className="font-medium">{titulo}</span>
               <span className="text-sm text-muted-foreground">
                 {perguntas.length === 1 ? '1 pergunta' : `${perguntas.length} perguntas`}
               </span>
-            </a>
+            </Link>
           </li>
         ))}
       </ul>
@@ -108,7 +118,8 @@ export function AjudaLoja() {
           {ASSUNTOS.map(({ id, titulo, perguntas }) => (
             <section key={id} id={id} aria-labelledby={`titulo-${id}`} className="scroll-mt-6">
               <h2 id={`titulo-${id}`} className="mb-2 font-titulo text-2xl">{titulo}</h2>
-              <Accordion>
+              {/* a chave recria o acordeão quando o assunto vira o alvo, para abrir a primeira pergunta */}
+              <Accordion key={`${id}-${alvo === id}`} defaultValue={alvo === id ? [perguntas[0]!.pergunta] : []}>
                 {perguntas.map(({ pergunta, resposta }) => (
                   <AccordionItem key={pergunta} value={pergunta} className="border-b">
                     <AccordionTrigger className="py-4 text-base font-normal">{pergunta}</AccordionTrigger>
