@@ -1,4 +1,4 @@
-import { Fragment, useState } from 'react'
+import { Fragment, useState, type ChangeEvent, type FormEvent, type ReactNode } from 'react'
 import { ChevronLeft, ExternalLink, Plus, Trash2 } from 'lucide-react'
 import { Link, useNavigate, useParams } from 'react-router'
 import { cn } from 'cn'
@@ -8,15 +8,23 @@ import { Etiqueta } from '@/components/Peca'
 import { Button, buttonVariants } from '@/components/ui/button'
 import { Campo, Input, Select, Textarea } from '@/components/ui/input'
 import { useUnidadeEscolhida } from '@/layouts/unidadeEscolhida'
-import { api } from '@/lib/api'
+import { api, type Esquema } from '@/lib/api'
 import { corDaPeca, coresDoProduto, ordenarTamanhos } from '@/lib/cores'
 import { CANAIS, dataLonga, moeda, plural } from '@/lib/formato'
 import { useCarregar, useEnviar } from '@/lib/useCarregar'
 
-const DADOS_VAZIOS = { nome: '', id_categoria: '', descricao_cliente: '', descricao_tecnica: '', ativo: true }
-const VARIANTE_VAZIA = { cor: '', tamanho: '', sku: '', preco: '', estoque_inicial: [] }
+type Produto = Esquema<'ProdutoSaida'>
+type Canal = Esquema<'EstoqueItem'>['canal']
+type DadosProduto = { nome: string; id_categoria: string; descricao_cliente: string; descricao_tecnica: string; ativo: boolean }
+// estoque inicial de uma variação nova: onde e quanto, como digitado
+type EstoqueInicial = { id_unidade: string; canal: Canal; quantidade: string }
+type VarianteNova = { cor: string; tamanho: string; sku: string; preco: string; estoque_inicial: EstoqueInicial[] }
+type VarianteEditada = { id_variante: number; sku: string; preco: string; ativo: boolean }
 
-function SecaoTitulo({ children, extra }) {
+const DADOS_VAZIOS: DadosProduto = { nome: '', id_categoria: '', descricao_cliente: '', descricao_tecnica: '', ativo: true }
+const VARIANTE_VAZIA: VarianteNova = { cor: '', tamanho: '', sku: '', preco: '', estoque_inicial: [] }
+
+function SecaoTitulo({ children, extra }: { children: ReactNode; extra?: ReactNode }) {
   return (
     <div className="mb-4 flex flex-wrap items-end justify-between gap-3 border-b border-foreground pb-3">
       <h2 className="text-lg font-medium">{children}</h2>
@@ -26,7 +34,7 @@ function SecaoTitulo({ children, extra }) {
 }
 
 // a API recebe a variante nova com o estoque inicial já em números
-function varianteParaApi(v) {
+function varianteParaApi(v: VarianteNova) {
   return {
     cor: v.cor.trim() || 'Única',
     tamanho: v.tamanho.trim() || 'U',
@@ -41,17 +49,17 @@ function varianteParaApi(v) {
 export function ProdutoInterno() {
   const { idProduto } = useParams()
   const novo = idProduto === 'novo'
-  const produto = useCarregar(() => (novo ? null : api(`/produtos/${idProduto}`)), [idProduto])
+  const produto = useCarregar(() => (novo ? null : api<Produto>(`/produtos/${idProduto}`)), [idProduto])
 
   if (!novo && produto.carregando && !produto.dados) return <Carregando />
   if (produto.erro) return <Aviso mensagem={produto.erro} />
   return <FormularioProduto key={idProduto} produto={novo ? null : produto.dados} recarregar={produto.recarregar} />
 }
 
-function FormularioProduto({ produto, recarregar }) {
+function FormularioProduto({ produto, recarregar }: { produto: Produto | null; recarregar: () => void }) {
   const navegar = useNavigate()
-  const categorias = useCarregar(() => api('/categorias'), [])
-  const inicial = produto
+  const categorias = useCarregar(() => api<Esquema<'Lista_CategoriaSaida_'>>('/categorias'), [])
+  const inicial: DadosProduto = produto
     ? {
         nome: produto.nome,
         id_categoria: String(produto.id_categoria),
@@ -61,19 +69,20 @@ function FormularioProduto({ produto, recarregar }) {
       }
     : DADOS_VAZIOS
   const [dados, setDados] = useState(inicial)
-  const [variantesNovas, setVariantesNovas] = useState(produto ? [] : [{ ...VARIANTE_VAZIA }])
+  const [variantesNovas, setVariantesNovas] = useState<VarianteNova[]>(produto ? [] : [{ ...VARIANTE_VAZIA }])
   const [salvo, setSalvo] = useState(false)
   const { enviar, enviando, erro } = useEnviar()
-  const mudar = (campo) => (e) => {
+  const mudar = (campo: keyof DadosProduto) => (e: ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     setSalvo(false)
-    setDados({ ...dados, [campo]: e.target.type === 'checkbox' ? e.target.checked : e.target.value })
+    const alvo = e.target
+    setDados({ ...dados, [campo]: alvo instanceof HTMLInputElement && alvo.type === 'checkbox' ? alvo.checked : alvo.value })
   }
 
-  async function salvar(evento) {
+  async function salvar(evento: FormEvent) {
     evento.preventDefault()
     setSalvo(false)
     if (!produto) {
-      const criado = await enviar(() => api('/produtos', {
+      const criado = await enviar(() => api<Produto>('/produtos', {
         metodo: 'POST',
         corpo: {
           ...dados,
@@ -88,10 +97,10 @@ function FormularioProduto({ produto, recarregar }) {
     }
     // só manda o que mudou
     const mudancas = Object.fromEntries(
-      Object.entries(dados).filter(([campo, valor]) => valor !== inicial[campo]).map(([campo, valor]) => [campo, campo === 'id_categoria' ? Number(valor) : valor]),
+      Object.entries(dados).filter(([campo, valor]) => valor !== inicial[campo as keyof DadosProduto]).map(([campo, valor]) => [campo, campo === 'id_categoria' ? Number(valor) : valor]),
     )
     if (Object.keys(mudancas).length === 0) return
-    const ok = await enviar(() => api(`/produtos/${produto.id_produto}`, { metodo: 'PATCH', corpo: mudancas }))
+    const ok = await enviar(() => api<Produto>(`/produtos/${produto.id_produto}`, { metodo: 'PATCH', corpo: mudancas }))
     if (ok) {
       setSalvo(true)
       recarregar()
@@ -168,7 +177,7 @@ function FormularioProduto({ produto, recarregar }) {
                   indice={i}
                   valor={v}
                   aoMudar={(novo) => setVariantesNovas(variantesNovas.map((x, j) => (j === i ? novo : x)))}
-                  aoTirar={variantesNovas.length > 1 ? () => setVariantesNovas(variantesNovas.filter((_, j) => j !== i)) : null}
+                  aoTirar={variantesNovas.length > 1 ? () => setVariantesNovas(variantesNovas.filter((_, j) => j !== i)) : undefined}
                 />
               ))}
             </div>
@@ -207,13 +216,18 @@ function FormularioProduto({ produto, recarregar }) {
   )
 }
 
-function EditorVariante({ indice, valor, aoMudar, aoTirar }) {
+function EditorVariante({ indice, valor, aoMudar, aoTirar }: {
+  indice: number | string
+  valor: VarianteNova
+  aoMudar: (valor: VarianteNova) => void
+  aoTirar?: () => void
+}) {
   const { unidades } = useUnidadeEscolhida()
-  const campo = (nome) => (e) => aoMudar({ ...valor, [nome]: e.target.value })
-  const id = (nome) => `var-${indice}-${nome}`
+  const campo = (nome: 'cor' | 'tamanho' | 'sku' | 'preco') => (e: ChangeEvent<HTMLInputElement>) => aoMudar({ ...valor, [nome]: e.target.value })
+  const id = (nome: string) => `var-${indice}-${nome}`
 
-  function mudarEstoque(j, nome, novo) {
-    aoMudar({ ...valor, estoque_inicial: valor.estoque_inicial.map((e, k) => (k === j ? { ...e, [nome]: novo } : e)) })
+  function mudarEstoque(j: number, nome: keyof EstoqueInicial, novo: string) {
+    aoMudar({ ...valor, estoque_inicial: valor.estoque_inicial.map((e, k): EstoqueInicial => (k === j ? { ...e, [nome]: novo } : e)) })
   }
 
   return (
@@ -268,15 +282,15 @@ function EditorVariante({ indice, valor, aoMudar, aoTirar }) {
   )
 }
 
-function NovaVariante({ idProduto, aoCriar }) {
-  const [valor, setValor] = useState({ ...VARIANTE_VAZIA })
-  const [criada, setCriada] = useState(null)
+function NovaVariante({ idProduto, aoCriar }: { idProduto: number; aoCriar: () => void }) {
+  const [valor, setValor] = useState<VarianteNova>({ ...VARIANTE_VAZIA })
+  const [criada, setCriada] = useState<string | null>(null)
   const { enviar, enviando, erro } = useEnviar()
 
-  async function criar(evento) {
+  async function criar(evento: FormEvent) {
     evento.preventDefault()
     setCriada(null)
-    const nova = await enviar(() => api(`/produtos/${idProduto}/variantes`, { metodo: 'POST', corpo: varianteParaApi(valor) }))
+    const nova = await enviar(() => api<Esquema<'VarianteSaida'>>(`/produtos/${idProduto}/variantes`, { metodo: 'POST', corpo: varianteParaApi(valor) }))
     if (nova) {
       setCriada(`Variação ${nova.sku} criada.`)
       setValor({ ...VARIANTE_VAZIA })
@@ -298,9 +312,9 @@ function NovaVariante({ idProduto, aoCriar }) {
   )
 }
 
-function TabelaVariantes({ produto, aoMudar }) {
-  const [editando, setEditando] = useState(null)
-  const [historico, setHistorico] = useState(null)
+function TabelaVariantes({ produto, aoMudar }: { produto: Produto; aoMudar: () => void }) {
+  const [editando, setEditando] = useState<VarianteEditada | null>(null)
+  const [historico, setHistorico] = useState<number | null>(null)
   const { enviar, enviando, erro } = useEnviar()
   const ordenadas = [...produto.variantes].sort((a, b) => {
     if (a.cor !== b.cor) return a.cor.localeCompare(b.cor, 'pt-BR')
@@ -308,15 +322,17 @@ function TabelaVariantes({ produto, aoMudar }) {
     return ordem[0] === a.tamanho ? -1 : 1
   })
 
-  async function salvar(evento) {
+  async function salvar(evento: FormEvent) {
     evento.preventDefault()
+    if (!editando) return
     const original = produto.variantes.find((v) => v.id_variante === editando.id_variante)
-    const mudancas = {}
+    if (!original) return
+    const mudancas: { sku?: string; preco?: string; ativo?: boolean } = {}
     if (editando.sku !== original.sku) mudancas.sku = editando.sku
     if (Number(editando.preco) !== Number(original.preco)) mudancas.preco = editando.preco
     if (editando.ativo !== original.ativo) mudancas.ativo = editando.ativo
     if (Object.keys(mudancas).length > 0) {
-      const ok = await enviar(() => api(`/variantes/${editando.id_variante}`, { metodo: 'PATCH', corpo: mudancas }))
+      const ok = await enviar(() => api<Esquema<'VarianteSaida'>>(`/variantes/${editando.id_variante}`, { metodo: 'PATCH', corpo: mudancas }))
       if (!ok) return
       aoMudar()
     }
@@ -406,10 +422,10 @@ function TabelaVariantes({ produto, aoMudar }) {
   )
 }
 
-function HistoricoPreco({ idVariante }) {
-  const { dados, erro, carregando } = useCarregar(() => api(`/variantes/${idVariante}/historico-preco`), [idVariante])
+function HistoricoPreco({ idVariante }: { idVariante: number }) {
+  const { dados, erro, carregando } = useCarregar(() => api<Esquema<'Lista_HistoricoPrecoSaida_'>>(`/variantes/${idVariante}/historico-preco`), [idVariante])
   if (carregando) return <Carregando />
-  if (erro) return <Aviso mensagem={erro} />
+  if (erro || !dados) return <Aviso mensagem={erro ?? 'Não foi possível carregar o histórico de preço.'} />
   if (dados.items.length === 0) return <p className="text-sm text-muted-foreground">Sem mudanças de preço.</p>
   return (
     <ul className="space-y-1 text-sm">
