@@ -1,3 +1,4 @@
+import { SearchX } from 'lucide-react'
 import { Link, useSearchParams } from 'react-router'
 import { cn } from 'cn'
 
@@ -167,9 +168,14 @@ export function ProdutosLoja() {
 
         {erro && <Aviso mensagem={erro} />}
         {alternativa && dados && dados.items.length > 0 && (
-          <p role="status" className="mb-8 border-l-4 border-aco bg-aco-fundo p-4 text-sm">
-            Não encontramos peças para “{busca}”{filtrando ? ' com esses filtros' : ''}.{' '}
-            {alternativa === 'parecidas' ? 'Estas são as mais parecidas.' : 'Veja as novidades da loja.'}
+          // terracota: não é erro (ferrugem), mas a busca não achou o que foi pedido. O texto fica escuro
+          // porque terracota em letra pequena sobre fundo claro não tem contraste
+          <p role="status" className="mb-8 flex items-start gap-3 border-l-4 border-terracota bg-terracota/10 p-4 text-sm">
+            <SearchX className="mt-0.5 size-4 shrink-0 text-terracota" aria-hidden="true" />
+            <span>
+              Não encontramos peças para “{busca}”{filtrando ? ' com esses filtros' : ''}.{' '}
+              {alternativa === 'parecidas' ? 'Estas são as mais parecidas.' : 'Veja as novidades da loja.'}
+            </span>
           </p>
         )}
         {dados && dados.items.length === 0 && (
