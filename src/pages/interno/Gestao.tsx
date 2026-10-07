@@ -36,17 +36,22 @@ export function Gestao() {
   const [aba, setAba] = useState('pessoas')
   return (
     <>
-      <Cabecalho titulo="Gestão" subtitulo="Quem usa a plataforma, o que cada modelo de acesso permite e as unidades da rede." />
-      <Abas
-        rotulo="Gestão"
-        valor={aba}
-        aoMudar={setAba}
-        className="mb-8"
-        abas={[
-          { valor: 'pessoas', rotulo: 'Pessoas' },
-          { valor: 'modelos', rotulo: 'Modelos de acesso' },
-          { valor: 'unidades', rotulo: 'Unidades' },
-        ]}
+      <Cabecalho
+        titulo="Gestão"
+        subtitulo="Quem usa a plataforma, o que cada modelo de acesso permite e as unidades da rede."
+        abas={
+          <Abas
+            semLinha
+            rotulo="Gestão"
+            valor={aba}
+            aoMudar={setAba}
+            abas={[
+              { valor: 'pessoas', rotulo: 'Pessoas' },
+              { valor: 'modelos', rotulo: 'Modelos de acesso' },
+              { valor: 'unidades', rotulo: 'Unidades' },
+            ]}
+          />
+        }
       />
       {aba === 'pessoas' && <Pessoas />}
       {aba === 'modelos' && <Modelos />}

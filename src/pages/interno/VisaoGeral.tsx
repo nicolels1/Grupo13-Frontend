@@ -6,6 +6,7 @@ import { cn } from 'cn'
 import { useAuth } from '@/auth/contexto'
 import { ehAdmin, temPermissao } from '@/auth/areas'
 import { Aviso, Carregando } from '@/components/Estados'
+import { Cabecalho } from '@/components/Navegacao'
 import { buttonVariants } from '@/components/ui/button'
 import { useUnidadeEscolhida } from '@/layouts/unidadeEscolhida'
 import { api, type Esquema, type OpcoesApi } from '@/lib/api'
@@ -19,6 +20,8 @@ type Resumo = Esquema<'Resumo'>
 type Pendencia = { chave: string; rotulo: string; singular: string; para: string; total: number }
 
 const ESTOQUE = ['movimentar_estoque', 'definir_estoque_minimo']
+// quem vê a seção de vendas do resumo (a mesma regra do backend); atender_chamado vê a de atendimento
+const VENDAS = ['registrar_venda_fisica', 'preparar_entregar_pedido']
 // a retirada vence em 7 dias; a partir de 5, entra nas pendências (mesmo corte do resumo)
 const RETIRADA_PERTO_DE_VENCER_DIAS = 5
 // cobertura abaixo disso é número fora do esperado na tabela das unidades
@@ -103,23 +106,27 @@ export function VisaoGeral() {
 
   const titulo = unidade ? nomeUnidade(unidades, Number(unidade)) : 'Toda a rede'
   const abertas = (pendencias.dados ?? []).filter((p) => p.total > 0).length
-  const temNumeros = r && (r.vendas_por_dia || r.chamados)
+  // as duas colunas já existem antes do resumo chegar, pelo perfil: assim os números carregam ao
+  // lado das pendências, e não aparecem embaixo delas para depois pular de lugar
+  const teraNumeros = admin || VENDAS.some(pode) || pode('atender_chamado')
 
   return (
     <div className="space-y-12">
-      <div className="flex flex-wrap items-end justify-between gap-4">
-        <div className="space-y-1">
-          <h1 className="font-heading text-3xl font-medium tracking-tight">{titulo}</h1>
-          <p className="text-sm text-muted-foreground first-letter:uppercase">
+      <Cabecalho
+        titulo={titulo}
+        subtitulo={
+          <span className="block first-letter:uppercase">
             {dia}.{' '}
             {pendencias.dados && (abertas ? `${plural(abertas, 'pendência', 'pendências')} para resolver.` : 'Tudo em dia.')}
-          </p>
-        </div>
+          </span>
+        }
+      >
         <Atalhos pode={pode} />
-      </div>
+      </Cabecalho>
 
-      <div className={cn('grid gap-12', temNumeros && 'lg:grid-cols-[22rem_1fr]')}>
-        <section aria-labelledby="titulo-pendencias">
+      <div className={cn('grid gap-12', teraNumeros && 'lg:grid-cols-[25rem_1fr]')}>
+        {/* linha vertical entre pendências e números, com o mesmo respiro dos dois lados */}
+        <section aria-labelledby="titulo-pendencias" className={cn(teraNumeros ? 'lg:border-r lg:pr-12' : 'max-w-md')}>
           <h2 id="titulo-pendencias" className="border-b border-foreground pb-3 text-lg font-medium">Pendências</h2>
           {pendencias.erro && <div className="mt-4"><Aviso mensagem={pendencias.erro} /></div>}
           {pendencias.carregando && !pendencias.dados && <Carregando texto="Conferindo as pendências..." />}
@@ -129,11 +136,11 @@ export function VisaoGeral() {
           </ul>
         </section>
 
-        {(resumo.carregando && !r) && <Carregando texto="Carregando os números..." />}
-        {resumo.erro && <Aviso mensagem={resumo.erro}>Recarregue a página para tentar de novo.</Aviso>}
-        {temNumeros && (
+        {teraNumeros && (
           <div className="min-w-0 space-y-12">
-            {r.vendas_por_dia && (
+            {resumo.carregando && !r && <Carregando texto="Carregando os números..." />}
+            {resumo.erro && <Aviso mensagem={resumo.erro}>Recarregue a página para tentar de novo.</Aviso>}
+            {r?.vendas_por_dia && (
               <section aria-labelledby="titulo-vendas" className="space-y-6">
                 <h2 id="titulo-vendas" className="border-b border-foreground pb-3 text-lg font-medium">Vendas</h2>
                 <NumerosVendas dias={r.vendas_por_dia} />
@@ -143,7 +150,7 @@ export function VisaoGeral() {
                 </div>
               </section>
             )}
-            {r.chamados && (
+            {r?.chamados && (
               <section aria-labelledby="titulo-chamados" className="space-y-6">
                 <h2 id="titulo-chamados" className="border-b border-foreground pb-3 text-lg font-medium">Atendimento</h2>
                 <div className="grid grid-cols-3 gap-6">
@@ -167,17 +174,17 @@ function Atalhos({ pode }: { pode: (codigo: string) => boolean }) {
   return (
     <div className="flex flex-wrap gap-2">
       {pode('registrar_venda_fisica') && (
-        <Link to="/interno/caixa" className={cn(buttonVariants({ variant: 'outline', size: 'lg' }), 'h-11 px-4')}>
+        <Link to="/interno/caixa" className={cn(buttonVariants({ variant: 'aco', size: 'lg' }), 'h-11 px-4')}>
           <ShoppingBag aria-hidden="true" /> Nova venda no caixa
         </Link>
       )}
       {pode('movimentar_estoque') && (
-        <Link to="/interno/estoque/movimentacoes?registrar=1" className={cn(buttonVariants({ variant: 'outline', size: 'lg' }), 'h-11 px-4')}>
+        <Link to="/interno/estoque/movimentacoes?registrar=1" className={cn(buttonVariants({ variant: 'aco', size: 'lg' }), 'h-11 px-4')}>
           <Plus aria-hidden="true" /> Registrar movimentação
         </Link>
       )}
       {pode('solicitar_transferencia') && (
-        <Link to="/interno/transferencias?nova=1" className={cn(buttonVariants({ variant: 'outline', size: 'lg' }), 'h-11 px-4')}>
+        <Link to="/interno/transferencias?nova=1" className={cn(buttonVariants({ variant: 'aco', size: 'lg' }), 'h-11 px-4')}>
           <ArrowLeftRight aria-hidden="true" /> Pedir peças a outra unidade
         </Link>
       )}
