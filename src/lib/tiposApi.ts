@@ -1284,7 +1284,7 @@ export interface paths {
         };
         /**
          * Do Produto
-         * @description Avaliações publicadas do produto, mais recentes primeiro, com a média das notas.
+         * @description Avaliações publicadas do produto, mais recentes primeiro, com a média e a contagem por nota.
          */
         get: operations["do_produto_produtos__id_produto__avaliacoes_get"];
         put?: never;
@@ -1670,6 +1670,11 @@ export interface components {
              * @description Média das notas publicadas, com uma casa decimal
              */
             media: string | null;
+            /**
+             * Contagem Por Nota
+             * @description Avaliações publicadas de cada nota, de 5 a 1 (todas, mesmo com o filtro de fotos)
+             */
+            contagem_por_nota: components["schemas"]["ContagemPorNota"][];
         };
         /** Body_adicionar_foto_avaliacoes__id_avaliacao__fotos_post */
         Body_adicionar_foto_avaliacoes__id_avaliacao__fotos_post: {
@@ -1997,6 +2002,13 @@ export interface components {
              * @description Opcional. Vazia: convite por e-mail (exige servidor de e-mail configurado no Supabase)
              */
             senha_provisoria?: string | null;
+        };
+        /** ContagemPorNota */
+        ContagemPorNota: {
+            /** Nota */
+            nota: number;
+            /** Quantidade */
+            quantidade: number;
         };
         /** DenunciaCriar */
         DenunciaCriar: {
@@ -3590,6 +3602,11 @@ export interface components {
             preco: string;
             /** Ativo */
             ativo: boolean;
+            /**
+             * Disponivel
+             * @description Tem peça para vender online (sem a quantidade). Vem na lista e no detalhe do produto
+             */
+            disponivel?: boolean | null;
         };
         /** VendaFisica */
         VendaFisica: {
@@ -4422,6 +4439,12 @@ export interface operations {
                 ativo?: boolean | null;
                 /** @description Parte do nome do produto */
                 busca?: string | null;
+                /** @description Só produtos com esse tamanho à venda */
+                tamanho?: string | null;
+                /** @description true: só produtos com peça para vender online (no tamanho, se informado) */
+                disponivel?: boolean | null;
+                /** @description nome, novidades, menor_preco ou maior_preco (pela variante mais barata) */
+                ordem?: "nome" | "novidades" | "menor_preco" | "maior_preco";
                 limit?: number;
                 offset?: number;
             };
@@ -8435,6 +8458,8 @@ export interface operations {
     do_produto_produtos__id_produto__avaliacoes_get: {
         parameters: {
             query?: {
+                /** @description true: só avaliações com foto */
+                com_fotos?: boolean | null;
                 limit?: number;
                 offset?: number;
             };
