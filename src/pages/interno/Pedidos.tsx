@@ -92,15 +92,17 @@ export function Pedidos() {
         )}
       </Cabecalho>
 
+      {/* as cinco filas ocupam a largura toda: na coluna da lista elas não cabiam */}
+      <Abas
+        rotulo="Filas de pedidos"
+        valor={fila}
+        aoMudar={(v) => { setFila(v); setOffset(0); setParams({}, { replace: true }) }}
+        abas={FILAS.map((f, i) => ({ valor: f.valor, rotulo: f.rotulo, contagem: contagens.dados?.[i] }))}
+        className="mb-6"
+      />
+
       <div className="grid gap-10 lg:grid-cols-[24rem_minmax(0,1fr)]">
         <div className="min-w-0">
-          <Abas
-            rotulo="Filas de pedidos"
-            valor={fila}
-            aoMudar={(v) => { setFila(v); setOffset(0); setParams({}, { replace: true }) }}
-            abas={FILAS.map((f, i) => ({ valor: f.valor, rotulo: f.rotulo, contagem: contagens.dados?.[i] }))}
-            className="mb-2"
-          />
           {lista.erro && <Aviso mensagem={lista.erro} />}
           {lista.carregando && !lista.dados && <Carregando />}
           {lista.dados && itens.length === 0 && <p className="py-8 text-sm text-muted-foreground">Nenhum pedido nesta fila.</p>}

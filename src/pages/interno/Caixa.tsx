@@ -853,23 +853,28 @@ function TrocaOuDevolucao({ loja }: { loja: Unidade }) {
 
   return (
     <div className="space-y-8">
-      <form onSubmit={buscar} className="flex flex-wrap items-end gap-3">
-        <Campo id="troca-tipo" rotulo="Buscar por" className="w-48">
-          <Select id="troca-tipo" value={tipoBusca} onChange={(e) => { setTipoBusca(e.target.value as TipoBusca); setTermo('') }}>
-            {Object.entries(BUSCAS).map(([valor, { rotulo }]) => <option key={valor} value={valor}>{rotulo}</option>)}
-          </Select>
-        </Campo>
-        <Campo id="troca-termo" rotulo={BUSCAS[tipoBusca].rotulo} dica={BUSCAS[tipoBusca].dica} className="w-full max-w-sm">
-          <Input
-            id="troca-termo"
-            value={termo}
-            onChange={(e) => setTermo(tipoBusca === 'cpf' ? mascaraCpf(e.target.value) : e.target.value)}
-            inputMode={tipoBusca === 'codigo_venda' ? 'text' : 'numeric'}
-            placeholder={tipoBusca === 'cpf' ? '000.000.000-00' : undefined}
-            autoComplete="off"
-          />
-        </Campo>
-        <Button type="submit" variant="outline" size="lg" className="mb-5 h-9 px-4" disabled={!termoOk || busca.carregando}>Buscar</Button>
+      {/* a dica fica embaixo da linha toda: dentro do campo ela o empurrava e desalinhava os dois */}
+      <form onSubmit={buscar} className="space-y-1.5">
+        <div className="flex flex-wrap items-end gap-3">
+          <Campo id="troca-tipo" rotulo="Buscar por" className="w-48">
+            <Select id="troca-tipo" value={tipoBusca} onChange={(e) => { setTipoBusca(e.target.value as TipoBusca); setTermo('') }}>
+              {Object.entries(BUSCAS).map(([valor, { rotulo }]) => <option key={valor} value={valor}>{rotulo}</option>)}
+            </Select>
+          </Campo>
+          <Campo id="troca-termo" rotulo={BUSCAS[tipoBusca].rotulo} className="w-full max-w-sm">
+            <Input
+              id="troca-termo"
+              aria-describedby="troca-dica"
+              value={termo}
+              onChange={(e) => setTermo(tipoBusca === 'cpf' ? mascaraCpf(e.target.value) : e.target.value)}
+              inputMode={tipoBusca === 'codigo_venda' ? 'text' : 'numeric'}
+              placeholder={tipoBusca === 'cpf' ? '000.000.000-00' : undefined}
+              autoComplete="off"
+            />
+          </Campo>
+          <Button type="submit" variant="outline" size="lg" className="h-9 px-4" disabled={!termoOk || busca.carregando}>Buscar</Button>
+        </div>
+        <p id="troca-dica" className="text-xs text-muted-foreground">{BUSCAS[tipoBusca].dica}</p>
       </form>
 
       {busca.erro && <Aviso mensagem={busca.erro} />}

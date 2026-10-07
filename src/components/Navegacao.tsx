@@ -5,7 +5,8 @@ import { Button } from '@/components/ui/button'
 
 type Aba<V extends string> = { valor: V; rotulo: string; contagem?: number | null }
 
-// abas sublinhadas
+// abas sublinhadas. A linha de baixo é uma sombra interna (não ocupa espaço): a aba ativa a cobre
+// sem sair da caixa, então a lista não ganha barra de rolagem. Sem espaço, ela desliza para o lado.
 export function Abas<V extends string>({
   abas,
   valor,
@@ -20,7 +21,14 @@ export function Abas<V extends string>({
   className?: string
 }) {
   return (
-    <div role="tablist" aria-label={rotulo} className={cn('flex gap-6 overflow-x-auto border-b', className)}>
+    <div
+      role="tablist"
+      aria-label={rotulo}
+      className={cn(
+        'flex gap-6 overflow-x-auto shadow-[inset_0_-1px_0_var(--border)] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden',
+        className,
+      )}
+    >
       {abas.map((aba) => (
         <button
           key={aba.valor}
@@ -29,7 +37,7 @@ export function Abas<V extends string>({
           aria-selected={valor === aba.valor}
           onClick={() => aoMudar(aba.valor)}
           className={cn(
-            '-mb-px shrink-0 border-b-2 pb-2 text-sm transition-colors',
+            'shrink-0 border-b-2 pb-2 text-sm transition-colors',
             valor === aba.valor
               ? 'border-foreground font-medium text-foreground'
               : 'border-transparent text-muted-foreground hover:text-foreground',

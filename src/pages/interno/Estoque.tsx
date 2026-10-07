@@ -300,7 +300,12 @@ function DetalheCelula({ linhas, aoMudar }: { linhas: ItemEstoque[]; aoMudar: ()
             <tr key={`${l.id_unidade}-${l.canal}`} className="border-b">
               {!unidade && <td className="py-2">{l.unidade}</td>}
               <td className="py-2">{CANAIS[l.canal]}</td>
-              <td className={cn('text-right tabular-nums', l.abaixo_minimo && 'bg-terracota-fundo font-medium')}>{l.quantidade}</td>
+              <td className="text-right tabular-nums">
+                {/* o destaque fica em volta do número, não na célula inteira */}
+                <span className={cn('inline-block min-w-8 px-1.5 py-0.5 text-center', l.abaixo_minimo && 'bg-terracota-fundo font-medium')}>
+                  {l.quantidade}
+                </span>
+              </td>
               <td className="text-right tabular-nums">{l.quantidade_reservada}</td>
               <td className="text-right tabular-nums">{l.disponivel}</td>
               <td className="text-right tabular-nums">{l.estoque_minimo ?? <span className="text-muted-foreground">sem</span>}</td>
