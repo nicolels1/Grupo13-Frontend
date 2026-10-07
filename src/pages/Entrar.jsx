@@ -9,8 +9,8 @@ import { Button, buttonVariants } from '@/components/ui/button'
 import { Input, Label } from '@/components/ui/input'
 import { api } from '@/lib/api'
 
-const ROTULO = 'text-xs font-normal uppercase tracking-[0.12em] text-muted-foreground'
-const BOTAO = 'h-12 w-full uppercase tracking-[0.12em]'
+const ROTULO = 'text-sm font-medium'
+const BOTAO = 'h-11 w-full'
 
 // moldura das telas de conta: logo no topo e o cartão no meio
 function MolduraConta({ children }) {
@@ -54,7 +54,7 @@ export function Entrar() {
   return (
     <MolduraConta>
       <form onSubmit={enviar} className="space-y-6">
-        <h1 className="font-heading text-xl uppercase tracking-[0.1em]">Entrar</h1>
+        <h1 className="font-titulo text-3xl">Entrar</h1>
         <div className="space-y-2">
           <Label htmlFor="identificacao" className={ROTULO}>E-mail ou CPF</Label>
           <Input
@@ -129,7 +129,7 @@ export function Cadastro() {
     <MolduraConta>
       <form onSubmit={enviar} className="space-y-5">
         <div className="space-y-1">
-          <h1 className="font-heading text-xl uppercase tracking-[0.1em]">Criar conta</h1>
+          <h1 className="font-titulo text-3xl">Criar conta</h1>
           <p className="text-sm text-muted-foreground">Com a conta, você acompanha seus chamados e compras.</p>
         </div>
         <div className="space-y-2">

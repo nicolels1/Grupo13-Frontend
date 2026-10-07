@@ -123,7 +123,7 @@ export function VisaoGeral() {
         <BlocoTarefas titulo="Para hoje" tarefas={hoje} />
         <BlocoTarefas titulo="Quando der" tarefas={quandoDer} />
         {!carregando && totalTarefas === 0 && (
-          <p className="border-y py-10 text-center text-sm text-muted-foreground">Nada pendente por aqui. Bom trabalho!</p>
+          <p className="border-y py-10 text-center text-sm text-muted-foreground">Nada pendente por aqui.</p>
         )}
       </div>
 

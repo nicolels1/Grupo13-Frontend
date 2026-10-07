@@ -71,7 +71,7 @@ export const TIPOS_MOVIMENTACAO = {
   entrada_realocacao: 'Veio do outro canal',
 }
 
-export const STATUS_TRANSFERENCIA = {
+export const STATUS_TRANSFERENCIA: Record<string, string> = {
   solicitada: 'Pedida',
   enviada: 'Enviada',
   recebida: 'Recebida',
@@ -86,7 +86,18 @@ export const CATEGORIAS_CHAMADO = {
   outros: 'Outros',
 }
 
-export const STATUS_CHAMADO = { aberto: 'Aberto', em_andamento: 'Em andamento', concluido: 'Concluído' }
+export const STATUS_CHAMADO: Record<string, string> = { aberto: 'Aberto', em_andamento: 'Em andamento', concluido: 'Concluído' }
+
+export const STATUS_PEDIDO: Record<string, string> = {
+  aguardando_pagamento: 'Aguardando pagamento',
+  pago: 'Pago',
+  enviado: 'Enviado',
+  pronto_para_retirada: 'Pronto para retirada',
+  entregue: 'Entregue',
+  cancelado: 'Cancelado',
+}
+
+export const STATUS_PAGAMENTO: Record<string, string> = { pendente: 'Pendente', aprovado: 'Aprovado', recusado: 'Recusado' }
 export const PRIORIDADES = { baixa: 'Baixa', media: 'Média', alta: 'Alta' }
 export const MOTIVOS_CONCLUSAO = { resolvido: 'Resolvido', desistencia: 'Desistência', sem_resposta: 'Sem resposta' }
 
