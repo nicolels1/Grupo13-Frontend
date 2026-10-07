@@ -93,95 +93,101 @@ export function ProdutosLoja() {
   }
 
   return (
-    <div className="mx-auto max-w-7xl px-4 pt-8 sm:px-6">
-      <nav aria-label="Caminho" className="mb-5 text-sm text-muted-foreground">
-        <Link to="/loja" className="hover:text-foreground">Início</Link>
-        <span className="mx-2" aria-hidden="true">/</span>
-        <span className="text-foreground" aria-current="page">{busca ? 'Busca' : (categoria?.nome ?? 'Produtos')}</span>
-      </nav>
-
-      <div className="mb-6 flex flex-wrap items-baseline gap-x-4 gap-y-1">
-        <h1 className="font-titulo text-4xl">{titulo}</h1>
-        {dados && <span className="text-sm text-muted-foreground">{plural(dados.total, 'produto')}</span>}
-      </div>
-
-      <div className="mb-8 flex flex-col gap-5 border-y py-5 lg:flex-row lg:items-center lg:justify-between">
-        {tamanhos.length > 1 ? (
-          <fieldset className="flex flex-wrap items-center gap-2">
-            <legend className="sr-only">Tamanho</legend>
-            <span className="mr-1 text-sm font-medium" aria-hidden="true">Tamanho</span>
-            {tamanhos.map((opcao) => (
-              <button
-                key={opcao}
-                type="button"
-                aria-pressed={escolhidos.includes(opcao)}
-                onClick={() => alternarTamanho(opcao)}
-                className={cn(
-                  'h-9 min-w-9 border px-2 text-sm transition-colors',
-                  escolhidos.includes(opcao) ? 'border-marinho bg-marinho text-white' : 'hover:border-foreground',
-                )}
-              >
-                {rotuloTamanho(opcao)}
-              </button>
-            ))}
-          </fieldset>
-        ) : (
-          // um tamanho só (ex.: acessórios) não tem o que filtrar
-          <span />
-        )}
-
-        <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
-          <label className="flex items-center gap-2 text-sm">
-            <Checkbox
-              checked={soDisponiveis}
-              onCheckedChange={(marcado) => mudar('disponivel', marcado ? 'true' : null)}
-            />
-            Só peças disponíveis
-          </label>
-          <label className="flex items-center gap-2 text-sm">
-            <span className="font-medium">Ordenar por</span>
-            <Select value={ordem} onChange={(e) => mudar('ordem', e.target.value)} className="w-40">
-              {ORDENS.map((o) => <option key={o.valor} value={o.valor}>{o.rotulo}</option>)}
-            </Select>
-          </label>
-        </div>
-      </div>
-
-      {erro && <Aviso mensagem={erro} />}
-      {dados && dados.items.length === 0 && (
-        <div className="space-y-3 py-16 text-center text-sm text-muted-foreground">
-          <p>Nenhuma peça encontrada{filtrando ? ' com esses filtros' : ''}.</p>
-          {filtrando ? (
-            <button type="button" onClick={limparFiltros} className="text-foreground underline underline-offset-4">
-              Limpar filtros
-            </button>
-          ) : (
-            <Link to="/loja/produtos" className="text-foreground underline underline-offset-4">Ver todos os produtos</Link>
-          )}
-        </div>
-      )}
-      {dados && dados.items.length > 0 && (
-        <div className="grid grid-cols-2 gap-x-3 gap-y-10 md:grid-cols-3 lg:grid-cols-4">
-          {dados.items.map((produto) => <CartaoProduto key={produto.id_produto} produto={produto} />)}
-        </div>
-      )}
-      {carregando && <Carregando />}
-
-      {dados && dados.total > 0 && (
-        <div className="mt-14 flex flex-col items-center gap-4">
-          <p className="text-sm text-muted-foreground">
-            Você viu {dados.items.length} de {plural(dados.total, 'peça', 'peças')}
-          </p>
-          <div className="h-0.5 w-48 bg-border" aria-hidden="true">
-            <div className="h-full bg-foreground" style={{ width: `${(dados.items.length / dados.total) * 100}%` }} />
+    <>
+      {/* a cor fica na faixa do título; a grade das peças continua neutra (design) */}
+      <div className="bg-ardosia text-white">
+        <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6">
+          <nav aria-label="Caminho" className="mb-4 text-sm text-white/85">
+            <Link to="/loja" className="hover:text-white hover:underline">Início</Link>
+            <span className="mx-2" aria-hidden="true">/</span>
+            <span className="text-white" aria-current="page">{busca ? 'Busca' : (categoria?.nome ?? 'Produtos')}</span>
+          </nav>
+          <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1">
+            <h1 className="font-titulo text-4xl sm:text-5xl">{titulo}</h1>
+            {dados && <span className="text-sm text-white/85">{plural(dados.total, 'produto')}</span>}
           </div>
-          {dados.items.length < dados.total && (
-            <Button variant="outline" size="loja" onClick={mostrarMais} disabled={carregando}>
-              Mostrar mais peças
-            </Button>
-          )}
         </div>
-      )}
-    </div>
+      </div>
+
+      <div className="mx-auto max-w-7xl px-4 sm:px-6">
+        <div className="mb-8 flex flex-col gap-5 border-b py-5 lg:flex-row lg:items-center lg:justify-between">
+          {tamanhos.length > 1 ? (
+            <fieldset className="flex flex-wrap items-center gap-2">
+              <legend className="sr-only">Tamanho</legend>
+              <span className="mr-1 text-sm font-medium" aria-hidden="true">Tamanho</span>
+              {tamanhos.map((opcao) => (
+                <button
+                  key={opcao}
+                  type="button"
+                  aria-pressed={escolhidos.includes(opcao)}
+                  onClick={() => alternarTamanho(opcao)}
+                  className={cn(
+                    'h-9 min-w-9 border px-2 text-sm transition-colors',
+                    escolhidos.includes(opcao) ? 'border-marinho bg-marinho text-white' : 'hover:border-foreground',
+                  )}
+                >
+                  {rotuloTamanho(opcao)}
+                </button>
+              ))}
+            </fieldset>
+          ) : (
+            // um tamanho só (ex.: acessórios) não tem o que filtrar
+            <span />
+          )}
+
+          <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
+            <label className="flex items-center gap-2 text-sm">
+              <Checkbox
+                checked={soDisponiveis}
+                onCheckedChange={(marcado) => mudar('disponivel', marcado ? 'true' : null)}
+              />
+              Só peças disponíveis
+            </label>
+            <label className="flex items-center gap-2 text-sm">
+              <span className="font-medium">Ordenar por</span>
+              <Select value={ordem} onChange={(e) => mudar('ordem', e.target.value)} className="w-40">
+                {ORDENS.map((o) => <option key={o.valor} value={o.valor}>{o.rotulo}</option>)}
+              </Select>
+            </label>
+          </div>
+        </div>
+
+        {erro && <Aviso mensagem={erro} />}
+        {dados && dados.items.length === 0 && (
+          <div className="space-y-3 py-16 text-center text-sm text-muted-foreground">
+            <p>Nenhuma peça encontrada{filtrando ? ' com esses filtros' : ''}.</p>
+            {filtrando ? (
+              <button type="button" onClick={limparFiltros} className="text-foreground underline underline-offset-4">
+                Limpar filtros
+              </button>
+            ) : (
+              <Link to="/loja/produtos" className="text-foreground underline underline-offset-4">Ver todos os produtos</Link>
+            )}
+          </div>
+        )}
+        {dados && dados.items.length > 0 && (
+          <div className="grid grid-cols-2 gap-x-3 gap-y-10 md:grid-cols-3 lg:grid-cols-4">
+            {dados.items.map((produto) => <CartaoProduto key={produto.id_produto} produto={produto} />)}
+          </div>
+        )}
+        {carregando && <Carregando />}
+
+        {dados && dados.total > 0 && (
+          <div className="mt-14 flex flex-col items-center gap-4">
+            <p className="text-sm text-muted-foreground">
+              Você viu {dados.items.length} de {plural(dados.total, 'peça', 'peças')}
+            </p>
+            <div className="h-0.5 w-48 bg-border" aria-hidden="true">
+              <div className="h-full bg-foreground" style={{ width: `${(dados.items.length / dados.total) * 100}%` }} />
+            </div>
+            {dados.items.length < dados.total && (
+              <Button variant="outline" size="loja" onClick={mostrarMais} disabled={carregando}>
+                Mostrar mais peças
+              </Button>
+            )}
+          </div>
+        )}
+      </div>
+    </>
   )
 }
