@@ -98,7 +98,7 @@ export function Pedidos() {
         }
       >
         {temPermissao(perfil, 'corrigir_cadastro_cliente') && (
-          <Button variant="outline" size="lg" className="h-11 px-4" onClick={() => setCorrigindo(true)}>
+          <Button variant="aco" size="lg" className="h-11 px-4" onClick={() => setCorrigindo(true)}>
             <UserPen aria-hidden="true" /> Corrigir cadastro de cliente
           </Button>
         )}

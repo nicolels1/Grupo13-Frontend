@@ -42,7 +42,7 @@ export function AcoesEstoque() {
   return (
     <>
       {temPermissao(perfil, 'solicitar_transferencia') && (
-        <Link to="/interno/transferencias?nova=1" className={cn(buttonVariants({ variant: 'outline', size: 'lg' }), 'h-11 px-4')}>
+        <Link to="/interno/transferencias?nova=1" className={cn(buttonVariants({ variant: 'aco', size: 'lg' }), 'h-11 px-4')}>
           <ArrowLeftRight aria-hidden="true" /> Pedir transferência
         </Link>
       )}

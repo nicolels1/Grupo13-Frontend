@@ -122,7 +122,7 @@ function FormularioProduto({ produto, recarregar }: { produto: Produto | null; r
         subtitulo={produto ? `${plural(produto.variantes.length, 'variação', 'variações')}, ${produto.ativo ? 'à venda' : 'fora de venda'}.` : undefined}
       >
         {produto?.ativo && (
-          <Link to={`/loja/produtos/${produto.id_produto}`} target="_blank" className={cn(buttonVariants({ variant: 'outline', size: 'lg' }), 'h-11 px-4')}>
+          <Link to={`/loja/produtos/${produto.id_produto}`} target="_blank" className={cn(buttonVariants({ variant: 'aco', size: 'lg' }), 'h-11 px-4')}>
             Ver na loja online <ExternalLink aria-hidden="true" />
           </Link>
         )}

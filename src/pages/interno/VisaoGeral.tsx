@@ -174,17 +174,17 @@ function Atalhos({ pode }: { pode: (codigo: string) => boolean }) {
   return (
     <div className="flex flex-wrap gap-2">
       {pode('registrar_venda_fisica') && (
-        <Link to="/interno/caixa" className={cn(buttonVariants({ variant: 'outline', size: 'lg' }), 'h-11 px-4')}>
+        <Link to="/interno/caixa" className={cn(buttonVariants({ variant: 'aco', size: 'lg' }), 'h-11 px-4')}>
           <ShoppingBag aria-hidden="true" /> Nova venda no caixa
         </Link>
       )}
       {pode('movimentar_estoque') && (
-        <Link to="/interno/estoque/movimentacoes?registrar=1" className={cn(buttonVariants({ variant: 'outline', size: 'lg' }), 'h-11 px-4')}>
+        <Link to="/interno/estoque/movimentacoes?registrar=1" className={cn(buttonVariants({ variant: 'aco', size: 'lg' }), 'h-11 px-4')}>
           <Plus aria-hidden="true" /> Registrar movimentação
         </Link>
       )}
       {pode('solicitar_transferencia') && (
-        <Link to="/interno/transferencias?nova=1" className={cn(buttonVariants({ variant: 'outline', size: 'lg' }), 'h-11 px-4')}>
+        <Link to="/interno/transferencias?nova=1" className={cn(buttonVariants({ variant: 'aco', size: 'lg' }), 'h-11 px-4')}>
           <ArrowLeftRight aria-hidden="true" /> Pedir peças a outra unidade
         </Link>
       )}
