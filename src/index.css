@@ -134,3 +134,20 @@
     @apply font-sans;
     }
 }
+
+/* impressão da notinha do Caixa: só ela sai no papel */
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  .notinha,
+  .notinha * {
+    visibility: visible;
+  }
+  .notinha {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 80mm;
+  }
+}
