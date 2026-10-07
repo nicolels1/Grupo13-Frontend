@@ -11,13 +11,14 @@ import { Catalogo } from '@/pages/interno/Catalogo'
 import { Estoque } from '@/pages/interno/Estoque'
 import { HistoricoEstoque } from '@/pages/interno/HistoricoEstoque'
 import { Gestao } from '@/pages/interno/Gestao'
+import { Moderacao } from '@/pages/interno/Moderacao'
 import { Movimentacoes } from '@/pages/interno/Movimentacoes'
+import { Pedidos } from '@/pages/interno/Pedidos'
 import { ProdutoInterno } from '@/pages/interno/ProdutoInterno'
 import { Transferencias } from '@/pages/interno/Transferencias'
 import { VisaoGeral } from '@/pages/interno/VisaoGeral'
 
-// telas de cada área da barra interna. Pedidos e Avaliações seguem em construção
-// (sem entrada aqui, a área cai no EmConstrucao).
+// telas de cada área da barra interna (sem entrada aqui, a área cai no EmConstrucao).
 const TELAS: Record<string, { tela: ReactElement; filhas?: RouteObject[] }> = {
   '': { tela: <VisaoGeral /> },
   estoque: {
@@ -29,6 +30,8 @@ const TELAS: Record<string, { tela: ReactElement; filhas?: RouteObject[] }> = {
   },
   transferencias: { tela: <Transferencias /> },
   caixa: { tela: <Caixa /> },
+  pedidos: { tela: <Pedidos /> },
+  avaliacoes: { tela: <Moderacao /> },
   // o chamado aberto é a mesma caixa de entrada com a terceira coluna preenchida
   atendimento: { tela: <Atendimento />, filhas: [{ path: ':idChamado', element: <Atendimento /> }] },
   catalogo: { tela: <Catalogo />, filhas: [{ path: ':idProduto', element: <ProdutoInterno /> }] },
