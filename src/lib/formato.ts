@@ -53,9 +53,9 @@ export function plural(n: number, singular: string, pluralTexto = `${singular}s`
 
 // ---------- rótulos dos valores aceitos pela API ----------
 
-export const CANAIS = { loja_fisica: 'Loja física', online: 'Online' }
+export const CANAIS: Record<'loja_fisica' | 'online', string> = { loja_fisica: 'Loja física', online: 'Online' }
 
-export const TIPOS_MOVIMENTACAO = {
+export const TIPOS_MOVIMENTACAO: Record<string, string> = {
   saldo_inicial: 'Saldo inicial',
   recebimento: 'Recebimento',
   avaria: 'Avaria',
@@ -78,7 +78,7 @@ export const STATUS_TRANSFERENCIA: Record<string, string> = {
   cancelada: 'Cancelada',
 }
 
-export const CATEGORIAS_CHAMADO = {
+export const CATEGORIAS_CHAMADO: Record<string, string> = {
   entrega: 'Entrega',
   troca_devolucao: 'Troca e devolução',
   estorno: 'Estorno',
@@ -105,10 +105,10 @@ export const METODOS_PAGAMENTO: Record<string, string> = {
 }
 
 export const STATUS_PAGAMENTO: Record<string, string> = { pendente: 'Pendente', aprovado: 'Aprovado', recusado: 'Recusado' }
-export const PRIORIDADES = { baixa: 'Baixa', media: 'Média', alta: 'Alta' }
-export const MOTIVOS_CONCLUSAO = { resolvido: 'Resolvido', desistencia: 'Desistência', sem_resposta: 'Sem resposta' }
+export const PRIORIDADES: Record<string, string> = { baixa: 'Baixa', media: 'Média', alta: 'Alta' }
+export const MOTIVOS_CONCLUSAO: Record<string, string> = { resolvido: 'Resolvido', desistencia: 'Desistência', sem_resposta: 'Sem resposta' }
 
-export const STATUS_CONTA = { pendente_ativacao: 'Convite pendente', ativa: 'Ativa', inativa: 'Desativada' }
+export const STATUS_CONTA: Record<string, string> = { pendente_ativacao: 'Convite pendente', ativa: 'Ativa', inativa: 'Desativada' }
 
 export function codigoTransferencia(id: number) {
   return `TR-${String(id).padStart(4, '0')}`

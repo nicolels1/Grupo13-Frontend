@@ -1,4 +1,4 @@
-import { Fragment, useState } from 'react'
+import { Fragment, useState, type ChangeEvent, type FormEvent } from 'react'
 import { ArrowLeftRight, ChevronDown, ChevronRight, Plus, Search } from 'lucide-react'
 import { Link, NavLink, useSearchParams } from 'react-router'
 import { cn } from 'cn'
@@ -11,16 +11,22 @@ import { Etiqueta, Miniatura, NomePeca } from '@/components/Peca'
 import { Button, buttonVariants } from '@/components/ui/button'
 import { Input, Label, Select } from '@/components/ui/input'
 import { useUnidadeEscolhida } from '@/layouts/unidadeEscolhida'
-import { api, todasAsPaginas } from '@/lib/api'
+import { api, todasAsPaginas, type Esquema } from '@/lib/api'
 import { ordenarTamanhos } from '@/lib/cores'
 import { CANAIS, dataCurta, hora, plural, TIPOS_MOVIMENTACAO } from '@/lib/formato'
 import { useAdiado, useCarregar, useEnviar } from '@/lib/useCarregar'
+
+type ItemEstoque = Esquema<'EstoqueItem'>
+type Canal = ItemEstoque['canal']
+type Produto = { produto: string; linhas: ItemEstoque[]; cores: string[]; tamanhos: string[]; abaixo: number }
+// as linhas de uma variante numa unidade, com os dois canais lado a lado
+type Grupo = ItemEstoque & { chave: string; canais: Partial<Record<Canal, ItemEstoque>> }
 
 const PRODUTOS_POR_PAGINA = 30
 
 // subabas da área Estoque: Saldo, Movimentações e Histórico do estoque
 export function AbasEstoque() {
-  const aba = ({ isActive }) =>
+  const aba = ({ isActive }: { isActive: boolean }) =>
     cn('-mb-px border-b-2 pb-2 text-sm', isActive ? 'border-foreground font-medium' : 'border-transparent text-muted-foreground hover:text-foreground')
   return (
     <nav aria-label="Estoque" className="mb-8 flex gap-6 border-b">
@@ -49,15 +55,16 @@ export function AcoesEstoque() {
   )
 }
 
-const somar = (linhas, campo = 'quantidade') => linhas.reduce((t, l) => t + l[campo], 0)
+const somar = (linhas: ItemEstoque[], campo: 'quantidade' | 'disponivel' = 'quantidade') => linhas.reduce((t, l) => t + l[campo], 0)
 
 // junta as linhas da API (uma por variante, unidade e canal) em uma por produto.
 // A API não manda o id do produto: o nome agrupa (é único no catálogo)
-function porProduto(linhas) {
-  const grupos = new Map()
+function porProduto(linhas: ItemEstoque[]): Produto[] {
+  const grupos = new Map<string, ItemEstoque[]>()
   for (const l of linhas) {
-    if (!grupos.has(l.produto)) grupos.set(l.produto, [])
-    grupos.get(l.produto).push(l)
+    const doProduto = grupos.get(l.produto) ?? []
+    doProduto.push(l)
+    grupos.set(l.produto, doProduto)
   }
   return [...grupos.entries()]
     .map(([produto, doProduto]) => ({
@@ -78,18 +85,19 @@ export function Estoque() {
   const [canal, setCanal] = useState('')
   const [soAbaixo, setSoAbaixo] = useState(params.get('abaixo') === '1')
   const [offset, setOffset] = useState(0)
-  const [aberto, setAberto] = useState(null)
+  const [aberto, setAberto] = useState<string | null>(null)
   const buscaAplicada = useAdiado(busca.trim())
 
   const lista = useCarregar(
-    () => todasAsPaginas('/estoque', { id_unidade: unidade, canal, busca: buscaAplicada }),
+    () => todasAsPaginas<ItemEstoque>('/estoque', { id_unidade: unidade, canal, busca: buscaAplicada }),
     [unidade, canal, buscaAplicada],
   )
   const todos = porProduto(lista.dados ?? [])
   const produtos = soAbaixo ? todos.filter((p) => p.abaixo > 0) : todos
   const pagina = produtos.slice(offset, offset + PRODUTOS_POR_PAGINA)
-  const filtro = (setter) => (e) => {
-    setter(e.target.type === 'checkbox' ? e.target.checked : e.target.value)
+  const filtro = <T,>(setter: (valor: T) => void) => (e: ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const alvo = e.target
+    setter((alvo instanceof HTMLInputElement && alvo.type === 'checkbox' ? alvo.checked : alvo.value) as T)
     setOffset(0)
   }
   const ondeTexto = unidade ? `na ${unidades.find((u) => String(u.id_unidade) === unidade)?.nome ?? 'unidade'}` : 'na rede, somando as unidades'
@@ -182,9 +190,9 @@ export function Estoque() {
 
 // matriz cor × tamanho do produto: a célula soma o saldo dos canais (e das unidades, sem unidade no topo);
 // terracota quando alguma linha da célula está abaixo do mínimo. Clicar abre a peça.
-function MatrizProduto({ produto, aoMudar }) {
-  const [celula, setCelula] = useState(null)
-  const daCelula = (cor, tamanho) => produto.linhas.filter((l) => l.cor === cor && l.tamanho === tamanho)
+function MatrizProduto({ produto, aoMudar }: { produto: Produto; aoMudar: () => void }) {
+  const [celula, setCelula] = useState<{ cor: string; tamanho: string } | null>(null)
+  const daCelula = (cor: string, tamanho: string) => produto.linhas.filter((l) => l.cor === cor && l.tamanho === tamanho)
   const escolhidas = celula ? daCelula(celula.cor, celula.tamanho) : []
 
   return (
@@ -247,22 +255,24 @@ function MatrizProduto({ produto, aoMudar }) {
 }
 
 // junta as linhas de uma variante por unidade: { id_unidade, unidade, canais: { loja_fisica, online } }
-function porUnidade(linhas) {
-  const grupos = new Map()
+function porUnidade(linhas: ItemEstoque[]): Grupo[] {
+  const grupos = new Map<number, Grupo>()
   for (const l of linhas) {
-    if (!grupos.has(l.id_unidade)) grupos.set(l.id_unidade, { chave: `${l.id_variante}-${l.id_unidade}`, ...l, canais: {} })
-    grupos.get(l.id_unidade).canais[l.canal] = l
+    const grupo = grupos.get(l.id_unidade) ?? { chave: `${l.id_variante}-${l.id_unidade}`, ...l, canais: {} }
+    grupo.canais[l.canal] = l
+    grupos.set(l.id_unidade, grupo)
   }
   return [...grupos.values()]
 }
 
-function DetalheCelula({ linhas, aoMudar }) {
+function DetalheCelula({ linhas, aoMudar }: { linhas: ItemEstoque[]; aoMudar: () => void }) {
   const { perfil } = useAuth()
   const { unidade } = useUnidadeEscolhida()
-  const peca = linhas[0]
+  // a célula só abre quando tem pelo menos uma linha
+  const peca = linhas[0]!
   const grupos = porUnidade(linhas)
   const movimentacoes = useCarregar(
-    () => api('/movimentacoes-estoque', { params: { id_variante: peca.id_variante, id_unidade: unidade, limit: 6 } }),
+    () => api<Esquema<'Pagina_MovimentacaoItem_'>>('/movimentacoes-estoque', { params: { id_variante: peca.id_variante, id_unidade: unidade, limit: 6 } }),
     [peca.id_variante, unidade],
   )
   // mínimo e realocação valem para uma unidade: só aparecem com a unidade escolhida no topo
@@ -336,14 +346,14 @@ function DetalheCelula({ linhas, aoMudar }) {
   )
 }
 
-function DefinirMinimo({ grupo, aoMudar }) {
-  const inicial = (canal) => grupo.canais[canal]?.estoque_minimo ?? ''
-  const [valores, setValores] = useState({ loja_fisica: inicial('loja_fisica'), online: inicial('online') })
+function DefinirMinimo({ grupo, aoMudar }: { grupo: Grupo; aoMudar: () => void }) {
+  const inicial = (canal: Canal) => grupo.canais[canal]?.estoque_minimo ?? ''
+  const [valores, setValores] = useState<Record<Canal, number | string>>({ loja_fisica: inicial('loja_fisica'), online: inicial('online') })
   const [salvo, setSalvo] = useState(false)
   const { enviar, enviando, erro } = useEnviar()
-  const canais = Object.keys(CANAIS).filter((canal) => grupo.canais[canal])
+  const canais = (Object.keys(CANAIS) as Canal[]).filter((canal) => grupo.canais[canal])
 
-  async function salvar(evento) {
+  async function salvar(evento: FormEvent) {
     evento.preventDefault()
     setSalvo(false)
     const mudaram = canais.filter((canal) => String(valores[canal]) !== String(inicial(canal)))
@@ -390,15 +400,15 @@ function DefinirMinimo({ grupo, aoMudar }) {
   )
 }
 
-function Realocar({ grupo, aoMudar }) {
-  const [origem, setOrigem] = useState('loja_fisica')
+function Realocar({ grupo, aoMudar }: { grupo: Grupo; aoMudar: () => void }) {
+  const [origem, setOrigem] = useState<Canal>('loja_fisica')
   const [quantidade, setQuantidade] = useState('')
-  const [feito, setFeito] = useState(null)
+  const [feito, setFeito] = useState<string | null>(null)
   const { enviar, enviando, erro } = useEnviar()
   const destino = origem === 'loja_fisica' ? 'online' : 'loja_fisica'
   const disponivel = grupo.canais[origem]?.disponivel ?? 0
 
-  async function realocar(evento) {
+  async function realocar(evento: FormEvent) {
     evento.preventDefault()
     setFeito(null)
     const ok = await enviar(() => api('/realocacoes', {
@@ -418,7 +428,7 @@ function Realocar({ grupo, aoMudar }) {
       <div className="flex items-end gap-2">
         <div className="flex-1 space-y-1">
           <Label htmlFor={`orig-${grupo.chave}`} className="text-xs font-normal text-muted-foreground">Sai de</Label>
-          <Select id={`orig-${grupo.chave}`} value={origem} onChange={(e) => setOrigem(e.target.value)} className="bg-background">
+          <Select id={`orig-${grupo.chave}`} value={origem} onChange={(e) => setOrigem(e.target.value as Canal)} className="bg-background">
             {Object.entries(CANAIS).map(([v, r]) => <option key={v} value={v}>{r}</option>)}
           </Select>
         </div>
