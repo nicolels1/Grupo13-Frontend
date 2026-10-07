@@ -12,31 +12,12 @@ import { useCarrinho } from './carrinho/contexto'
 import { useResumo, type ResumoCarrinho } from './carrinho/useResumo'
 import { FormEndereco } from './checkout/FormEndereco'
 import { Pagamento } from './checkout/Pagamento'
+import { guardarPedidoEmAberto, lerPedidoEmAberto } from './checkout/pedidoEmAberto'
 import { rotuloTamanho } from './componentes/tamanhos'
 
 type Pedido = Esquema<'PedidoSaida'>
 type Endereco = Esquema<'EnderecoSaida'>
 type Modalidade = 'entrega' | 'retirada'
-
-// pedido aguardando pagamento desta aba: sobrevive ao recarregar a página, para não reservar duas vezes
-const CHAVE_PEDIDO = 'casa-lorenzi:pedido-em-aberto'
-
-function lerPedidoGuardado() {
-  try {
-    return Number(sessionStorage.getItem(CHAVE_PEDIDO)) || null
-  } catch {
-    return null
-  }
-}
-
-function guardarPedido(id: number | null) {
-  try {
-    if (id) sessionStorage.setItem(CHAVE_PEDIDO, String(id))
-    else sessionStorage.removeItem(CHAVE_PEDIDO)
-  } catch {
-    // sem armazenamento: recarregar a página só perde a retomada
-  }
-}
 
 // checkout em uma página (design): Receber → Endereço ou loja → Pagamento, resumo fixo ao lado
 export function CheckoutLoja() {
@@ -49,19 +30,19 @@ export function CheckoutLoja() {
   const [idLoja, setIdLoja] = useState<number | null>(null)
   const [novoEndereco, setNovoEndereco] = useState(false)
   const [pedido, setPedido] = useState<Pedido | null>(null)
-  const [retomando, setRetomando] = useState(() => lerPedidoGuardado() !== null)
+  const [retomando, setRetomando] = useState(() => lerPedidoEmAberto() !== null)
   const { enviar, enviando, erro } = useEnviar()
 
   // retoma o pedido desta aba se ele ainda espera pagamento
   useEffect(() => {
-    const id = lerPedidoGuardado()
+    const id = lerPedidoEmAberto()
     if (!id) return
     api<Pedido>(`/pedidos/${id}`)
       .then((achado) => {
         if (achado.status === 'aguardando_pagamento') setPedido(achado)
-        else guardarPedido(null)
+        else guardarPedidoEmAberto(null)
       })
-      .catch(() => guardarPedido(null))
+      .catch(() => guardarPedidoEmAberto(null))
       .finally(() => setRetomando(false))
   }, [])
 
@@ -77,7 +58,7 @@ export function CheckoutLoja() {
     (atualizado: Pedido) => {
       setPedido(atualizado)
       if (atualizado.status === 'pago') {
-        guardarPedido(null)
+        guardarPedidoEmAberto(null)
         esvaziar()
         navegar(`/loja/pedido-confirmado/${atualizado.id_pedido}`, { replace: true })
       }
@@ -98,7 +79,7 @@ export function CheckoutLoja() {
       }),
     )
     if (criado) {
-      guardarPedido(criado.id_pedido)
+      guardarPedidoEmAberto(criado.id_pedido)
       setPedido(criado)
     }
   }
@@ -108,7 +89,7 @@ export function CheckoutLoja() {
     if (!pedido) return
     const cancelado = await enviar(() => api<Pedido>(`/pedidos/${pedido.id_pedido}/cancelar`, { metodo: 'POST' }))
     if (cancelado) {
-      guardarPedido(null)
+      guardarPedidoEmAberto(null)
       setPedido(null)
       // o botão fica no bloco 3, embaixo: leva a pessoa (e o foco) de volta ao bloco 1 para escolher
       requestAnimationFrame(() => {
@@ -123,7 +104,7 @@ export function CheckoutLoja() {
   // pedido antigo segure as peças até ela rodar (se já foi cancelado, a recusa não importa)
   function reservaVenceu() {
     if (pedido) void api(`/pedidos/${pedido.id_pedido}/cancelar`, { metodo: 'POST' }).catch(() => undefined)
-    guardarPedido(null)
+    guardarPedidoEmAberto(null)
     setPedido(null)
   }
 
