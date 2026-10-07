@@ -1,3 +1,4 @@
+import { SearchX } from 'lucide-react'
 import { Link, useSearchParams } from 'react-router'
 import { cn } from 'cn'
 
@@ -14,7 +15,9 @@ import { rotuloTamanho } from './componentes/tamanhos'
 
 const POR_PAGINA = 12
 
+// "Mais relevantes" só existe com busca: sem termo não há o que comparar
 const ORDENS = [
+  { valor: 'relevancia', rotulo: 'Mais relevantes' },
   { valor: 'novidades', rotulo: 'Novidades' },
   { valor: 'menor_preco', rotulo: 'Menor preço' },
   { valor: 'maior_preco', rotulo: 'Maior preço' },
@@ -31,14 +34,15 @@ export function ProdutosLoja() {
   const escolhidos = params.getAll('tamanho')
   const chaveTamanhos = escolhidos.join(',')
   const soDisponiveis = params.get('disponivel') === 'true'
-  const ordem = params.get('ordem') ?? 'novidades'
+  // com busca, os mais parecidos primeiro; sem busca, as novidades
+  const ordem = params.get('ordem') ?? (busca ? 'relevancia' : 'novidades')
   const quantos = Number(params.get('quantos')) || POR_PAGINA
   const { dados: categorias } = useCategorias()
   const categoria = categorias?.find((c) => String(c.id_categoria) === idCategoria)
 
   const { dados, erro, carregando } = useCarregar(
     () =>
-      api<Esquema<'Pagina_ProdutoSaida_'>>('/produtos', {
+      api<Esquema<'PaginaProdutos'>>('/produtos', {
         params: {
           id_categoria: idCategoria, busca, tamanho: escolhidos, disponivel: soDisponiveis || undefined, ordem,
           limit: quantos,
@@ -54,7 +58,15 @@ export function ProdutosLoja() {
   )
   const tamanhos = tamanhosAVenda?.items ?? []
 
-  const titulo = busca ? `Resultados para “${busca}”` : (categoria?.nome ?? 'Todos os produtos')
+  // a busca não achou nada e a API trouxe outra coisa: o título diz o que está na tela de verdade
+  const alternativa = dados?.busca_alternativa ?? null
+  const titulo = !busca
+    ? (categoria?.nome ?? 'Todos os produtos')
+    : alternativa === 'parecidas'
+      ? `Parecidas com “${busca}”`
+      : alternativa === 'novidades'
+        ? 'Novidades'
+        : `Resultados para “${busca}”`
   const filtrando = escolhidos.length > 0 || soDisponiveis
 
   // trocar um filtro volta para a primeira página
@@ -146,13 +158,26 @@ export function ProdutosLoja() {
             <label className="flex items-center gap-2 text-sm">
               <span className="font-medium">Ordenar por</span>
               <Select value={ordem} onChange={(e) => mudar('ordem', e.target.value)} className="w-40">
-                {ORDENS.map((o) => <option key={o.valor} value={o.valor}>{o.rotulo}</option>)}
+                {ORDENS.filter((o) => busca || o.valor !== 'relevancia').map((o) => (
+                  <option key={o.valor} value={o.valor}>{o.rotulo}</option>
+                ))}
               </Select>
             </label>
           </div>
         </div>
 
         {erro && <Aviso mensagem={erro} />}
+        {alternativa && dados && dados.items.length > 0 && (
+          // terracota: não é erro (ferrugem), mas a busca não achou o que foi pedido. O texto fica escuro
+          // porque terracota em letra pequena sobre fundo claro não tem contraste
+          <p role="status" className="mb-8 flex items-start gap-3 border-l-4 border-terracota bg-terracota/10 p-4 text-sm">
+            <SearchX className="mt-0.5 size-4 shrink-0 text-terracota" aria-hidden="true" />
+            <span>
+              Não encontramos peças para “{busca}”{filtrando ? ' com esses filtros' : ''}.{' '}
+              {alternativa === 'parecidas' ? 'Estas são as mais parecidas.' : 'Veja as novidades da loja.'}
+            </span>
+          </p>
+        )}
         {dados && dados.items.length === 0 && (
           <div className="space-y-3 py-16 text-center text-sm text-muted-foreground">
             <p>Nenhuma peça encontrada{filtrando ? ' com esses filtros' : ''}.</p>
