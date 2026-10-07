@@ -81,3 +81,19 @@ export async function api<T = unknown>(
   if (!resposta.ok) throw new ErroApi(resposta.status, mensagemDoErro(dados, resposta.status), dados)
   return dados as T
 }
+
+const LIMITE_MAXIMO = 200
+
+/**
+ * Busca todas as páginas de uma lista paginada ({ items, total }) e junta os itens.
+ *   const linhas = await todasAsPaginas<Esquema<'EstoqueItem'>>('/estoque', { id_unidade: 3 })
+ * A primeira página diz o total; as outras vão em paralelo.
+ */
+export async function todasAsPaginas<T>(caminho: string, params: OpcoesApi['params'] = {}): Promise<T[]> {
+  type Pagina = { items: T[]; total: number }
+  const primeira = await api<Pagina>(caminho, { params: { ...params, limit: LIMITE_MAXIMO, offset: 0 } })
+  const offsets: number[] = []
+  for (let offset = LIMITE_MAXIMO; offset < primeira.total; offset += LIMITE_MAXIMO) offsets.push(offset)
+  const resto = await Promise.all(offsets.map((offset) => api<Pagina>(caminho, { params: { ...params, limit: LIMITE_MAXIMO, offset } })))
+  return [primeira, ...resto].flatMap((pagina) => pagina.items)
+}
