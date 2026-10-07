@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { ChevronLeft, ChevronRight, RefreshCcw, Store, Truck } from 'lucide-react'
+import { ChevronLeft, ChevronRight, CreditCard, MessageCircle, RefreshCcw } from 'lucide-react'
 import { Link } from 'react-router'
 import { cn } from 'cn'
 
@@ -34,10 +34,11 @@ const SLIDES = [
   },
 ]
 
+// frete e retirada grátis já estão na faixa do topo e no carrossel: aqui entram as outras vantagens
 const VANTAGENS = [
-  { icone: Truck, texto: 'Frete grátis a partir de R$ 299' },
-  { icone: Store, texto: 'Retirada grátis em qualquer loja' },
-  { icone: RefreshCcw, texto: 'Troca em até 30 dias nas lojas' },
+  { icone: RefreshCcw, texto: 'Troca em até 30 dias em qualquer loja' },
+  { icone: CreditCard, texto: 'Pague com Pix ou cartão' },
+  { icone: MessageCircle, texto: 'Atendimento pelo chat' },
 ]
 
 const TROCA_A_CADA_MS = 6000
