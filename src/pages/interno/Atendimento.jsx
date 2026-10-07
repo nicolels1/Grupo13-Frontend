@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { ChevronLeft, Send } from 'lucide-react'
-import { Link, useNavigate, useParams } from 'react-router'
+import { Link, useParams } from 'react-router'
 import { cn } from 'cn'
 
 import { useAuth } from '@/auth/contexto'
@@ -12,7 +12,7 @@ import { Campo, Select } from '@/components/ui/input'
 import { useUnidadeEscolhida } from '@/layouts/unidadeEscolhida'
 import { api } from '@/lib/api'
 import {
-  CATEGORIAS_CHAMADO, dataHora, dataLonga, haQuanto, hora, MOTIVOS_CONCLUSAO, PRIORIDADES, STATUS_CHAMADO,
+  CATEGORIAS_CHAMADO, dataHora, dataLonga, haQuanto, hora, MOTIVOS_CONCLUSAO, plural, PRIORIDADES, STATUS_CHAMADO,
 } from '@/lib/formato'
 import { useCarregar, useEnviar } from '@/lib/useCarregar'
 
@@ -28,14 +28,16 @@ const FILAS = [
   { valor: 'concluidos', rotulo: 'Concluídos', filtros: { status: 'concluido' } },
 ]
 
+// caixa de entrada em três colunas (design, seção Atendimento): filas, lista e conversa.
+// A mesma tela atende /interno/atendimento e /interno/atendimento/:idChamado; o chamado aberto
+// fica na terceira coluna. No celular, a conversa toma a tela e há um link de volta para a fila.
 export function Atendimento() {
+  const { idChamado } = useParams()
   const { unidade } = useUnidadeEscolhida()
-  const navegar = useNavigate()
   const [fila, setFila] = useState('sem')
   const [categoria, setCategoria] = useState('')
   const [offset, setOffset] = useState(0)
   const filtros = FILAS.find((f) => f.valor === fila).filtros
-  const { enviar, erro: erroAssumir } = useEnviar()
 
   const lista = useCarregar(
     () => api('/atendimento/chamados', { params: { ...filtros, categoria, id_unidade: unidade, limit: POR_PAGINA, offset } }),
@@ -46,21 +48,27 @@ export function Atendimento() {
     () => Promise.all(FILAS.map((f) => api('/atendimento/chamados', { params: { ...f.filtros, id_unidade: unidade, limit: 1 } }).then((r) => r.total))),
     [unidade],
   )
+  const { recarregar: recarregarLista } = lista
+  const { recarregar: recarregarContagens } = contagens
+  const aoMudarChamado = useCallback(() => {
+    recarregarLista()
+    recarregarContagens()
+  }, [recarregarLista, recarregarContagens])
 
-  async function assumir(id) {
-    const ok = await enviar(() => api(`/atendimento/chamados/${id}/assumir`, { metodo: 'POST' }))
-    if (ok) navegar(`/interno/atendimento/${id}`)
+  function mudarFila(valor) {
+    setFila(valor)
+    setOffset(0)
   }
 
   return (
     <>
-      <Cabecalho titulo={FILAS.find((f) => f.valor === fila).rotulo} subtitulo="Chamados abertos pelos clientes no site." />
-      <div className="grid gap-10 lg:grid-cols-[15rem_1fr]">
-        <nav aria-label="Filas" className="lg:hidden">
+      <Cabecalho titulo="Atendimento" subtitulo="Chamados abertos pelos clientes no site." />
+      <div className="grid gap-6 lg:grid-cols-[11rem_17rem_minmax(0,1fr)]">
+        <nav aria-label="Filas" className={cn('lg:hidden', idChamado && 'hidden')}>
           <Abas
             rotulo="Filas"
             valor={fila}
-            aoMudar={(v) => { setFila(v); setOffset(0) }}
+            aoMudar={mudarFila}
             abas={FILAS.map((f, i) => ({ valor: f.valor, rotulo: f.rotulo, contagem: contagens.dados?.[i] }))}
           />
         </nav>
@@ -70,79 +78,88 @@ export function Atendimento() {
               key={f.valor}
               type="button"
               aria-current={fila === f.valor ? 'true' : undefined}
-              onClick={() => { setFila(f.valor); setOffset(0) }}
-              className={cn('flex w-full justify-between px-3 py-2.5 text-left text-sm hover:bg-superficie', fila === f.valor && 'bg-superficie font-medium')}
+              onClick={() => mudarFila(f.valor)}
+              className={cn('flex w-full justify-between gap-2 px-3 py-2.5 text-left text-sm hover:bg-superficie', fila === f.valor && 'bg-superficie font-medium')}
             >
               {f.rotulo}
-              <span className="text-muted-foreground">{contagens.dados?.[i] ?? ''}</span>
+              <span className="tabular-nums text-muted-foreground">{contagens.dados?.[i] ?? ''}</span>
             </button>
           ))}
         </nav>
 
-        <div className="min-w-0">
-          <div className="mb-4 flex flex-wrap gap-2">
-            <Select aria-label="Categoria" value={categoria} onChange={(e) => { setCategoria(e.target.value); setOffset(0) }} className="w-auto">
-              <option value="">Todas as categorias</option>
-              {Object.entries(CATEGORIAS_CHAMADO).map(([v, r]) => <option key={v} value={v}>{r}</option>)}
-            </Select>
-          </div>
-          {(lista.erro || erroAssumir) && <Aviso mensagem={lista.erro || erroAssumir} />}
+        <section aria-label="Chamados da fila" className={cn('min-w-0 lg:border-x lg:px-4', idChamado && 'hidden lg:block')}>
+          <Select aria-label="Categoria" value={categoria} onChange={(e) => { setCategoria(e.target.value); setOffset(0) }} className="mb-2">
+            <option value="">Todas as categorias</option>
+            {Object.entries(CATEGORIAS_CHAMADO).map(([v, r]) => <option key={v} value={v}>{r}</option>)}
+          </Select>
+          {lista.erro && <Aviso mensagem={lista.erro} />}
           {lista.carregando && !lista.dados && <Carregando />}
-          {lista.dados?.items.length === 0 && <Vazio>Nenhum chamado nesta fila.</Vazio>}
-          {lista.dados?.items.length > 0 && (
-            <div className="overflow-x-auto">
-              <table className="w-full min-w-[40rem] text-sm">
-                <thead className="text-left text-xs text-muted-foreground">
-                  <tr className="border-b">
-                    <th className="py-2 pl-2 font-medium">Chamado</th>
-                    <th className="font-medium">Categoria</th>
-                    <th className="font-medium">Prioridade</th>
-                    <th className="font-medium">Aberto</th>
-                    <th />
-                  </tr>
-                </thead>
-                <tbody>
-                  {lista.dados.items.map((c) => (
-                    <tr key={c.id_chamado} className="border-b">
-                      <td className="py-3 pl-2">
-                        <Link to={`/interno/atendimento/${c.id_chamado}`} className="font-medium hover:underline">{c.assunto}</Link>
-                        <span className="block text-muted-foreground">
-                          Chamado {c.id_chamado}, {c.cliente}
-                          {c.responsavel && ` · com ${c.responsavel}`}
-                          {c.mensagens_nao_lidas > 0 && <span className="text-ferrugem"> · {c.mensagens_nao_lidas} nova(s)</span>}
-                        </span>
-                      </td>
-                      <td>{CATEGORIAS_CHAMADO[c.categoria]}</td>
-                      <td><Prioridade valor={c.prioridade} /></td>
-                      <td className="text-muted-foreground">{haQuanto(c.criado_em)}</td>
-                      <td className="pr-2 text-right">
-                        {!c.id_responsavel && c.status !== 'concluido' ? (
-                          <Button variant="outline" onClick={() => assumir(c.id_chamado)}>Assumir</Button>
-                        ) : (
-                          <Link to={`/interno/atendimento/${c.id_chamado}`} className="text-sm underline underline-offset-2">Abrir</Link>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
+          {lista.dados?.items.length === 0 && <p className="py-8 text-center text-sm text-muted-foreground">Nenhum chamado nesta fila.</p>}
+          <ul>
+            {lista.dados?.items.map((c) => <ItemDaFila key={c.id_chamado} chamado={c} aberto={String(c.id_chamado) === idChamado} />)}
+          </ul>
           <Paginacao pagina={lista.dados} aoMudar={setOffset} rotulo="chamados" />
+        </section>
+
+        <div className={cn('min-w-0', !idChamado && 'hidden lg:block')}>
+          {idChamado ? (
+            <>
+              <Link to="/interno/atendimento" className="mb-3 inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground lg:hidden">
+                <ChevronLeft className="size-4" aria-hidden="true" /> Voltar para a fila
+              </Link>
+              <ChamadoAberto key={idChamado} idChamado={idChamado} aoMudar={aoMudarChamado} />
+            </>
+          ) : (
+            <Vazio>Escolha um chamado na lista para ver a conversa.</Vazio>
+          )}
         </div>
       </div>
     </>
   )
 }
 
-function Prioridade({ valor }) {
-  if (!valor) return <span className="text-muted-foreground">—</span>
+// um chamado na lista do meio: número e há quanto tempo, assunto, cliente e pedido;
+// marcador terracota para mensagem nova e prioridade alta (destaques com significado)
+function ItemDaFila({ chamado: c, aberto }) {
   return (
-    <span className={cn('flex items-center gap-1.5', valor === 'alta' && 'text-ferrugem')}>
-      <span className={cn('size-1.5 rounded-full', valor === 'alta' ? 'bg-ferrugem' : valor === 'media' ? 'bg-terracota' : 'bg-ardosia')} aria-hidden="true" />
-      {PRIORIDADES[valor]}
+    <li>
+      <Link
+        to={`/interno/atendimento/${c.id_chamado}`}
+        aria-current={aberto ? 'page' : undefined}
+        className={cn('block space-y-1 border-b px-2 py-3 text-sm hover:bg-superficie', aberto && 'bg-superficie')}
+      >
+        <span className="flex items-center justify-between gap-2 text-xs text-muted-foreground">
+          <span className="tabular-nums">Chamado {c.id_chamado}</span>
+          <span>{haQuanto(c.criado_em)}</span>
+        </span>
+        <span className="block truncate font-medium">{c.assunto}</span>
+        <span className="block truncate text-xs text-muted-foreground">
+          {[c.cliente, c.id_pedido && `pedido ${c.id_pedido}`, c.responsavel && `com ${c.responsavel}`].filter(Boolean).join(', ')}
+        </span>
+        {(c.mensagens_nao_lidas > 0 || c.prioridade === 'alta') && (
+          <span className="flex flex-wrap gap-3 pt-0.5 text-xs font-medium">
+            {c.mensagens_nao_lidas > 0 && <Marcador>{plural(c.mensagens_nao_lidas, 'mensagem nova', 'mensagens novas')}</Marcador>}
+            {c.prioridade === 'alta' && <Marcador>Prioridade alta</Marcador>}
+          </span>
+        )}
+      </Link>
+    </li>
+  )
+}
+
+function Marcador({ children }) {
+  return (
+    <span className="flex items-center gap-1.5">
+      <span className="size-1.5 rounded-full bg-terracota" aria-hidden="true" />
+      {children}
     </span>
   )
+}
+
+function Prioridade({ valor }) {
+  if (!valor) return <span className="text-sm text-muted-foreground">Sem prioridade</span>
+  if (valor === 'alta') return <span className="text-sm font-medium"><Marcador>Prioridade alta</Marcador></span>
+  return <span className="text-sm text-muted-foreground">Prioridade {PRIORIDADES[valor].toLowerCase()}</span>
 }
 
 // o histórico guarda o id de quem passou a ser responsável; mostra o que aconteceu, não o id
@@ -152,8 +169,9 @@ function textoHistorico(h) {
   return STATUS_CHAMADO[h.valor_novo] ?? h.valor_novo
 }
 
-export function ChamadoInterno() {
-  const { idChamado } = useParams()
+// conversa e painel do chamado aberto, na terceira coluna da caixa de entrada.
+// `aoMudar` atualiza a lista e as contagens quando o chamado muda (assumir, concluir, prioridade)
+function ChamadoAberto({ idChamado, aoMudar }) {
   const { perfil } = useAuth()
   const chamado = useCarregar(() => api(`/atendimento/chamados/${idChamado}`), [idChamado])
   const mensagens = useCarregar(() => api(`/atendimento/chamados/${idChamado}/mensagens`), [idChamado])
@@ -178,6 +196,7 @@ export function ChamadoInterno() {
   function atualizarTudo() {
     chamado.recarregar()
     historico.recarregar()
+    aoMudar()
   }
 
   async function acao(caminho, corpo, metodo = 'POST') {
@@ -201,20 +220,17 @@ export function ChamadoInterno() {
 
   return (
     <>
-      <Link to="/interno/atendimento" className="mb-3 inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
-        <ChevronLeft className="size-4" aria-hidden="true" /> Chamados
-      </Link>
-      <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
+      <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
         <div className="space-y-1">
-          <h1 className="font-heading text-3xl font-medium tracking-tight">{c.assunto}</h1>
+          <h2 className="text-2xl font-medium">{c.assunto}</h2>
           <p className="text-sm text-muted-foreground">
-            Chamado {c.id_chamado}, aberto por {c.cliente} em {dataLonga(c.criado_em)} às {hora(c.criado_em)} · {CATEGORIAS_CHAMADO[c.categoria]}
+            Chamado {c.id_chamado}, aberto por {c.cliente} em {dataLonga(c.criado_em)} às {hora(c.criado_em)}, {CATEGORIAS_CHAMADO[c.categoria].toLowerCase()}
           </p>
         </div>
         <Prioridade valor={c.prioridade} />
       </div>
 
-      <div className="grid gap-10 lg:grid-cols-[1fr_22rem]">
+      <div className="grid gap-8 xl:grid-cols-[minmax(0,1fr)_17rem]">
         <div className="min-w-0 space-y-6">
           <ol aria-label="Mensagens" className="space-y-5">
             <Mensagem doCliente texto={c.descricao} rodape={`${c.cliente}, ${dataHora(c.criado_em)}`} />
