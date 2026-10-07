@@ -1,24 +1,39 @@
-import { useState } from 'react'
+import { useState, type FormEvent } from 'react'
 
 import { Aviso } from '@/components/Estados'
 import { Abas } from '@/components/Navegacao'
 import { Etiqueta, NomePeca } from '@/components/Peca'
 import { Button } from '@/components/ui/button'
 import { Input, Select } from '@/components/ui/input'
-import { api } from '@/lib/api'
+import { api, type Esquema } from '@/lib/api'
 import { dataCurta, mascaraCpf, METODOS_PAGAMENTO, moeda, plural } from '@/lib/formato'
-import { motivoBloqueio, prazoTroca, repartirEstorno } from '@/lib/trocaDevolucao'
+import { motivoBloqueio, prazoTroca, repartirEstorno, type ModoTroca, type TrocaFeita } from '@/lib/trocaDevolucao'
 import { useCarregar, useEnviar } from '@/lib/useCarregar'
 
 // formulário de troca e devolução de um pedido entregue, no balcão do Caixa
 // (POST /balcao/pedidos/{id}/...) e no chamado do Atendimento (POST /atendimento/chamados/{id}/...).
 // `rota` é a base do POST; `aoConcluir` recebe o que foi feito, para o comprovante do balcão ou o
 // aviso no chamado.
-export function AtenderPedido({ pedido, loja, rota, modoInicial = 'troca', comAbas = true, comCabecalho = true, dicaSemEstorno, aoConcluir }) {
-  const [modo, setModo] = useState(modoInicial)
+type Pedido = Esquema<'PedidoSaida'>
+type ItemPedido = Esquema<'ItemPedidoSaida'>
+type ItemEstoque = Esquema<'EstoqueItem'>
+
+export function AtenderPedido({
+  pedido, loja, rota, modoInicial = 'troca', comAbas = true, comCabecalho = true, dicaSemEstorno, aoConcluir,
+}: {
+  pedido: Pedido
+  loja: Esquema<'UnidadeSaida'>
+  rota: string
+  modoInicial?: ModoTroca
+  comAbas?: boolean
+  comCabecalho?: boolean
+  dicaSemEstorno?: string
+  aoConcluir: (feito: TrocaFeita) => void
+}) {
+  const [modo, setModo] = useState<ModoTroca>(modoInicial)
   // quantidade escolhida e variante nova de cada item, por id_item
-  const [quantidades, setQuantidades] = useState({})
-  const [novas, setNovas] = useState({})
+  const [quantidades, setQuantidades] = useState<Record<number, string>>({})
+  const [novas, setNovas] = useState<Record<number, string>>({})
   const { enviar, enviando, erro } = useEnviar()
   const bloqueio = motivoBloqueio(pedido, loja)
 
@@ -26,13 +41,13 @@ export function AtenderPedido({ pedido, loja, rota, modoInicial = 'troca', comAb
   const nomes = [...new Set(pedido.itens.map((i) => i.produto))]
   const opcoes = useCarregar(
     () => (modo === 'troca' && !bloqueio
-      ? Promise.all(nomes.map((nome) => api('/balcao/estoque', {
+      ? Promise.all(nomes.map((nome) => api<Esquema<'Pagina_EstoqueItem_'>>('/balcao/estoque', {
         params: { id_unidade: loja.id_unidade, canal: 'loja_fisica', busca: nome, limit: 200 },
       }))).then((paginas) => paginas.flatMap((p) => p.items))
       : null),
     [modo, loja.id_unidade, nomes.join('|'), Boolean(bloqueio)],
   )
-  const opcoesDoItem = (item) => (opcoes.dados ?? []).filter((l) => l.produto === item.produto && l.id_variante !== item.id_variante && l.disponivel > 0)
+  const opcoesDoItem = (item: ItemPedido) => (opcoes.dados ?? []).filter((l) => l.produto === item.produto && l.id_variante !== item.id_variante && l.disponivel > 0)
 
   const escolhidos = pedido.itens
     .map((item) => ({ item, quantidade: Number(quantidades[item.id_item] || 0), nova: novas[item.id_item] }))
@@ -43,7 +58,7 @@ export function AtenderPedido({ pedido, loja, rota, modoInicial = 'troca', comAb
   const quantidadesOk = escolhidos.length > 0 && escolhidos.every((e) => e.quantidade <= e.item.quantidade)
   const pronto = !bloqueio && quantidadesOk && (modo === 'troca' ? escolhidos.every((e) => e.nova) : falta <= 0)
 
-  async function registrar(evento) {
+  async function registrar(evento: FormEvent) {
     evento.preventDefault()
     const itens = escolhidos.map((e) => ({
       id_variante: e.item.id_variante,
@@ -53,13 +68,13 @@ export function AtenderPedido({ pedido, loja, rota, modoInicial = 'troca', comAb
     const corpo = modo === 'troca'
       ? { id_unidade: loja.id_unidade, itens }
       : { id_unidade: loja.id_unidade, itens, estornos: estornos.map(({ id_pagamento, valor }) => ({ id_pagamento, valor })) }
-    const resposta = await enviar(() => api(`${rota}/${modo === 'troca' ? 'troca' : 'devolucao'}`, { metodo: 'POST', corpo }))
+    const resposta = await enviar(() => api<Pedido>(`${rota}/${modo === 'troca' ? 'troca' : 'devolucao'}`, { metodo: 'POST', corpo }))
     if (!resposta) return
-    const variantes = Object.fromEntries((opcoes.dados ?? []).map((l) => [l.id_variante, l]))
+    const variantes: Record<string, ItemEstoque> = Object.fromEntries((opcoes.dados ?? []).map((l) => [l.id_variante, l]))
     aoConcluir({
       modo,
       pedido: resposta,
-      linhas: escolhidos.map((e) => ({ ...e, nova: e.nova ? variantes[e.nova] : null })),
+      linhas: escolhidos.map((e) => ({ ...e, nova: e.nova ? variantes[e.nova] ?? null : null })),
       estornos: modo === 'devolucao' ? estornos : [],
     })
   }
