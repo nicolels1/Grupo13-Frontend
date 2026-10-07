@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, type ChangeEvent, type FormEvent } from 'react'
 import { Plus, Search } from 'lucide-react'
 import { Link } from 'react-router'
 import { cn } from 'cn'
@@ -8,11 +8,15 @@ import { Cabecalho, Paginacao } from '@/components/Navegacao'
 import { Miniatura } from '@/components/Peca'
 import { Button, buttonVariants } from '@/components/ui/button'
 import { Input, Label, Select } from '@/components/ui/input'
-import { api } from '@/lib/api'
+import { api, type Esquema } from '@/lib/api'
 import { coresDoProduto, faixaDePreco } from '@/lib/cores'
 import { moeda, plural } from '@/lib/formato'
 import { limparListas } from '@/lib/listas'
 import { useCarregar, useEnviar } from '@/lib/useCarregar'
+
+type ListaCategorias = Esquema<'Lista_CategoriaSaida_'>
+// o que useCarregar devolve, para passar a lista de categorias ao painel
+type Carga<T> = { dados: T | null; erro: string | null; carregando: boolean; recarregar: () => void }
 
 const POR_PAGINA = 25
 
@@ -22,13 +26,13 @@ export function Catalogo() {
   const [situacao, setSituacao] = useState('')
   const [offset, setOffset] = useState(0)
   // o painel de categorias usa a lista completa (com as desativadas), sem o cache da vitrine
-  const categorias = useCarregar(() => api('/categorias'), [])
+  const categorias = useCarregar(() => api<ListaCategorias>('/categorias'), [])
   const lista = useCarregar(
-    () => api('/produtos', { params: { busca: busca.trim(), id_categoria: idCategoria, ativo: situacao, limit: POR_PAGINA, offset } }),
+    () => api<Esquema<'Pagina_ProdutoSaida_'>>('/produtos', { params: { busca: busca.trim(), id_categoria: idCategoria, ativo: situacao, limit: POR_PAGINA, offset } }),
     [busca, idCategoria, situacao, offset],
   )
-  const nomeCategoria = (id) => categorias.dados?.items.find((c) => c.id_categoria === id)?.nome ?? '—'
-  const filtro = (setter) => (e) => {
+  const nomeCategoria = (id: number) => categorias.dados?.items.find((c) => c.id_categoria === id)?.nome ?? '—'
+  const filtro = (setter: (valor: string) => void) => (e: ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     setter(e.target.value)
     setOffset(0)
   }
@@ -63,7 +67,7 @@ export function Catalogo() {
           {lista.erro && <Aviso mensagem={lista.erro} />}
           {lista.carregando && !lista.dados && <Carregando />}
           {lista.dados?.items.length === 0 && <Vazio>Nenhum produto encontrado.</Vazio>}
-          {lista.dados?.items.length > 0 && (
+          {lista.dados && lista.dados.items.length > 0 && (
             <div className="overflow-x-auto">
               <table className="w-full min-w-[40rem] text-sm">
                 <thead className="text-left text-xs text-muted-foreground">
@@ -111,13 +115,13 @@ export function Catalogo() {
   )
 }
 
-function Categorias({ categorias }) {
+function Categorias({ categorias }: { categorias: Carga<ListaCategorias> }) {
   const [nova, setNova] = useState('')
-  const [editando, setEditando] = useState(null)
+  const [editando, setEditando] = useState<{ id: number; nome: string } | null>(null)
   const { enviar, enviando, erro } = useEnviar()
 
-  async function salvar(caminho, metodo, corpo) {
-    const ok = await enviar(() => api(caminho, { metodo, corpo }))
+  async function salvar(caminho: string, metodo: 'POST' | 'PATCH', corpo: { nome?: string; ativo?: boolean }) {
+    const ok = await enviar(() => api<Esquema<'CategoriaSaida'>>(caminho, { metodo, corpo }))
     if (ok) {
       limparListas('categorias')
       categorias.recarregar()
@@ -125,13 +129,14 @@ function Categorias({ categorias }) {
     return ok
   }
 
-  async function criar(evento) {
+  async function criar(evento: FormEvent) {
     evento.preventDefault()
     if (await salvar('/categorias', 'POST', { nome: nova })) setNova('')
   }
 
-  async function renomear(evento) {
+  async function renomear(evento: FormEvent) {
     evento.preventDefault()
+    if (!editando) return
     if (await salvar(`/categorias/${editando.id}`, 'PATCH', { nome: editando.nome })) setEditando(null)
   }
 
@@ -142,7 +147,7 @@ function Categorias({ categorias }) {
       <ul className="text-sm">
         {categorias.dados?.items.map((c) => (
           <li key={c.id_categoria} className="flex items-center justify-between gap-2 border-b py-2">
-            {editando?.id === c.id_categoria ? (
+            {editando && editando.id === c.id_categoria ? (
               <form onSubmit={renomear} className="flex flex-1 gap-1">
                 <Label htmlFor={`cat-${c.id_categoria}`} className="sr-only">Nome da categoria</Label>
                 <Input id={`cat-${c.id_categoria}`} value={editando.nome} onChange={(e) => setEditando({ ...editando, nome: e.target.value })} minLength={2} maxLength={100} className="h-8 bg-background" autoFocus />
