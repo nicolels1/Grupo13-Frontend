@@ -3319,6 +3319,11 @@ export interface components {
              * @description Grátis a partir do valor mínimo; zero na retirada
              */
             frete_entrega: string;
+            /**
+             * Frete Gratis A Partir De
+             * @description Valor mínimo em itens para o frete da entrega sair grátis (para a loja mostrar quanto falta)
+             */
+            frete_gratis_a_partir_de: string;
             /** Total Entrega */
             total_entrega: string;
             /** Total Retirada */
