@@ -108,10 +108,10 @@ export function HistoricoEstoque() {
           </Select>
           <span>em</span>
           <Label htmlFor="hist-data" className="sr-only">Data</Label>
-          <Input id="hist-data" type="date" max={hojeIso()} value={data} onChange={(e) => e.target.value && reiniciar(setData)(e.target.value)} className="h-10 w-44 bg-background text-base" />
+          <Input id="hist-data" type="date" max={hojeIso()} value={data} onChange={(e) => e.target.value && reiniciar(setData)(e.target.value)} className="h-10 w-48 bg-background text-base" />
           <span>às</span>
           <Label htmlFor="hist-hora" className="sr-only">Hora</Label>
-          <Input id="hist-hora" type="time" value={horaEscolhida} onChange={(e) => e.target.value && reiniciar(setHoraEscolhida)(e.target.value)} className="h-10 w-32 bg-background text-base" />
+          <Input id="hist-hora" type="time" value={horaEscolhida} onChange={(e) => e.target.value && reiniciar(setHoraEscolhida)(e.target.value)} className="h-10 w-40 bg-background text-base" />
         </p>
         <div className="flex flex-wrap gap-2">
           {ATALHOS.map(([dias, rotulo]) => {
