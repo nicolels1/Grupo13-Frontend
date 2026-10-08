@@ -4,10 +4,10 @@ import { Link, useParams, useSearchParams } from 'react-router'
 import { cn } from 'cn'
 
 import { Aviso, Carregando, Sucesso } from '@/components/Estados'
+import { Miniatura } from '@/components/Peca'
 import { Button, buttonVariants } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { api, type Esquema } from '@/lib/api'
-import { corDaPeca } from '@/lib/cores'
 import { dataLonga } from '@/lib/formato'
 import { useCarregar, useEnviar } from '@/lib/useCarregar'
 import { rotuloTamanho } from './componentes/tamanhos'
@@ -55,11 +55,7 @@ export function AvaliarPeca() {
           Voltar para Meus pedidos
         </Link>
         <div className="flex items-center gap-4">
-          <span
-            className="size-14 shrink-0 rounded-full ring-4 ring-white/30"
-            style={{ backgroundColor: corDaPeca(item.cor) }}
-            aria-hidden="true"
-          />
+          <Miniatura cor={item.cor} foto={item.foto_url} className="size-14 rounded-full ring-4 ring-white/30" />
           <div className="min-w-0">
             <h1 className="font-titulo text-3xl leading-tight">{existente.dados ? 'Sua avaliação' : 'Avaliar peça'}</h1>
             <p className="text-white/90">
