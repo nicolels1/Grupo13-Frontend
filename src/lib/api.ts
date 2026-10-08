@@ -1,7 +1,6 @@
+import { API_URL } from '@/config/ambiente'
 import { supabase } from './supabaseClient'
 import type { components } from './tiposApi'
-
-const BASE = (import.meta.env.VITE_API_URL ?? '').replace(/\/$/, '')
 
 // formato de um schema da API pelo nome, gerado do OpenAPI do backend (npm run tipos:api)
 //   type Perfil = Esquema<'Perfil'>
@@ -54,7 +53,7 @@ export async function api<T = unknown>(
   caminho: string,
   { metodo = 'GET', corpo, params, autenticado = true }: OpcoesApi = {},
 ): Promise<T> {
-  const url = new URL(BASE + caminho)
+  const url = new URL(API_URL + caminho)
   for (const [chave, valor] of Object.entries(params ?? {})) {
     for (const item of Array.isArray(valor) ? valor : [valor]) {
       if (item !== undefined && item !== null && item !== '') url.searchParams.append(chave, String(item))
