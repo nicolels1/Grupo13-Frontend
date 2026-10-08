@@ -43,13 +43,14 @@ export function GraficoVendas({ dias }: { dias: VendasDoDia[] }) {
     pedidos_loja: d.loja_fisica.pedidos,
   }))
   return (
-    <figure className="space-y-2">
+    <figure className="space-y-4">
       <figcaption className="text-sm font-medium">Vendas dos últimos 14 dias</figcaption>
       <ChartContainer config={CONFIG_VENDAS} className="aspect-auto h-60 w-full">
-        <BarChart data={dados} barGap={2} accessibilityLayer>
+        {/* margem no alto: o rótulo do topo do eixo não encosta no título */}
+        <BarChart data={dados} barGap={2} margin={{ top: 8 }} accessibilityLayer>
           <CartesianGrid vertical={false} />
           <XAxis dataKey="dia" {...EIXO} interval="preserveStartEnd" minTickGap={16} />
-          <YAxis {...EIXO} width={64} tickFormatter={moedaCurta} />
+          <YAxis {...EIXO} width={80} tickFormatter={moedaCurta} />
           <ChartTooltip
             cursor={{ fill: 'var(--superficie)' }}
             content={<ChartTooltipContent formatter={(valor, nome, item) => {
@@ -127,10 +128,10 @@ const CONFIG_CHAMADOS = {
 export function GraficoChamados({ dias }: { dias: ChamadosDoDia[] }) {
   const dados = dias.map((d) => ({ dia: diaCurto(d.dia), abertos: d.abertos, concluidos: d.concluidos }))
   return (
-    <figure className="space-y-2">
+    <figure className="space-y-4">
       <figcaption className="text-sm font-medium">Chamados abertos e concluídos por dia</figcaption>
       <ChartContainer config={CONFIG_CHAMADOS} className="aspect-auto h-52 w-full">
-        <BarChart data={dados} barGap={2} accessibilityLayer>
+        <BarChart data={dados} barGap={2} margin={{ top: 8 }} accessibilityLayer>
           <CartesianGrid vertical={false} />
           <XAxis dataKey="dia" {...EIXO} interval="preserveStartEnd" minTickGap={16} />
           <YAxis {...EIXO} width={32} allowDecimals={false} />
