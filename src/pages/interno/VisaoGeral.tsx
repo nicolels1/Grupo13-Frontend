@@ -106,6 +106,8 @@ export function VisaoGeral() {
 
   const titulo = unidade ? nomeUnidade(unidades, Number(unidade)) : 'Toda a rede'
   const abertas = (pendencias.dados ?? []).filter((p) => p.total > 0).length
+  // as que pedem atenção vêm primeiro; dentro de cada grupo, a ordem de sempre (o sort é estável)
+  const pendenciasEmOrdem = [...(pendencias.dados ?? [])].sort((a, b) => Number(b.total > 0) - Number(a.total > 0))
   // as duas colunas já existem antes do resumo chegar, pelo perfil: assim os números carregam ao
   // lado das pendências, e não aparecem embaixo delas para depois pular de lugar
   const teraNumeros = admin || VENDAS.some(pode) || pode('atender_chamado')
@@ -132,7 +134,7 @@ export function VisaoGeral() {
           {pendencias.carregando && !pendencias.dados && <Carregando texto="Conferindo as pendências..." />}
           {pendencias.dados?.length === 0 && <p className="py-6 text-sm text-muted-foreground">Sua conta não tem pendências para acompanhar aqui.</p>}
           <ul>
-            {(pendencias.dados ?? []).map((p) => <LinhaPendencia key={p.chave} pendencia={p} />)}
+            {pendenciasEmOrdem.map((p) => <LinhaPendencia key={p.chave} pendencia={p} />)}
           </ul>
         </section>
 
