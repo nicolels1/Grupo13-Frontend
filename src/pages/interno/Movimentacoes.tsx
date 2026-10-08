@@ -1,4 +1,4 @@
-import { useState, type ChangeEvent, type FormEvent } from 'react'
+import { useEffect, useState, type ChangeEvent, type FormEvent } from 'react'
 import { Search } from 'lucide-react'
 import { useSearchParams } from 'react-router'
 import { cn } from 'cn'
@@ -44,6 +44,13 @@ export function Movimentacoes() {
   // o formulário abre num painel lateral pelo botão "Registrar movimentação" (?registrar=1),
   // que também vem do Saldo, do Histórico e da Visão Geral
   const registrando = podeRegistrar && params.get('registrar') === '1'
+  // vindo de outra página com ?registrar=1, a página já nasceria com o painel aberto e ele não
+  // animaria a entrada: começa fechado e abre no quadro seguinte da tela
+  const [montada, setMontada] = useState(false)
+  useEffect(() => {
+    const quadro = requestAnimationFrame(() => setMontada(true))
+    return () => cancelAnimationFrame(quadro)
+  }, [])
   const [feito, setFeito] = useState<string | null>(null)
 
   const lista = useCarregar(
@@ -75,10 +82,10 @@ export function Movimentacoes() {
       <Cabecalho
         titulo="Estoque"
         subtitulo={`Tudo o que entrou e saiu do estoque ${unidade ? `da ${nomeUnidade(unidades, Number(unidade))}` : 'da rede'}, com quem fez e por quê.`}
+        abas={<AbasEstoque />}
       >
         <AcoesEstoque />
       </Cabecalho>
-      <AbasEstoque />
 
       <div className="min-w-0">
         {feito && <div className="mb-4"><Sucesso>{feito}</Sucesso></div>}
@@ -141,8 +148,8 @@ export function Movimentacoes() {
         <Paginacao pagina={lista.dados} aoMudar={setOffset} rotulo="movimentações" />
       </div>
 
-      <Sheet open={registrando} onOpenChange={(abrir) => { if (!abrir) fecharRegistro() }}>
-        <SheetContent className="overflow-y-auto transition-none sm:max-w-md!">
+      <Sheet open={registrando && montada} onOpenChange={(abrir) => { if (!abrir) fecharRegistro() }}>
+        <SheetContent className="overflow-y-auto sm:max-w-md!">
           <SheetHeader className="border-b pr-12">
             <SheetTitle className="text-lg">Registrar movimentação</SheetTitle>
             <SheetDescription>Entrada ou saída de peças que não veio de venda nem de transferência.</SheetDescription>

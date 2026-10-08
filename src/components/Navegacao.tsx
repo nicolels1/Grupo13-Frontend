@@ -13,19 +13,23 @@ export function Abas<V extends string>({
   aoMudar,
   rotulo,
   className,
+  semLinha,
 }: {
   abas: Aba<V>[]
   valor: V
   aoMudar: (valor: V) => void
   rotulo: string
   className?: string
+  // sem a linha cinza de baixo (abas dentro do bloco do Cabecalho)
+  semLinha?: boolean
 }) {
   return (
     <div
       role="tablist"
       aria-label={rotulo}
       className={cn(
-        'flex gap-6 overflow-x-auto shadow-[inset_0_-1px_0_var(--border)] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden',
+        'flex gap-6 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden',
+        !semLinha && 'shadow-[inset_0_-1px_0_var(--border)]',
         className,
       )}
     >
@@ -91,15 +95,24 @@ export function Paginacao({
   )
 }
 
-// cabeçalho de página da plataforma interna: título, subtítulo e ações à direita
-export function Cabecalho({ titulo, subtitulo, children }: { titulo: string; subtitulo?: ReactNode; children?: ReactNode }) {
+// cabeçalho de página da plataforma interna, num bloco aço-claro: título, subtítulo, ações à direita
+// e, se a página tiver, as abas na base do bloco (passe com semLinha)
+export function Cabecalho({ titulo, subtitulo, children, abas }: {
+  titulo: string
+  subtitulo?: ReactNode
+  children?: ReactNode
+  abas?: ReactNode
+}) {
   return (
-    <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
-      <div className="space-y-1">
-        <h1 className="font-heading text-3xl font-medium tracking-tight">{titulo}</h1>
-        {subtitulo && <p className="text-sm text-muted-foreground">{subtitulo}</p>}
+    <div className={cn('mb-8 border-l-4 border-aco bg-aco-fundo px-6 pt-8', !abas && 'pb-8')}>
+      <div className={cn('flex flex-wrap items-end justify-between gap-4', Boolean(abas) && 'mb-6')}>
+        <div className="space-y-1">
+          <h1 className="font-heading text-3xl font-medium tracking-tight">{titulo}</h1>
+          {subtitulo && <p className="text-sm text-muted-foreground">{subtitulo}</p>}
+        </div>
+        {children && <div className="flex flex-wrap gap-2">{children}</div>}
       </div>
-      {children && <div className="flex flex-wrap gap-2">{children}</div>}
+      {abas}
     </div>
   )
 }

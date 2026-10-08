@@ -6,9 +6,11 @@ import { cn } from 'cn'
 import { useAuth } from '@/auth/contexto'
 import { ehAdmin, temPermissao } from '@/auth/areas'
 import { Aviso, Carregando } from '@/components/Estados'
+import { Cabecalho } from '@/components/Navegacao'
 import { buttonVariants } from '@/components/ui/button'
 import { useUnidadeEscolhida } from '@/layouts/unidadeEscolhida'
 import { api, type Esquema, type OpcoesApi } from '@/lib/api'
+import { BLOCO_ACO } from '@/lib/estilos'
 import { moeda, plural } from '@/lib/formato'
 import { nomeUnidade } from '@/lib/listas'
 import { useCarregar } from '@/lib/useCarregar'
@@ -19,6 +21,8 @@ type Resumo = Esquema<'Resumo'>
 type Pendencia = { chave: string; rotulo: string; singular: string; para: string; total: number }
 
 const ESTOQUE = ['movimentar_estoque', 'definir_estoque_minimo']
+// quem vê a seção de vendas do resumo (a mesma regra do backend); atender_chamado vê a de atendimento
+const VENDAS = ['registrar_venda_fisica', 'preparar_entregar_pedido']
 // a retirada vence em 7 dias; a partir de 5, entra nas pendências (mesmo corte do resumo)
 const RETIRADA_PERTO_DE_VENCER_DIAS = 5
 // cobertura abaixo disso é número fora do esperado na tabela das unidades
@@ -103,37 +107,43 @@ export function VisaoGeral() {
 
   const titulo = unidade ? nomeUnidade(unidades, Number(unidade)) : 'Toda a rede'
   const abertas = (pendencias.dados ?? []).filter((p) => p.total > 0).length
-  const temNumeros = r && (r.vendas_por_dia || r.chamados)
+  // as que pedem atenção vêm primeiro; dentro de cada grupo, a ordem de sempre (o sort é estável)
+  const pendenciasEmOrdem = [...(pendencias.dados ?? [])].sort((a, b) => Number(b.total > 0) - Number(a.total > 0))
+  // as duas colunas já existem antes do resumo chegar, pelo perfil: assim os números carregam ao
+  // lado das pendências, e não aparecem embaixo delas para depois pular de lugar
+  const teraNumeros = admin || VENDAS.some(pode) || pode('atender_chamado')
 
   return (
     <div className="space-y-12">
-      <div className="flex flex-wrap items-end justify-between gap-4">
-        <div className="space-y-1">
-          <h1 className="font-heading text-3xl font-medium tracking-tight">{titulo}</h1>
-          <p className="text-sm text-muted-foreground first-letter:uppercase">
+      <Cabecalho
+        titulo={titulo}
+        subtitulo={
+          <span className="block first-letter:uppercase">
             {dia}.{' '}
             {pendencias.dados && (abertas ? `${plural(abertas, 'pendência', 'pendências')} para resolver.` : 'Tudo em dia.')}
-          </p>
-        </div>
+          </span>
+        }
+      >
         <Atalhos pode={pode} />
-      </div>
+      </Cabecalho>
 
-      <div className={cn('grid gap-12', temNumeros && 'lg:grid-cols-[22rem_1fr]')}>
-        <section aria-labelledby="titulo-pendencias">
+      <div className={cn('grid gap-12', teraNumeros && 'lg:grid-cols-[25rem_1fr]')}>
+        {/* linha vertical entre pendências e números, com o mesmo respiro dos dois lados */}
+        <section aria-labelledby="titulo-pendencias" className={cn(teraNumeros ? 'lg:border-r lg:pr-12' : 'max-w-md')}>
           <h2 id="titulo-pendencias" className="border-b border-foreground pb-3 text-lg font-medium">Pendências</h2>
           {pendencias.erro && <div className="mt-4"><Aviso mensagem={pendencias.erro} /></div>}
           {pendencias.carregando && !pendencias.dados && <Carregando texto="Conferindo as pendências..." />}
           {pendencias.dados?.length === 0 && <p className="py-6 text-sm text-muted-foreground">Sua conta não tem pendências para acompanhar aqui.</p>}
           <ul>
-            {(pendencias.dados ?? []).map((p) => <LinhaPendencia key={p.chave} pendencia={p} />)}
+            {pendenciasEmOrdem.map((p) => <LinhaPendencia key={p.chave} pendencia={p} />)}
           </ul>
         </section>
 
-        {(resumo.carregando && !r) && <Carregando texto="Carregando os números..." />}
-        {resumo.erro && <Aviso mensagem={resumo.erro}>Recarregue a página para tentar de novo.</Aviso>}
-        {temNumeros && (
+        {teraNumeros && (
           <div className="min-w-0 space-y-12">
-            {r.vendas_por_dia && (
+            {resumo.carregando && !r && <Carregando texto="Carregando os números..." />}
+            {resumo.erro && <Aviso mensagem={resumo.erro}>Recarregue a página para tentar de novo.</Aviso>}
+            {r?.vendas_por_dia && (
               <section aria-labelledby="titulo-vendas" className="space-y-6">
                 <h2 id="titulo-vendas" className="border-b border-foreground pb-3 text-lg font-medium">Vendas</h2>
                 <NumerosVendas dias={r.vendas_por_dia} />
@@ -143,7 +153,7 @@ export function VisaoGeral() {
                 </div>
               </section>
             )}
-            {r.chamados && (
+            {r?.chamados && (
               <section aria-labelledby="titulo-chamados" className="space-y-6">
                 <h2 id="titulo-chamados" className="border-b border-foreground pb-3 text-lg font-medium">Atendimento</h2>
                 <div className="grid grid-cols-3 gap-6">
@@ -167,17 +177,17 @@ function Atalhos({ pode }: { pode: (codigo: string) => boolean }) {
   return (
     <div className="flex flex-wrap gap-2">
       {pode('registrar_venda_fisica') && (
-        <Link to="/interno/caixa" className={cn(buttonVariants({ variant: 'outline', size: 'lg' }), 'h-11 px-4')}>
+        <Link to="/interno/caixa" className={cn(buttonVariants({ variant: 'aco', size: 'lg' }), 'h-11 px-4')}>
           <ShoppingBag aria-hidden="true" /> Nova venda no caixa
         </Link>
       )}
       {pode('movimentar_estoque') && (
-        <Link to="/interno/estoque/movimentacoes?registrar=1" className={cn(buttonVariants({ variant: 'outline', size: 'lg' }), 'h-11 px-4')}>
+        <Link to="/interno/estoque/movimentacoes?registrar=1" className={cn(buttonVariants({ variant: 'aco', size: 'lg' }), 'h-11 px-4')}>
           <Plus aria-hidden="true" /> Registrar movimentação
         </Link>
       )}
       {pode('solicitar_transferencia') && (
-        <Link to="/interno/transferencias?nova=1" className={cn(buttonVariants({ variant: 'outline', size: 'lg' }), 'h-11 px-4')}>
+        <Link to="/interno/transferencias?nova=1" className={cn(buttonVariants({ variant: 'aco', size: 'lg' }), 'h-11 px-4')}>
           <ArrowLeftRight aria-hidden="true" /> Pedir peças a outra unidade
         </Link>
       )}
@@ -185,13 +195,13 @@ function Atalhos({ pode }: { pode: (codigo: string) => boolean }) {
   )
 }
 
-// número grande com marcador: terracota quando há o que fazer, cinza com "tudo em dia" quando não
+// número grande; quando há o que fazer, a linha inteira fica em terracota-claro (pendência, no
+// design); quando não, o número fica cinza com "tudo em dia"
 function LinhaPendencia({ pendencia: p }: { pendencia: Pendencia }) {
   const ha = p.total > 0
   return (
     <li>
-      <Link to={p.para} className="group flex items-center gap-4 border-b py-4 hover:bg-superficie">
-        <span className={cn('size-2 shrink-0 rounded-full', ha ? 'bg-terracota' : 'bg-border')} aria-hidden="true" />
+      <Link to={p.para} className={cn('group flex items-center gap-4 border-b px-3 py-4', ha ? 'bg-terracota-fundo hover:bg-terracota-fundo/70' : 'hover:bg-superficie')}>
         <span className={cn('w-12 shrink-0 text-right text-3xl font-medium tabular-nums', !ha && 'text-muted-foreground')}>{p.total}</span>
         <span className="min-w-0 flex-1 text-sm">
           {p.total === 1 ? p.singular : p.rotulo}
@@ -249,7 +259,7 @@ function RedeAgora({ rede, unidades }: { rede: Esquema<'RedeAgora'>; unidades: E
   const t = rede.ticket_medio_30_dias
   const a = rede.avaliacoes
   return (
-    <section aria-labelledby="titulo-rede" className="space-y-8">
+    <section aria-labelledby="titulo-rede" className={cn('space-y-8', BLOCO_ACO)}>
       <h2 id="titulo-rede" className="border-b border-foreground pb-3 text-lg font-medium">A rede agora</h2>
       <div className="grid grid-cols-2 gap-x-6 gap-y-8 md:grid-cols-4">
         <Numero rotulo="Vendas em 14 dias" valor={moeda(v.total.valor)} detalhe={variacao(v.total.variacao_valor_pct)} />
@@ -287,7 +297,7 @@ function RedeAgora({ rede, unidades }: { rede: Esquema<'RedeAgora'>; unidades: E
         />
       </div>
 
-      <div className="overflow-x-auto">
+      <div className="overflow-x-auto overflow-y-hidden">
         <table className="w-full min-w-[52rem] text-sm">
           <caption className="sr-only">Números de cada unidade</caption>
           <thead className="text-left text-xs text-muted-foreground">

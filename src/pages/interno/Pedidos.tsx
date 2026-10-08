@@ -14,6 +14,7 @@ import { Campo, Input, Textarea } from '@/components/ui/input'
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet'
 import { useUnidadeEscolhida } from '@/layouts/unidadeEscolhida'
 import { api, ErroApi, type Esquema } from '@/lib/api'
+import { BLOCO_ACO } from '@/lib/estilos'
 import { dataCurta, dataHora, haQuanto, hora, mascaraCpf, METODOS_PAGAMENTO, moeda, plural } from '@/lib/formato'
 import { useCarregar, useEnviar } from '@/lib/useCarregar'
 
@@ -84,22 +85,25 @@ export function Pedidos() {
 
   return (
     <>
-      <Cabecalho titulo="Pedidos" subtitulo="Pedidos do site para separar, enviar, avisar que estão prontos e entregar.">
+      <Cabecalho
+        titulo="Pedidos"
+        subtitulo="Pedidos do site para separar, enviar, avisar que estão prontos e entregar."
+        abas={
+          <Abas
+            semLinha
+            rotulo="Filas de pedidos"
+            valor={fila}
+            aoMudar={(v) => { setFila(v); setOffset(0); setParams({}, { replace: true }) }}
+            abas={FILAS.map((f, i) => ({ valor: f.valor, rotulo: f.rotulo, contagem: contagens.dados?.[i] }))}
+          />
+        }
+      >
         {temPermissao(perfil, 'corrigir_cadastro_cliente') && (
-          <Button variant="outline" size="lg" className="h-11 px-4" onClick={() => setCorrigindo(true)}>
+          <Button variant="aco" size="lg" className="h-11 px-4" onClick={() => setCorrigindo(true)}>
             <UserPen aria-hidden="true" /> Corrigir cadastro de cliente
           </Button>
         )}
       </Cabecalho>
-
-      {/* as cinco filas ocupam a largura toda: na coluna da lista elas não cabiam */}
-      <Abas
-        rotulo="Filas de pedidos"
-        valor={fila}
-        aoMudar={(v) => { setFila(v); setOffset(0); setParams({}, { replace: true }) }}
-        abas={FILAS.map((f, i) => ({ valor: f.valor, rotulo: f.rotulo, contagem: contagens.dados?.[i] }))}
-        className="mb-6"
-      />
 
       <div className="grid gap-10 lg:grid-cols-[24rem_minmax(0,1fr)]">
         <div className="min-w-0">
@@ -244,7 +248,7 @@ function DetalhePedido({ pedido: p, aoMudar }: { pedido: Pedido; aoMudar: () => 
         </dl>
       </section>
 
-      <div className="grid gap-8 sm:grid-cols-2">
+      <div className={cn('grid gap-8 sm:grid-cols-2', BLOCO_ACO)}>
         <section className="space-y-2 text-sm">
           <h3 className="font-medium">Pagamento</h3>
           {pagamentos.length === 0 && <p className="text-muted-foreground">Nenhum pagamento ainda.</p>}
@@ -366,7 +370,7 @@ function AcaoDoMomento({ pedido: p, aoFazer }: { pedido: Pedido; aoFazer: (mensa
   if (!conteudo) return null
 
   return (
-    <section aria-label="O que fazer agora" className="space-y-3 border-l-4 border-aco bg-aco-fundo p-5">
+    <section aria-label="O que fazer agora" className={cn('space-y-3', BLOCO_ACO)}>
       {conteudo}
       {erro && <Aviso mensagem={erro} />}
     </section>
@@ -474,7 +478,7 @@ function CorrigirCadastro({ aberto, aoFechar }: { aberto: boolean; aoFechar: () 
 
   return (
     <Sheet open={aberto} onOpenChange={(abrir) => { if (!abrir) { recomecar(); aoFechar() } }}>
-      <SheetContent className="overflow-y-auto transition-none sm:max-w-md!">
+      <SheetContent className="overflow-y-auto sm:max-w-md!">
         <SheetHeader className="border-b pr-12">
           <SheetTitle className="text-lg">Corrigir cadastro de cliente</SheetTitle>
           <SheetDescription>E-mail ou CPF errados são corrigidos em qualquer loja, conferindo um documento com foto.</SheetDescription>

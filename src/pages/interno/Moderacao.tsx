@@ -52,16 +52,21 @@ export function Moderacao() {
 
   return (
     <>
-      <Cabecalho titulo="Avaliações" subtitulo="Avaliações denunciadas pelos clientes: mantenha publicada ou oculte, dizendo o motivo." />
-      <Abas
-        rotulo="Moderação"
-        valor={aba}
-        aoMudar={(v) => { setAba(v); setOffset(0); setFeito(null) }}
-        abas={[
-          { valor: 'denunciadas', rotulo: 'Denunciadas', contagem: contagem.dados },
-          { valor: 'ocultadas', rotulo: 'Ocultadas' },
-        ]}
-        className="mb-6"
+      <Cabecalho
+        titulo="Avaliações"
+        subtitulo="Avaliações denunciadas pelos clientes: mantenha publicada ou oculte, dizendo o motivo."
+        abas={
+          <Abas
+            semLinha
+            rotulo="Moderação"
+            valor={aba}
+            aoMudar={(v) => { setAba(v); setOffset(0); setFeito(null) }}
+            abas={[
+              { valor: 'denunciadas', rotulo: 'Denunciadas', contagem: contagem.dados },
+              { valor: 'ocultadas', rotulo: 'Ocultadas' },
+            ]}
+          />
+        }
       />
 
       {feito && <div className="mb-6"><Sucesso>{feito}</Sucesso></div>}

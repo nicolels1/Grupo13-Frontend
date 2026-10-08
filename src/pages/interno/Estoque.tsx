@@ -7,7 +7,7 @@ import { useAuth } from '@/auth/contexto'
 import { temPermissao } from '@/auth/areas'
 import { Aviso, Carregando, Sucesso, Vazio } from '@/components/Estados'
 import { Cabecalho, Paginacao } from '@/components/Navegacao'
-import { Etiqueta, Miniatura, NomePeca } from '@/components/Peca'
+import { Miniatura, NomePeca } from '@/components/Peca'
 import { Button, buttonVariants } from '@/components/ui/button'
 import { Input, Label, Select } from '@/components/ui/input'
 import { useUnidadeEscolhida } from '@/layouts/unidadeEscolhida'
@@ -24,12 +24,12 @@ type Grupo = ItemEstoque & { chave: string; canais: Partial<Record<Canal, ItemEs
 
 const PRODUTOS_POR_PAGINA = 30
 
-// subabas da área Estoque: Saldo, Movimentações e Histórico do estoque
+// subabas da área Estoque: Saldo, Movimentações e Histórico do estoque (vão no bloco do Cabecalho)
 export function AbasEstoque() {
   const aba = ({ isActive }: { isActive: boolean }) =>
-    cn('-mb-px border-b-2 pb-2 text-sm', isActive ? 'border-foreground font-medium' : 'border-transparent text-muted-foreground hover:text-foreground')
+    cn('border-b-2 pb-2 text-sm', isActive ? 'border-foreground font-medium' : 'border-transparent text-muted-foreground hover:text-foreground')
   return (
-    <nav aria-label="Estoque" className="mb-8 flex gap-6 border-b">
+    <nav aria-label="Estoque" className="flex gap-6">
       <NavLink to="/interno/estoque" end className={aba}>Saldo</NavLink>
       <NavLink to="/interno/estoque/movimentacoes" className={aba}>Movimentações</NavLink>
       <NavLink to="/interno/estoque/historico" className={aba}>Histórico do estoque</NavLink>
@@ -42,7 +42,7 @@ export function AcoesEstoque() {
   return (
     <>
       {temPermissao(perfil, 'solicitar_transferencia') && (
-        <Link to="/interno/transferencias?nova=1" className={cn(buttonVariants({ variant: 'outline', size: 'lg' }), 'h-11 px-4')}>
+        <Link to="/interno/transferencias?nova=1" className={cn(buttonVariants({ variant: 'aco', size: 'lg' }), 'h-11 px-4')}>
           <ArrowLeftRight aria-hidden="true" /> Pedir transferência
         </Link>
       )}
@@ -104,10 +104,9 @@ export function Estoque() {
 
   return (
     <>
-      <Cabecalho titulo="Estoque" subtitulo={`Saldo de cada peça ${ondeTexto}. Troque a unidade no topo.`}>
+      <Cabecalho titulo="Estoque" subtitulo={`Saldo de cada peça ${ondeTexto}. Troque a unidade no topo.`} abas={<AbasEstoque />}>
         <AcoesEstoque />
       </Cabecalho>
-      <AbasEstoque />
 
       <div className="mb-4 flex flex-wrap gap-2">
         <label className="flex h-9 min-w-56 flex-1 items-center gap-2 border border-input px-3 sm:max-w-80">
@@ -150,7 +149,14 @@ export function Estoque() {
                 const online = somar(p.linhas.filter((l) => l.canal === 'online'))
                 return (
                   <Fragment key={p.produto}>
-                    <tr className={cn('cursor-pointer border-b hover:bg-superficie', aberta && 'bg-superficie')} onClick={() => setAberto(aberta ? null : p.produto)}>
+                    {/* produto com peça abaixo do mínimo: a linha inteira em terracota-claro, como as pendências */}
+                    <tr
+                      className={cn(
+                        'cursor-pointer border-b',
+                        p.abaixo > 0 ? 'bg-terracota-fundo hover:bg-terracota-fundo/70' : cn('hover:bg-superficie', aberta && 'bg-superficie'),
+                      )}
+                      onClick={() => setAberto(aberta ? null : p.produto)}
+                    >
                       <td className="pl-2">
                         <button type="button" aria-expanded={aberta} aria-label={`Matriz de ${p.produto}`} className="flex">
                           {aberta ? <ChevronDown className="size-4" /> : <ChevronRight className="size-4" />}
@@ -164,7 +170,8 @@ export function Estoque() {
                       <td className="text-right tabular-nums">{canal === 'loja_fisica' ? '—' : online}</td>
                       <td className="text-right font-medium tabular-nums">{fisica + online}</td>
                       <td className="pr-2 text-right">
-                        {p.abaixo > 0 ? <Etiqueta alerta>{p.abaixo}</Etiqueta> : <span className="text-muted-foreground">—</span>}
+                        {/* a linha inteira já fica em destaque: o número vai sem a etiqueta de alerta */}
+                        {p.abaixo > 0 ? <span className="font-medium tabular-nums">{p.abaixo}</span> : <span className="text-muted-foreground">—</span>}
                       </td>
                     </tr>
                     {aberta && (

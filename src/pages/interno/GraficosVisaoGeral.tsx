@@ -1,7 +1,9 @@
 import { Bar, BarChart, CartesianGrid, LabelList, XAxis, YAxis } from 'recharts'
+import { cn } from 'cn'
 
 import { ChartContainer, ChartLegend, ChartLegendContent, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart'
 import type { Esquema } from '@/lib/api'
+import { BLOCO_ACO } from '@/lib/estilos'
 import { moeda } from '@/lib/formato'
 
 type VendasDoDia = Esquema<'VendasDoDia'>
@@ -41,13 +43,14 @@ export function GraficoVendas({ dias }: { dias: VendasDoDia[] }) {
     pedidos_loja: d.loja_fisica.pedidos,
   }))
   return (
-    <figure className="space-y-2">
+    <figure className="space-y-4">
       <figcaption className="text-sm font-medium">Vendas dos últimos 14 dias</figcaption>
       <ChartContainer config={CONFIG_VENDAS} className="aspect-auto h-60 w-full">
-        <BarChart data={dados} barGap={2} accessibilityLayer>
+        {/* margem no alto: o rótulo do topo do eixo não encosta no título */}
+        <BarChart data={dados} barGap={2} margin={{ top: 8 }} accessibilityLayer>
           <CartesianGrid vertical={false} />
           <XAxis dataKey="dia" {...EIXO} interval="preserveStartEnd" minTickGap={16} />
-          <YAxis {...EIXO} width={64} tickFormatter={moedaCurta} />
+          <YAxis {...EIXO} width={80} tickFormatter={moedaCurta} />
           <ChartTooltip
             cursor={{ fill: 'var(--superficie)' }}
             content={<ChartTooltipContent formatter={(valor, nome, item) => {
@@ -71,12 +74,24 @@ export function GraficoVendas({ dias }: { dias: VendasDoDia[] }) {
 }
 
 const CONFIG_MAIS_VENDIDAS = { quantidade_vendida: { label: 'Peças vendidas', color: 'var(--marinho)' } }
+const LARGURA_NOMES = 180
+
+const encurtar = (nome: string) => (nome.length > 28 ? `${nome.slice(0, 27)}…` : nome)
+
+// nome da peça no eixo, alinhado à esquerda (na mesma linha do título do gráfico)
+function NomeNoEixo({ y, payload }: { y?: number; payload?: { value: string } }) {
+  return (
+    <text x={0} y={y} dy={4} textAnchor="start" fontSize={11} fill="var(--muted-foreground)">
+      {encurtar(payload?.value ?? '')}
+    </text>
+  )
+}
 
 // 5 peças mais vendidas na semana: uma série só, então sem legenda; o número fica na ponta da barra
 export function GraficoMaisVendidas({ pecas }: { pecas: MaisVendida[] }) {
   const dados = pecas.map((p) => ({ ...p, nome: `${p.produto}, ${p.cor}, ${p.tamanho}` }))
   return (
-    <figure className="space-y-2">
+    <figure className={cn('space-y-2', BLOCO_ACO)}>
       <figcaption className="text-sm font-medium">Mais vendidas na semana</figcaption>
       {dados.length === 0 ? (
         <p className="py-6 text-sm text-muted-foreground">Nenhuma venda nos últimos 7 dias.</p>
@@ -84,7 +99,7 @@ export function GraficoMaisVendidas({ pecas }: { pecas: MaisVendida[] }) {
         <ChartContainer config={CONFIG_MAIS_VENDIDAS} className="aspect-auto w-full" style={{ height: dados.length * 44 + 8 }}>
           <BarChart data={dados} layout="vertical" margin={{ left: 0, right: 32 }} accessibilityLayer>
             <XAxis type="number" hide />
-            <YAxis type="category" dataKey="nome" {...EIXO} width={180} tickFormatter={(t: string) => (t.length > 28 ? `${t.slice(0, 27)}…` : t)} />
+            <YAxis type="category" dataKey="nome" {...EIXO} width={LARGURA_NOMES} tick={<NomeNoEixo />} />
             <ChartTooltip
               cursor={{ fill: 'var(--superficie)' }}
               content={<ChartTooltipContent hideLabel formatter={(valor, _nome, item) => (
@@ -113,10 +128,10 @@ const CONFIG_CHAMADOS = {
 export function GraficoChamados({ dias }: { dias: ChamadosDoDia[] }) {
   const dados = dias.map((d) => ({ dia: diaCurto(d.dia), abertos: d.abertos, concluidos: d.concluidos }))
   return (
-    <figure className="space-y-2">
+    <figure className="space-y-4">
       <figcaption className="text-sm font-medium">Chamados abertos e concluídos por dia</figcaption>
       <ChartContainer config={CONFIG_CHAMADOS} className="aspect-auto h-52 w-full">
-        <BarChart data={dados} barGap={2} accessibilityLayer>
+        <BarChart data={dados} barGap={2} margin={{ top: 8 }} accessibilityLayer>
           <CartesianGrid vertical={false} />
           <XAxis dataKey="dia" {...EIXO} interval="preserveStartEnd" minTickGap={16} />
           <YAxis {...EIXO} width={32} allowDecimals={false} />

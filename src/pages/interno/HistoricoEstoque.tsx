@@ -95,8 +95,7 @@ export function HistoricoEstoque() {
 
   return (
     <>
-      <Cabecalho titulo="Estoque"><AcoesEstoque /></Cabecalho>
-      <AbasEstoque />
+      <Cabecalho titulo="Estoque" abas={<AbasEstoque />}><AcoesEstoque /></Cabecalho>
 
       <section aria-label="Momento do histórico" className="mb-8 space-y-4 bg-superficie p-5">
         <p className="flex flex-wrap items-center gap-x-2 gap-y-3 text-lg">
@@ -157,7 +156,7 @@ export function HistoricoEstoque() {
         <Vazio>{soMudou ? 'Nada mudou entre aquele momento e agora com esses filtros.' : 'Nenhuma peça com esses filtros. Confira a busca ou troque a unidade.'}</Vazio>
       )}
       {!comparacao.carregando && pagina.length > 0 && (
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto overflow-y-hidden">
           <table className="w-full min-w-[44rem] text-sm">
             <thead className="text-left text-xs text-muted-foreground">
               <tr className="border-b">
@@ -219,7 +218,7 @@ export function HistoricoEstoque() {
         {transito.carregando && !transito.dados && <Carregando />}
         {transito.dados && emTransito.length === 0 && <Vazio>Nenhuma peça em trânsito naquele momento.</Vazio>}
         {emTransito.length > 0 && (
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto overflow-y-hidden">
             <table className="w-full min-w-[40rem] text-sm">
               <thead className="text-left text-xs text-muted-foreground">
                 <tr className="border-b">
