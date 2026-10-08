@@ -7,7 +7,7 @@ import { useAuth } from '@/auth/contexto'
 import { temPermissao } from '@/auth/areas'
 import { Aviso, Carregando, Sucesso, Vazio } from '@/components/Estados'
 import { Cabecalho, Paginacao } from '@/components/Navegacao'
-import { Etiqueta, Miniatura, NomePeca } from '@/components/Peca'
+import { Miniatura, NomePeca } from '@/components/Peca'
 import { Button, buttonVariants } from '@/components/ui/button'
 import { Input, Label, Select } from '@/components/ui/input'
 import { useUnidadeEscolhida } from '@/layouts/unidadeEscolhida'
@@ -170,7 +170,8 @@ export function Estoque() {
                       <td className="text-right tabular-nums">{canal === 'loja_fisica' ? '—' : online}</td>
                       <td className="text-right font-medium tabular-nums">{fisica + online}</td>
                       <td className="pr-2 text-right">
-                        {p.abaixo > 0 ? <Etiqueta alerta>{p.abaixo}</Etiqueta> : <span className="text-muted-foreground">—</span>}
+                        {/* a linha inteira já fica em destaque: o número vai sem a etiqueta de alerta */}
+                        {p.abaixo > 0 ? <span className="font-medium tabular-nums">{p.abaixo}</span> : <span className="text-muted-foreground">—</span>}
                       </td>
                     </tr>
                     {aberta && (
