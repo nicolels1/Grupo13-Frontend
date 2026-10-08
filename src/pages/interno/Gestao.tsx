@@ -11,7 +11,7 @@ import { useUnidadeEscolhida } from '@/layouts/unidadeEscolhida'
 import { api, type Esquema } from '@/lib/api'
 import { plural, STATUS_CONTA } from '@/lib/formato'
 import { limparListas } from '@/lib/listas'
-import { BLOCO_ACO } from '@/lib/estilos'
+import { BLOCO_ACO } from './componentes/estilos'
 import { useCarregar, useEnviar } from '@/lib/useCarregar'
 
 type Modelo = Esquema<'ModeloSaida'>
