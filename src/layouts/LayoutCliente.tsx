@@ -1,23 +1,16 @@
-import { useState, type FormEvent, type ReactNode } from 'react'
-import { ChevronDown, Search, ShoppingBag, User } from 'lucide-react'
+import { useState, type ReactNode, type SubmitEvent } from 'react'
+import { Package, Search, ShoppingBag, User } from 'lucide-react'
 import { Link, Outlet, useLocation, useNavigate, useSearchParams } from 'react-router'
 import { cn } from 'cn'
 
 import { useAuth } from '@/auth/contexto'
 import { Logo } from '@/components/Logo'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
-import { api, type Esquema } from '@/lib/api'
+import type { Esquema } from '@/lib/api'
 import { useCategorias } from '@/lib/listas'
-import { useCarregar } from '@/lib/useCarregar'
 import { CarrinhoProvider } from '@/pages/loja/carrinho/CarrinhoProvider'
 import { useCarrinho } from '@/pages/loja/carrinho/contexto'
 import { GavetaCarrinho } from '@/pages/loja/carrinho/GavetaCarrinho'
+import { useChamadosDaConta } from '@/pages/loja/conta/useChamadosDaConta'
 
 // plataforma do cliente: a vitrine é pública; a conta aparece à direita do topo
 export function LayoutCliente() {
@@ -38,6 +31,7 @@ export function LayoutCliente() {
             <BuscaDaLoja />
             <div className="col-start-2 row-start-1 flex items-center justify-end gap-5 lg:col-start-auto lg:row-start-auto">
               <Conta />
+              <LinkPedidos />
               <BotaoCarrinho />
             </div>
           </div>
@@ -51,6 +45,19 @@ export function LayoutCliente() {
         <GavetaCarrinho />
       </div>
     </CarrinhoProvider>
+  )
+}
+
+// Meus pedidos à vista no topo: dentro do menu da conta pouca gente achava. Sem login, a proteção
+// da rota leva a Entrar e volta para cá; conta da equipe não tem pedidos de cliente
+function LinkPedidos() {
+  const { perfil } = useAuth()
+  if (perfil?.tipo_conta === 'interna') return null
+  return (
+    <Link to="/loja/pedidos" aria-label="Meus pedidos" className="flex items-center gap-1.5 text-sm whitespace-nowrap hover:text-aco">
+      <Package className="size-5" aria-hidden="true" />
+      <span className="hidden lg:inline" aria-hidden="true">Pedidos</span>
+    </Link>
   )
 }
 
@@ -86,7 +93,7 @@ function Categorias({ categorias }: { categorias: Esquema<'CategoriaSaida'>[] })
   return (
     <nav
       aria-label="Categorias"
-      className="col-span-2 row-start-3 -mx-4 flex min-w-0 gap-6 overflow-x-auto px-4 lg:col-span-1 lg:row-start-auto lg:mx-0 lg:px-0"
+      className="col-span-2 row-start-3 -mx-4 flex min-w-0 gap-6 overflow-x-auto px-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden lg:col-span-1 lg:row-start-auto lg:mx-0 lg:px-0"
     >
       <LinkCategoria para="/loja/produtos" ativa={naLista && !categoriaAtual && !params.get('busca')}>
         Todos
@@ -124,7 +131,7 @@ function BuscaDaLoja() {
   const [params] = useSearchParams()
   const [termo, setTermo] = useState(params.get('busca') ?? '')
 
-  function buscar(evento: FormEvent) {
+  function buscar(evento: SubmitEvent) {
     evento.preventDefault()
     const texto = termo.trim()
     navegar(texto ? `/loja/produtos?busca=${encodeURIComponent(texto)}` : '/loja/produtos')
@@ -155,7 +162,7 @@ function BuscaDaLoja() {
 function Conta() {
   const { sessao, perfil } = useAuth()
 
-  if (sessao && perfil?.tipo_conta === 'cliente') return <MenuDaConta nome={perfil.nome} />
+  if (sessao && perfil?.tipo_conta === 'cliente') return <LinkDaConta nome={perfil.nome} />
   if (sessao && perfil?.tipo_conta === 'interna') {
     return <Link to="/interno" className="text-sm hover:underline">Ir para a plataforma interna</Link>
   }
@@ -168,55 +175,37 @@ function Conta() {
   )
 }
 
-function MenuDaConta({ nome }: { nome: string }) {
-  const { sair } = useAuth()
-  const local = useLocation()
-  const navegar = useNavigate()
-
-  // volta ao início da loja antes de encerrar a sessão: numa página que pede login
-  // (ex.: Chamados) a proteção mandaria para /entrar
-  function sairDaConta() {
-    navegar('/loja', { replace: true })
-    void sair()
-  }
-  // confere de novo a cada troca de página, para o aviso sumir depois de ler a resposta
-  const { dados } = useCarregar(
-    () => api<Esquema<'Pagina_ChamadoSaida_'>>('/chamados', { params: { limit: 100 } }),
-    [local.pathname],
-  )
-  const temNova = (dados?.items ?? []).some((c) => c.mensagens_nao_lidas > 0)
+// logado: leva direto à área "Minha conta" (o menu das seções e o Sair ficam lá);
+// o ponto terracota avisa resposta nova nos chamados. No celular fica só o ícone, como "Pedidos",
+// para não cobrir a logo
+function LinkDaConta({ nome }: { nome: string }) {
+  const { naoLidas } = useChamadosDaConta()
   const primeiroNome = nome.split(' ')[0]
 
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger className="flex items-center gap-2 text-sm whitespace-nowrap outline-none hover:underline focus-visible:ring-2 focus-visible:ring-ring">
-        <span className="relative">
-          <User className="size-4" aria-hidden="true" />
-          {temNova && <span className="absolute -top-0.5 -right-0.5 size-2 rounded-full bg-terracota" />}
-        </span>
-        Olá, {primeiroNome}
-        {temNova && <span className="sr-only">, você tem resposta nova nos chamados</span>}
-        <ChevronDown className="size-3.5" aria-hidden="true" />
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-52">
-        <DropdownMenuItem render={<Link to="/loja/pedidos" />}>Meus pedidos</DropdownMenuItem>
-        <DropdownMenuItem render={<Link to="/loja/chamados" />}>
-          Chamados
-          {temNova && <span className="ml-auto size-2 rounded-full bg-terracota" aria-label="Resposta nova" />}
-        </DropdownMenuItem>
-        <DropdownMenuItem render={<Link to="/loja/enderecos" />}>Endereços</DropdownMenuItem>
-        <DropdownMenuItem render={<Link to="/loja/ajuda" />}>Ajuda</DropdownMenuItem>
-        <DropdownMenuSeparator />
-        <DropdownMenuItem onClick={sairDaConta}>Sair</DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
+    <Link to="/loja/conta" className="group flex items-center gap-2 text-sm whitespace-nowrap">
+      <span className="relative">
+        <User className="size-5" aria-hidden="true" />
+        {naoLidas > 0 && <span className="absolute -top-0.5 -right-0.5 size-2.5 rounded-full bg-terracota ring-2 ring-background" />}
+      </span>
+      <span className="sr-only leading-tight sm:not-sr-only">
+        <span className="hidden text-xs text-muted-foreground sm:block">Olá, {primeiroNome}</span>
+        <span className="font-medium group-hover:underline">Minha conta</span>
+      </span>
+      {naoLidas > 0 && <span className="sr-only">, você tem resposta nova nos chamados</span>}
+    </Link>
   )
 }
 
 function Rodape({ categorias }: { categorias: Esquema<'CategoriaSaida'>[] }) {
   return (
     <footer className="mt-20 bg-marinho-escuro text-white">
-      <div className="mx-auto grid max-w-7xl gap-10 px-4 py-12 sm:grid-cols-3 sm:px-6">
+      <div className="mx-auto grid max-w-7xl gap-10 px-4 py-12 sm:grid-cols-2 sm:px-6 lg:grid-cols-4">
+        <ColunaRodape titulo="Minha conta">
+          <Link to="/loja/pedidos">Meus pedidos</Link>
+          <Link to="/loja/chamados">Chamados</Link>
+          <Link to="/loja/enderecos">Endereços</Link>
+        </ColunaRodape>
         <ColunaRodape titulo="Ajuda">
           <Link to="/loja/ajuda">Central de ajuda</Link>
           <Link to="/loja/ajuda#trocas-e-devolucoes">Trocas e devoluções</Link>

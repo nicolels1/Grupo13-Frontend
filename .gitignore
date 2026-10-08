@@ -26,3 +26,6 @@ dist-ssr
 # variáveis locais (o modelo fica no .env.example)
 .env
 .env.local
+
+# gerado pelo build do TypeScript
+*.tsbuildinfo

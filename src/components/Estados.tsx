@@ -32,7 +32,7 @@ export function Vazio({ children }: { children: ReactNode }) {
 // confirmação curta depois de salvar
 export function Sucesso({ children }: { children: ReactNode }) {
   return (
-    <p role="status" className="flex items-center gap-2 bg-aco/10 px-3 py-2 text-sm text-marinho">
+    <p role="status" className="flex items-center gap-2 rounded-lg bg-aco/10 px-3 py-2 text-sm text-marinho">
       <CircleCheck className="size-4 shrink-0 text-aco" aria-hidden="true" />
       {children}
     </p>
