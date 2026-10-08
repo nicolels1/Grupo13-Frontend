@@ -15,9 +15,7 @@
     "verbatimModuleSyntax": true,
     "skipLibCheck": true,
     "noEmit": true,
-    // as páginas ainda em .jsx viram .tsx quando forem refeitas; até lá o tsc aceita sem checar
-    "allowJs": true,
-    "checkJs": false,
+    "allowJs": false,
     "paths": {
       "@/*": ["./src/*"]
     }
