@@ -10,6 +10,7 @@ import { Cabecalho } from '@/components/Navegacao'
 import { buttonVariants } from '@/components/ui/button'
 import { useUnidadeEscolhida } from '@/layouts/unidadeEscolhida'
 import { api, type Esquema, type OpcoesApi } from '@/lib/api'
+import { BLOCO_ACO } from '@/lib/estilos'
 import { moeda, plural } from '@/lib/formato'
 import { nomeUnidade } from '@/lib/listas'
 import { useCarregar } from '@/lib/useCarregar'
@@ -106,6 +107,8 @@ export function VisaoGeral() {
 
   const titulo = unidade ? nomeUnidade(unidades, Number(unidade)) : 'Toda a rede'
   const abertas = (pendencias.dados ?? []).filter((p) => p.total > 0).length
+  // as que pedem atenção vêm primeiro; dentro de cada grupo, a ordem de sempre (o sort é estável)
+  const pendenciasEmOrdem = [...(pendencias.dados ?? [])].sort((a, b) => Number(b.total > 0) - Number(a.total > 0))
   // as duas colunas já existem antes do resumo chegar, pelo perfil: assim os números carregam ao
   // lado das pendências, e não aparecem embaixo delas para depois pular de lugar
   const teraNumeros = admin || VENDAS.some(pode) || pode('atender_chamado')
@@ -132,7 +135,7 @@ export function VisaoGeral() {
           {pendencias.carregando && !pendencias.dados && <Carregando texto="Conferindo as pendências..." />}
           {pendencias.dados?.length === 0 && <p className="py-6 text-sm text-muted-foreground">Sua conta não tem pendências para acompanhar aqui.</p>}
           <ul>
-            {(pendencias.dados ?? []).map((p) => <LinhaPendencia key={p.chave} pendencia={p} />)}
+            {pendenciasEmOrdem.map((p) => <LinhaPendencia key={p.chave} pendencia={p} />)}
           </ul>
         </section>
 
@@ -192,13 +195,13 @@ function Atalhos({ pode }: { pode: (codigo: string) => boolean }) {
   )
 }
 
-// número grande com marcador: terracota quando há o que fazer, cinza com "tudo em dia" quando não
+// número grande; quando há o que fazer, a linha inteira fica em terracota-claro (pendência, no
+// design); quando não, o número fica cinza com "tudo em dia"
 function LinhaPendencia({ pendencia: p }: { pendencia: Pendencia }) {
   const ha = p.total > 0
   return (
     <li>
-      <Link to={p.para} className="group flex items-center gap-4 border-b py-4 hover:bg-superficie">
-        <span className={cn('size-2 shrink-0 rounded-full', ha ? 'bg-terracota' : 'bg-border')} aria-hidden="true" />
+      <Link to={p.para} className={cn('group flex items-center gap-4 border-b px-3 py-4', ha ? 'bg-terracota-fundo hover:bg-terracota-fundo/70' : 'hover:bg-superficie')}>
         <span className={cn('w-12 shrink-0 text-right text-3xl font-medium tabular-nums', !ha && 'text-muted-foreground')}>{p.total}</span>
         <span className="min-w-0 flex-1 text-sm">
           {p.total === 1 ? p.singular : p.rotulo}
@@ -256,7 +259,7 @@ function RedeAgora({ rede, unidades }: { rede: Esquema<'RedeAgora'>; unidades: E
   const t = rede.ticket_medio_30_dias
   const a = rede.avaliacoes
   return (
-    <section aria-labelledby="titulo-rede" className="space-y-8">
+    <section aria-labelledby="titulo-rede" className={cn('space-y-8', BLOCO_ACO)}>
       <h2 id="titulo-rede" className="border-b border-foreground pb-3 text-lg font-medium">A rede agora</h2>
       <div className="grid grid-cols-2 gap-x-6 gap-y-8 md:grid-cols-4">
         <Numero rotulo="Vendas em 14 dias" valor={moeda(v.total.valor)} detalhe={variacao(v.total.variacao_valor_pct)} />
@@ -294,7 +297,7 @@ function RedeAgora({ rede, unidades }: { rede: Esquema<'RedeAgora'>; unidades: E
         />
       </div>
 
-      <div className="overflow-x-auto">
+      <div className="overflow-x-auto overflow-y-hidden">
         <table className="w-full min-w-[52rem] text-sm">
           <caption className="sr-only">Números de cada unidade</caption>
           <thead className="text-left text-xs text-muted-foreground">

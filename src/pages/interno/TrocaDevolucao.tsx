@@ -1,4 +1,5 @@
 import { useState, type FormEvent } from 'react'
+import { cn } from 'cn'
 
 import { Aviso } from '@/components/Estados'
 import { Abas } from '@/components/Navegacao'
@@ -6,6 +7,7 @@ import { Etiqueta, NomePeca } from '@/components/Peca'
 import { Button } from '@/components/ui/button'
 import { Input, Select } from '@/components/ui/input'
 import { api, type Esquema } from '@/lib/api'
+import { BLOCO_ACO } from '@/lib/estilos'
 import { dataCurta, mascaraCpf, METODOS_PAGAMENTO, moeda, plural } from '@/lib/formato'
 import { motivoBloqueio, prazoTroca, repartirEstorno, type ModoTroca, type TrocaFeita } from '@/lib/trocaDevolucao'
 import { useCarregar, useEnviar } from '@/lib/useCarregar'
@@ -180,7 +182,7 @@ export function AtenderPedido({
       )}
 
       {modo === 'devolucao' && escolhidos.length > 0 && (
-        <div className="space-y-1 border-l-4 border-aco bg-aco/10 p-4 text-sm">
+        <div className={cn('space-y-1 text-sm', BLOCO_ACO)}>
           <p className="font-medium">Estorno de {moeda(valorDevolvido)}, pelo mesmo meio do pagamento</p>
           {estornos.map((e) => (
             <p key={e.id_pagamento} className="text-muted-foreground">{METODOS_PAGAMENTO[e.metodo] ?? e.metodo}: {moeda(e.valor)}</p>

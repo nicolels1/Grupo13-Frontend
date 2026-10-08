@@ -6,6 +6,7 @@ import { Aviso, Carregando, Sucesso, Vazio } from '@/components/Estados'
 import { Abas, Cabecalho, Paginacao } from '@/components/Navegacao'
 import { Button } from '@/components/ui/button'
 import { Campo, Input, Select } from '@/components/ui/input'
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet'
 import { useUnidadeEscolhida } from '@/layouts/unidadeEscolhida'
 import { api, type Esquema } from '@/lib/api'
 import { plural, STATUS_CONTA } from '@/lib/formato'
@@ -74,6 +75,13 @@ function Pessoas() {
     () => api<Esquema<'Pagina_UsuarioItem_'>>('/usuarios', { params: { tipo_conta: 'interna', busca: busca.trim(), id_modelo_acesso: idModelo, limit: POR_PAGINA, offset } }),
     [busca, idModelo, offset],
   )
+  // Admins primeiro (e em destaque); o resto na ordem da API. A lista não diz quem é Admin, mas
+  // traz o modelo de cada pessoa, e os modelos dizem qual é o de Admin
+  const modelosAdmin = new Set((modelos.dados?.items ?? []).filter((m) => m.eh_admin).map((m) => m.id_modelo))
+  const ehAdminDaLista = (id: number | null) => id !== null && modelosAdmin.has(id)
+  const pessoasEmOrdem = [...(lista.dados?.items ?? [])].sort(
+    (a, b) => Number(ehAdminDaLista(b.id_modelo_acesso)) - Number(ehAdminDaLista(a.id_modelo_acesso)),
+  )
   const filtro = (setter: (valor: string) => void) => (e: ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     setter(e.target.value)
     setOffset(0)
@@ -114,10 +122,15 @@ function Pessoas() {
                 </tr>
               </thead>
               <tbody>
-                {lista.dados.items.map((p) => (
+                {pessoasEmOrdem.map((p) => (
                   <tr
                     key={p.id_usuario}
-                    className={cn('cursor-pointer border-b hover:bg-superficie', aberta === p.id_usuario && 'bg-superficie')}
+                    className={cn(
+                      'cursor-pointer border-b',
+                      ehAdminDaLista(p.id_modelo_acesso)
+                        ? cn('bg-aco-fundo hover:bg-aco-fundo/70', aberta === p.id_usuario && 'bg-aco-fundo/70')
+                        : cn('hover:bg-superficie', aberta === p.id_usuario && 'bg-superficie'),
+                    )}
                     onClick={() => setAberta(p.id_usuario)}
                   >
                     <td className="py-3 pl-2">
@@ -136,14 +149,18 @@ function Pessoas() {
         <Paginacao pagina={lista.dados} aoMudar={setOffset} rotulo="pessoas" />
       </div>
 
-      {aberta === 'nova' && (
+      <PainelLateral
+        aberto={aberta === 'nova'}
+        titulo="Convidar pessoa"
+        descricao="Conta interna com o modelo de acesso escolhido."
+        aoFechar={() => setAberta(null)}
+      >
         <ConvidarPessoa
           modelos={modelos.dados?.items ?? []}
           unidades={unidades}
-          aoFechar={() => setAberta(null)}
           aoCriar={(pessoa) => { lista.recarregar(); setAberta(pessoa.id_usuario) }}
         />
-      )}
+      </PainelLateral>
       {aberta && aberta !== 'nova' && (
         <DetalhePessoa
           key={aberta}
@@ -170,10 +187,31 @@ function Painel({ titulo, aoFechar, children }: { titulo: string; aoFechar: () =
   )
 }
 
-function ConvidarPessoa({ modelos, unidades, aoFechar, aoCriar }: {
+// painel lateral para criar (convidar pessoa, nova unidade), como Registrar movimentação no Estoque.
+// Ver e editar o que já existe continua no Painel ao lado da lista
+function PainelLateral({ aberto, titulo, descricao, aoFechar, children }: {
+  aberto: boolean
+  titulo: string
+  descricao: string
+  aoFechar: () => void
+  children: ReactNode
+}) {
+  return (
+    <Sheet open={aberto} onOpenChange={(abrir) => { if (!abrir) aoFechar() }}>
+      <SheetContent className="overflow-y-auto sm:max-w-md!">
+        <SheetHeader className="border-b pr-12">
+          <SheetTitle className="text-lg">{titulo}</SheetTitle>
+          <SheetDescription>{descricao}</SheetDescription>
+        </SheetHeader>
+        <div className="px-4 pb-6">{children}</div>
+      </SheetContent>
+    </Sheet>
+  )
+}
+
+function ConvidarPessoa({ modelos, unidades, aoCriar }: {
   modelos: Modelo[]
   unidades: Unidade[]
-  aoFechar: () => void
   aoCriar: (pessoa: Pessoa) => void
 }) {
   const [form, setForm] = useState({ nome: '', email: '', id_modelo_acesso: '', id_unidade: '', senha_provisoria: '' })
@@ -196,33 +234,31 @@ function ConvidarPessoa({ modelos, unidades, aoFechar, aoCriar }: {
   }
 
   return (
-    <Painel titulo="Convidar pessoa" aoFechar={aoFechar}>
-      <form onSubmit={convidar} className="space-y-4">
-        <Campo id="conv-nome" rotulo="Nome">
-          <Input id="conv-nome" value={form.nome} onChange={mudar('nome')} minLength={2} maxLength={150} className="bg-background" required />
-        </Campo>
-        <Campo id="conv-email" rotulo="E-mail corporativo">
-          <Input id="conv-email" type="email" value={form.email} onChange={mudar('email')} className="bg-background" required />
-        </Campo>
-        <Campo id="conv-modelo" rotulo="Modelo de acesso">
-          <Select id="conv-modelo" value={form.id_modelo_acesso} onChange={mudar('id_modelo_acesso')} className="bg-background" required>
-            <option value="" disabled>Escolha</option>
-            {modelos.filter((m) => m.ativo).map((m) => <option key={m.id_modelo} value={m.id_modelo}>{m.nome}</option>)}
-          </Select>
-        </Campo>
-        <Campo id="conv-unidade" rotulo="Unidade" opcional dica="Só define a unidade que aparece primeiro nas telas.">
-          <Select id="conv-unidade" value={form.id_unidade} onChange={mudar('id_unidade')} className="bg-background">
-            <option value="">Nenhuma</option>
-            {unidades.filter((u) => u.ativo).map((u) => <option key={u.id_unidade} value={u.id_unidade}>{u.nome}</option>)}
-          </Select>
-        </Campo>
-        <Campo id="conv-senha" rotulo="Senha provisória" opcional dica="Vazia: a pessoa recebe um convite por e-mail para criar a senha.">
-          <Input id="conv-senha" type="text" value={form.senha_provisoria} onChange={mudar('senha_provisoria')} minLength={6} maxLength={72} className="bg-background" autoComplete="off" />
-        </Campo>
-        {erro && <Aviso mensagem={erro} />}
-        <Button type="submit" size="lg" className="h-11 w-full" disabled={enviando}>{enviando ? 'Criando...' : 'Criar conta'}</Button>
-      </form>
-    </Painel>
+    <form onSubmit={convidar} className="space-y-4">
+      <Campo id="conv-nome" rotulo="Nome">
+        <Input id="conv-nome" value={form.nome} onChange={mudar('nome')} minLength={2} maxLength={150} className="bg-background" required />
+      </Campo>
+      <Campo id="conv-email" rotulo="E-mail corporativo">
+        <Input id="conv-email" type="email" value={form.email} onChange={mudar('email')} className="bg-background" required />
+      </Campo>
+      <Campo id="conv-modelo" rotulo="Modelo de acesso">
+        <Select id="conv-modelo" value={form.id_modelo_acesso} onChange={mudar('id_modelo_acesso')} className="bg-background" required>
+          <option value="" disabled>Escolha</option>
+          {modelos.filter((m) => m.ativo).map((m) => <option key={m.id_modelo} value={m.id_modelo}>{m.nome}</option>)}
+        </Select>
+      </Campo>
+      <Campo id="conv-unidade" rotulo="Unidade" opcional dica="Só define a unidade que aparece primeiro nas telas.">
+        <Select id="conv-unidade" value={form.id_unidade} onChange={mudar('id_unidade')} className="bg-background">
+          <option value="">Nenhuma</option>
+          {unidades.filter((u) => u.ativo).map((u) => <option key={u.id_unidade} value={u.id_unidade}>{u.nome}</option>)}
+        </Select>
+      </Campo>
+      <Campo id="conv-senha" rotulo="Senha provisória" opcional dica="Vazia: a pessoa recebe um convite por e-mail para criar a senha.">
+        <Input id="conv-senha" type="text" value={form.senha_provisoria} onChange={mudar('senha_provisoria')} minLength={6} maxLength={72} className="bg-background" autoComplete="off" />
+      </Campo>
+      {erro && <Aviso mensagem={erro} />}
+      <Button type="submit" size="lg" className="h-11 w-full" disabled={enviando}>{enviando ? 'Criando...' : 'Criar conta'}</Button>
+    </form>
   )
 }
 
@@ -665,7 +701,14 @@ function Unidades() {
         )}
       </div>
 
-      {aberta === 'nova' && <FormularioUnidade key="nova" aoFechar={() => setAberta(null)} aoSalvar={aposSalvar} />}
+      <PainelLateral
+        aberto={aberta === 'nova'}
+        titulo="Nova unidade"
+        descricao="Loja ou centro de distribuição. O tipo não muda depois de criada."
+        aoFechar={() => setAberta(null)}
+      >
+        <FormularioUnidade key="nova" aoFechar={() => setAberta(null)} aoSalvar={aposSalvar} />
+      </PainelLateral>
       {escolhida && <FormularioUnidade key={escolhida.id_unidade} unidade={escolhida} aoFechar={() => setAberta(null)} aoSalvar={aposSalvar} />}
     </div>
   )
@@ -681,6 +724,8 @@ function FormularioUnidade({ unidade, aoFechar, aoSalvar }: { unidade?: Unidade;
     setForm({ ...form, [campo]: e.target.type === 'checkbox' ? e.target.checked : e.target.value })
   }
   const cd = form.tipo === 'cd'
+  // editar fica no Painel ao lado da lista; criar já vem dentro do painel lateral
+  const Moldura = unidade ? Painel : SemMoldura
 
   async function salvar(evento: FormEvent | null, extra: Record<string, unknown> = {}) {
     evento?.preventDefault()
@@ -702,7 +747,7 @@ function FormularioUnidade({ unidade, aoFechar, aoSalvar }: { unidade?: Unidade;
   }
 
   return (
-    <Painel titulo={unidade ? unidade.nome : 'Nova unidade'} aoFechar={aoFechar}>
+    <Moldura titulo={unidade?.nome ?? ''} aoFechar={aoFechar}>
       <form onSubmit={salvar} className="space-y-4">
         <Campo id="un-nome" rotulo="Nome">
           <Input id="un-nome" value={form.nome} onChange={mudar('nome')} minLength={2} maxLength={100} className="bg-background" required />
@@ -757,6 +802,10 @@ function FormularioUnidade({ unidade, aoFechar, aoSalvar }: { unidade?: Unidade;
           <Button type="submit" size="lg" className="h-11 px-5" disabled={enviando}>{enviando ? 'Salvando...' : 'Salvar unidade'}</Button>
         </div>
       </form>
-    </Painel>
+    </Moldura>
   )
+}
+
+function SemMoldura({ children }: { titulo: string; aoFechar: () => void; children: ReactNode }) {
+  return <>{children}</>
 }

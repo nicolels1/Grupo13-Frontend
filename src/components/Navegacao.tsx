@@ -104,7 +104,7 @@ export function Cabecalho({ titulo, subtitulo, children, abas }: {
   abas?: ReactNode
 }) {
   return (
-    <div className={cn('mb-8 bg-aco-fundo px-6 pt-8', !abas && 'pb-8')}>
+    <div className={cn('mb-8 border-l-4 border-aco bg-aco-fundo px-6 pt-8', !abas && 'pb-8')}>
       <div className={cn('flex flex-wrap items-end justify-between gap-4', Boolean(abas) && 'mb-6')}>
         <div className="space-y-1">
           <h1 className="font-heading text-3xl font-medium tracking-tight">{titulo}</h1>
