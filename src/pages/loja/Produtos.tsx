@@ -10,7 +10,7 @@ import { api, type Esquema } from '@/lib/api'
 import { plural } from '@/lib/formato'
 import { useCategorias } from '@/lib/listas'
 import { useCarregar } from '@/lib/useCarregar'
-import { CartaoProduto } from './CartaoProduto'
+import { CartaoProduto } from './componentes/CartaoProduto'
 import { rotuloTamanho } from './componentes/tamanhos'
 
 const POR_PAGINA = 12

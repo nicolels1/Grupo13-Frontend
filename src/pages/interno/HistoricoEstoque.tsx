@@ -12,7 +12,7 @@ import { ordenarTamanhos } from '@/lib/cores'
 import { CANAIS, codigoTransferencia, dataCurta, dataLonga, hojeIso, hora, paraApi, plural, TIPOS_MOVIMENTACAO } from '@/lib/formato'
 import { useAdiado, useCarregar } from '@/lib/useCarregar'
 import { AbasEstoque, AcoesEstoque } from './Estoque'
-import { GraficoEvolucao } from './GraficoEvolucao'
+import { GraficoEvolucao } from './componentes/GraficoEvolucao'
 
 type ItemHistorico = Esquema<'EstoqueHistoricoItem'>
 type ItemEstoque = Esquema<'EstoqueItem'>

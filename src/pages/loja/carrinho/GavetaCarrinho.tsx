@@ -1,11 +1,11 @@
 import { Link } from 'react-router'
-import { cn } from 'cn'
 
 import { Aviso, Carregando } from '@/components/Estados'
 import { buttonVariants } from '@/components/ui/button'
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet'
 import { moeda, plural } from '@/lib/formato'
 import { useCarrinho } from './contexto'
+import { FinalizarCompra } from './FinalizarCompra'
 import { BarraFreteGratis, ItensCarrinho } from './ItensCarrinho'
 import { useResumo } from './useResumo'
 
@@ -52,14 +52,7 @@ export function GavetaCarrinho() {
                 <span className="font-medium tabular-nums">{resumo ? moeda(resumo.valor_itens) : '—'}</span>
               </div>
               <p className="text-xs text-muted-foreground">O frete e a retirada você escolhe na finalização.</p>
-              <Link
-                to="/loja/checkout"
-                onClick={fecharGaveta}
-                aria-disabled={Boolean(erro)}
-                className={cn(buttonVariants({ size: 'loja' }), 'w-full sm:w-full', erro && 'pointer-events-none opacity-50')}
-              >
-                Finalizar compra
-              </Link>
+              <FinalizarCompra desativado={Boolean(erro)} aoClicar={fecharGaveta} />
               <Link
                 to="/loja/carrinho"
                 onClick={fecharGaveta}

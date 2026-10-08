@@ -3,7 +3,7 @@ import { Link } from 'react-router'
 import type { Esquema } from '@/lib/api'
 import { coresDoProduto, corDaPeca, faixaDePreco } from '@/lib/cores'
 import { moeda, plural } from '@/lib/formato'
-import { fotosDaCor } from './componentes/fotos'
+import { fotosDaCor } from './fotos'
 
 // cartão da vitrine: primeira foto da primeira cor (sem foto, um bloco na cor da peça), nome, preço e cores
 export function CartaoProduto({ produto }: { produto: Esquema<'ProdutoSaida'> }) {

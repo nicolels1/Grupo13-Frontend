@@ -12,16 +12,6 @@ export function RotaInicial() {
   return <Navigate to={perfil?.tipo_conta === 'interna' ? '/interno' : '/loja'} replace />
 }
 
-// lugar de uma tela que ainda vai ser feita
-export function EmConstrucao({ titulo, descricao }: { titulo: string; descricao?: string }) {
-  return (
-    <section className="space-y-2">
-      <h1 className="font-heading text-2xl font-semibold">{titulo}</h1>
-      <p className="text-sm text-muted-foreground">{descricao ?? 'Tela em construção.'}</p>
-    </section>
-  )
-}
-
 export function NaoEncontrada() {
   return (
     <main className="mx-auto max-w-md space-y-4 p-6 text-center">
