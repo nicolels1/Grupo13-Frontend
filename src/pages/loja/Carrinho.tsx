@@ -1,10 +1,10 @@
 import { Link } from 'react-router'
-import { cn } from 'cn'
 
 import { Aviso, Carregando } from '@/components/Estados'
 import { buttonVariants } from '@/components/ui/button'
 import { moeda, plural } from '@/lib/formato'
 import { useCarrinho } from './carrinho/contexto'
+import { FinalizarCompra } from './carrinho/FinalizarCompra'
 import { BarraFreteGratis, ItensCarrinho } from './carrinho/ItensCarrinho'
 import { useResumo } from './carrinho/useResumo'
 
@@ -59,13 +59,7 @@ export function CarrinhoLoja() {
                 <span className="font-medium">Total com entrega</span>
                 <span className="text-lg font-medium tabular-nums">{resumo ? moeda(resumo.total_entrega) : '—'}</span>
               </div>
-              <Link
-                to="/loja/checkout"
-                aria-disabled={Boolean(erro)}
-                className={cn(buttonVariants({ size: 'loja' }), 'w-full sm:w-full', erro && 'pointer-events-none opacity-50')}
-              >
-                Finalizar compra
-              </Link>
+              <FinalizarCompra desativado={Boolean(erro)} />
               <Link to="/loja/produtos" className="block text-center text-sm underline underline-offset-4">
                 Continuar comprando
               </Link>
