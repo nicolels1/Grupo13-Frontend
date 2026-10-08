@@ -90,7 +90,7 @@ export function Catalogo() {
                       <tr key={p.id_produto} className="border-b hover:bg-superficie">
                         <td className="py-3 pl-2">
                           <Link to={`/interno/catalogo/${p.id_produto}`} className="flex items-center gap-3 hover:underline">
-                            <Miniatura cor={cores[0]} />
+                            <Miniatura cor={cores[0]} foto={[...(p.imagens ?? [])].sort((a, b) => a.ordem - b.ordem)[0]?.url} />
                             {p.nome}
                           </Link>
                         </td>
