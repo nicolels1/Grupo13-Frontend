@@ -16,9 +16,11 @@ Frontend da plataforma da Casa Lorenzi, desenvolvida no Case Tech da Trainee Ins
 - [Telas e endereços](#telas-e-endereços)
 - [Como rodar localmente](#como-rodar-localmente)
 - [Scripts](#scripts)
+- [Testes e CI](#testes-e-ci)
 - [Convenções do código](#convenções-do-código)
 - [Deploy (Vercel)](#deploy-vercel)
 - [Problemas comuns](#problemas-comuns)
+- [Decisões de arquitetura](#decisões-de-arquitetura)
 
 ## O que a plataforma faz
 
@@ -65,6 +67,7 @@ O frontend usa o Supabase só para o login. Todos os dados, inclusive os arquivo
 | Supabase JS | login (Supabase Auth) |
 | openapi-typescript | tipos da API gerados do OpenAPI do backend |
 | oxlint | lint |
+| Vitest + GitHub Actions | testes e verificações em cada PR |
 | Vercel | deploy |
 
 ## Estrutura do projeto
@@ -75,10 +78,12 @@ src/
 ├── main.tsx             ponto de entrada
 ├── index.css            fontes, tokens de cor e estilos base
 ├── auth/                sessão e perfil (AuthProvider), proteção das rotas e áreas por permissão
+├── config/              o que muda por ambiente: endereço da API e projeto do Supabase
 ├── components/          componentes usados nas duas plataformas (logo, estados de tela, navegação, peça, status)
 │   └── ui/              componentes do shadcn/ui ajustados ao design
 ├── layouts/             LayoutCliente (topo e rodapé da loja) e LayoutInterno (barra das áreas e unidade)
 ├── lib/                 chamada à API, cliente do Supabase, tipos da API, formatos de data e moeda, listas
+│                        (com os testes ao lado: formato.test.ts, api.test.ts)
 ├── rotas/               rotasLoja.tsx e rotasInterno.tsx
 └── pages/
     ├── Entrar.tsx       entrar, cadastro, esqueci a senha e criar nova senha
@@ -92,6 +97,8 @@ src/
     └── interno/         telas da plataforma interna
         └── componentes/ partes das telas do interno (gráficos, troca e devolução)
 ```
+
+Fora do `src/`: `docs/adr/` (decisões de arquitetura), `.github/workflows/` (verificações no GitHub), `.env.example` e `vercel.json`.
 
 Componente usado nas duas plataformas fica em `components/`; o que é de uma plataforma só fica em `componentes/` dentro da pasta dela.
 
@@ -168,7 +175,18 @@ Tudo que começa com `VITE_` vai para o navegador: nunca coloque uma chave secre
 | `npm run build` | confere os tipos (`tsc`) e gera o build em `dist/` |
 | `npm run preview` | serve o build localmente |
 | `npm run lint` | roda o oxlint |
+| `npm test` | roda os testes com o Vitest |
 | `npm run tipos:api` | atualiza `src/lib/tiposApi.ts` a partir do OpenAPI da API publicada |
+
+## Testes e CI
+
+Os testes ficam ao lado do arquivo que testam (`formato.test.ts` junto de `formato.ts`) e cobrem as funções puras: formatos de data, moeda e CPF, as regras de quem vê cada área do interno e a mensagem de erro da API.
+
+```bash
+npm test
+```
+
+A cada push na `main` e em todo Pull Request, o GitHub roda lint, testes e build (`.github/workflows/verificacoes.yml`). O resultado aparece na aba Actions e no próprio PR.
 
 ## Convenções do código
 
@@ -180,7 +198,7 @@ Tudo que começa com `VITE_` vai para o navegador: nunca coloque uma chave secre
 - **Visual:** cores só pelos tokens do `src/index.css`, fontes Jost, Newsreader (títulos da loja) e Marcellus (logo), cantos retos, telas de 360 px ao desktop e acessibilidade mínima (rótulo em todo campo, foco visível, botão de ícone com `aria-label`). As regras completas ficam em [contexto/design-casa-lorenzi.md](contexto/design-casa-lorenzi.md).
 - **Componentes de interface** vêm do shadcn/ui (`npx shadcn@latest add <nome>`) e são ajustados ao design, em vez de escritos do zero.
 
-**Como contribuir:** atualize a `main`, crie uma branch com nome curto em kebab-case sem prefixo (ex.: `loja-meus-pedidos`), faça commits pequenos no formato `tipo: mensagem` e rode `npm run build` e `npm run lint` antes de abrir o PR.
+**Como contribuir:** atualize a `main`, crie uma branch com nome curto em kebab-case sem prefixo (ex.: `loja-meus-pedidos`), faça commits pequenos no formato `tipo: mensagem` e rode `npm run lint`, `npm test` e `npm run build` antes de abrir o PR.
 
 ## Deploy (Vercel)
 
@@ -198,3 +216,17 @@ Tudo que começa com `VITE_` vai para o navegador: nunca coloque uma chave secre
 | Link de recuperação de senha cai na página errada ou não funciona | o endereço não está nas Redirect URLs do Supabase Auth, ou o link venceu (vale 24 horas). Peça outro em "Esqueci minha senha" |
 | Variável nova não faz efeito na Vercel | faltou fazer um novo deploy depois de mudar a variável |
 | Erro de tipo depois de uma mudança na API | rode `npm run tipos:api` para atualizar os tipos gerados |
+
+## Decisões de arquitetura
+
+As decisões difíceis de desfazer ficam registradas em [docs/adr/](docs/adr/):
+
+| ADR | Decisão |
+|---|---|
+| [0001](docs/adr/0001-supabase-so-para-login.md) | Supabase só para o login; os dados sempre pela API |
+| [0002](docs/adr/0002-carrinho-no-navegador.md) | Carrinho guardado no navegador |
+| [0003](docs/adr/0003-cartao-de-teste-fica-no-navegador.md) | Dados do cartão de teste ficam no navegador |
+| [0004](docs/adr/0004-shadcn-com-base-ui-no-projeto.md) | Componentes do shadcn/ui, com base-ui, dentro do projeto |
+| [0005](docs/adr/0005-tipos-gerados-do-openapi.md) | Tipos da API gerados do OpenAPI do backend |
+
+As decisões do backend e do banco estão no [Grupo13-Backend](https://github.com/nicolels1/Grupo13-Backend/tree/main/docs/adr).
