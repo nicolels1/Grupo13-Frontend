@@ -1,0 +1,30 @@
+# Roda lint, testes e build no GitHub a cada push na main e em todo Pull Request para a main.
+# O resultado aparece na aba Actions e no próprio PR (verde = passou, vermelho = falhou).
+name: Verificações
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  # botão "Run workflow" na aba Actions, para rodar sem precisar de push
+  workflow_dispatch:
+
+jobs:
+  front:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      # o Vite 8 pede Node 20.19 ou mais recente
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: npm
+
+      - run: npm ci
+      - run: npm run lint
+      - run: npm test
+
+      # não precisa de .env: o build só grava as variáveis VITE_ no código, e vazias ele aceita
+      - run: npm run build
