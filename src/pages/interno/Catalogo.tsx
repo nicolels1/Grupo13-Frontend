@@ -1,9 +1,9 @@
-import { useState, type ChangeEvent, type FormEvent } from 'react'
+import { useRef, useState, type ChangeEvent, type FormEvent } from 'react'
 import { Plus, Search } from 'lucide-react'
 import { Link } from 'react-router'
 import { cn } from 'cn'
 
-import { Aviso, Carregando, Vazio } from '@/components/Estados'
+import { Aviso, Carregando, Sucesso, Vazio } from '@/components/Estados'
 import { Cabecalho, Paginacao } from '@/components/Navegacao'
 import { Miniatura } from '@/components/Peca'
 import { Button, buttonVariants } from '@/components/ui/button'
@@ -19,6 +19,9 @@ type ListaCategorias = Esquema<'Lista_CategoriaSaida_'>
 type Carga<T> = { dados: T | null; erro: string | null; carregando: boolean; recarregar: () => void }
 
 const POR_PAGINA = 25
+// mesmas regras do backend para a foto da categoria (a do carrossel da página inicial)
+const TIPOS_FOTO = ['image/jpeg', 'image/png', 'image/webp']
+const FOTO_MAXIMA = 5 * 1024 * 1024
 
 export function Catalogo() {
   const [busca, setBusca] = useState('')
@@ -118,7 +121,52 @@ export function Catalogo() {
 function Categorias({ categorias }: { categorias: Carga<ListaCategorias> }) {
   const [nova, setNova] = useState('')
   const [editando, setEditando] = useState<{ id: number; nome: string } | null>(null)
+  // foto: um seletor de arquivo só, apontado para a categoria do botão clicado
+  const seletor = useRef<HTMLInputElement>(null)
+  const [alvo, setAlvo] = useState<Esquema<'CategoriaSaida'> | null>(null)
+  const [erroFoto, setErroFoto] = useState<string | null>(null)
+  const [feito, setFeito] = useState<string | null>(null)
   const { enviar, enviando, erro } = useEnviar()
+
+  function escolherFoto(categoria: Esquema<'CategoriaSaida'>) {
+    setAlvo(categoria)
+    setErroFoto(null)
+    setFeito(null)
+    seletor.current?.click()
+  }
+
+  async function enviarFoto(evento: ChangeEvent<HTMLInputElement>) {
+    const arquivo = evento.target.files?.[0]
+    evento.target.value = ''
+    if (!arquivo || !alvo) return
+    if (!TIPOS_FOTO.includes(arquivo.type)) {
+      setErroFoto('Esse tipo de arquivo não é aceito. Envie JPG, PNG ou WEBP.')
+      return
+    }
+    if (arquivo.size > FOTO_MAXIMA) {
+      setErroFoto('A foto passa de 5 MB. Envie uma menor.')
+      return
+    }
+    const formulario = new FormData()
+    formulario.append('arquivo', arquivo)
+    const ok = await enviar(() => api<Esquema<'CategoriaSaida'>>(`/categorias/${alvo.id_categoria}/imagem`, { metodo: 'POST', corpo: formulario }))
+    if (ok) {
+      setFeito(`Foto de ${alvo.nome} salva. Ela aparece no carrossel da página inicial.`)
+      limparListas('categorias')
+      categorias.recarregar()
+    }
+  }
+
+  async function tirarFoto(categoria: Esquema<'CategoriaSaida'>) {
+    setErroFoto(null)
+    setFeito(null)
+    const ok = await enviar(() => api<Esquema<'CategoriaSaida'>>(`/categorias/${categoria.id_categoria}/imagem`, { metodo: 'DELETE' }))
+    if (ok) {
+      setFeito(`Foto de ${categoria.nome} tirada. No carrossel, ela volta ao quadrado ardósia.`)
+      limparListas('categorias')
+      categorias.recarregar()
+    }
+  }
 
   async function salvar(caminho: string, metodo: 'POST' | 'PATCH', corpo: { nome?: string; ativo?: boolean }) {
     const ok = await enviar(() => api<Esquema<'CategoriaSaida'>>(caminho, { metodo, corpo }))
@@ -147,6 +195,11 @@ function Categorias({ categorias }: { categorias: Carga<ListaCategorias> }) {
       <ul className="text-sm">
         {categorias.dados?.items.map((c) => (
           <li key={c.id_categoria} className="flex items-center justify-between gap-2 border-b py-2">
+            {c.imagem_url ? (
+              <img src={c.imagem_url} alt="" className="size-10 shrink-0 object-cover" />
+            ) : (
+              <span className="size-10 shrink-0 bg-ardosia" aria-hidden="true" />
+            )}
             {editando && editando.id === c.id_categoria ? (
               <form onSubmit={renomear} className="flex flex-1 gap-1">
                 <Label htmlFor={`cat-${c.id_categoria}`} className="sr-only">Nome da categoria</Label>
@@ -155,9 +208,21 @@ function Categorias({ categorias }: { categorias: Carga<ListaCategorias> }) {
               </form>
             ) : (
               <>
-                <button type="button" onClick={() => setEditando({ id: c.id_categoria, nome: c.nome })} className={cn('text-left hover:underline', !c.ativo && 'text-muted-foreground line-through')}>
-                  {c.nome}
-                </button>
+                <div className="min-w-0 flex-1">
+                  <button type="button" onClick={() => setEditando({ id: c.id_categoria, nome: c.nome })} className={cn('block text-left hover:underline', !c.ativo && 'text-muted-foreground line-through')}>
+                    {c.nome}
+                  </button>
+                  <span className="flex flex-wrap gap-x-3 text-xs">
+                    <button type="button" disabled={enviando} onClick={() => escolherFoto(c)} className="text-aco underline-offset-2 hover:underline disabled:opacity-50">
+                      {c.imagem_url ? 'Trocar foto' : 'Enviar foto'}
+                    </button>
+                    {c.imagem_url && (
+                      <button type="button" disabled={enviando} onClick={() => tirarFoto(c)} className="text-muted-foreground underline-offset-2 hover:underline disabled:opacity-50">
+                        Tirar foto
+                      </button>
+                    )}
+                  </span>
+                </div>
                 <Button variant="ghost" size="xs" disabled={enviando} onClick={() => salvar(`/categorias/${c.id_categoria}`, 'PATCH', { ativo: !c.ativo })}>
                   {c.ativo ? 'Desativar' : 'Reativar'}
                 </Button>
@@ -171,8 +236,13 @@ function Categorias({ categorias }: { categorias: Carga<ListaCategorias> }) {
         <Input id="nova-categoria" value={nova} onChange={(e) => setNova(e.target.value)} placeholder="Nova categoria" minLength={2} maxLength={100} className="bg-background" required />
         <Button type="submit" variant="outline" className="h-9" disabled={enviando}>Criar</Button>
       </form>
-      <p className="text-xs text-muted-foreground">Clique no nome para renomear. Categoria desativada some da loja e não recebe produtos novos.</p>
-      {erro && <Aviso mensagem={erro} />}
+      <input ref={seletor} type="file" accept={TIPOS_FOTO.join(',')} onChange={enviarFoto} className="sr-only" tabIndex={-1} aria-hidden="true" />
+      <p className="text-xs text-muted-foreground">
+        Clique no nome para renomear. Categoria desativada some da loja e não recebe produtos novos. A foto (JPG, PNG ou WEBP de até
+        5 MB) aparece no carrossel da página inicial.
+      </p>
+      {(erroFoto || erro) && <Aviso mensagem={erroFoto || erro} />}
+      {feito && <Sucesso>{feito}</Sucesso>}
     </aside>
   )
 }
