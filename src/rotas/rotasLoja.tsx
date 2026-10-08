@@ -1,9 +1,7 @@
-import { Hammer } from 'lucide-react'
-import { Link, type RouteObject } from 'react-router'
+import type { RouteObject } from 'react-router'
 
 import { ExigeLogin } from '@/auth/Protecao'
 import { LayoutCliente } from '@/layouts/LayoutCliente'
-import { EmConstrucao } from '@/pages/Basicas'
 import { Cadastro, Entrar } from '@/pages/Entrar'
 import { AjudaLoja } from '@/pages/loja/Ajuda'
 import { AvaliarPeca } from '@/pages/loja/Avaliar'
@@ -11,29 +9,13 @@ import { CarrinhoLoja } from '@/pages/loja/Carrinho'
 import { ChamadosCliente, ConversaCliente, NovoChamadoCliente, SemChamadoEscolhido } from '@/pages/loja/Chamados'
 import { CheckoutLoja } from '@/pages/loja/Checkout'
 import { ConfirmacaoPedido } from '@/pages/loja/Confirmacao'
+import { Enderecos } from '@/pages/loja/Enderecos'
+import { AreaDaConta } from '@/pages/loja/conta/AreaDaConta'
+import { VisaoGeralConta } from '@/pages/loja/conta/VisaoGeralConta'
 import { InicioLoja } from '@/pages/loja/Inicio'
 import { MeusPedidos } from '@/pages/loja/MeusPedidos'
 import { ProdutoLoja } from '@/pages/loja/Produto'
 import { ProdutosLoja } from '@/pages/loja/Produtos'
-
-// telas da loja que ainda vão ser feitas: o caminho já existe para o menu e os botões levarem
-// a algum lugar, e cada etapa troca o aviso pela tela de verdade. Bloco aço-claro para a página
-// não parecer quebrada enquanto isso
-function emConstrucao(titulo: string, descricao: string) {
-  return (
-    <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6">
-      <div className="flex flex-col gap-5 border-l-4 border-aco bg-aco-fundo p-8 sm:flex-row sm:items-start">
-        <Hammer className="size-8 shrink-0 text-aco" aria-hidden="true" />
-        <div className="space-y-4">
-          <EmConstrucao titulo={titulo} descricao={descricao} />
-          <Link to="/loja/produtos" className="inline-block text-sm font-medium underline underline-offset-4">
-            Continuar comprando
-          </Link>
-        </div>
-      </div>
-    </div>
-  )
-}
 
 export const rotasLoja: RouteObject[] = [
   { path: '/entrar', element: <Entrar /> },
@@ -63,41 +45,28 @@ export const rotasLoja: RouteObject[] = [
           </ExigeLogin>
         ),
       },
+      // área "Minha conta": login de cliente e o menu das seções em volta; os endereços das
+      // páginas não mudam (/loja/pedidos, /loja/chamados...) e /loja/conta é a visão geral
       {
-        path: 'pedidos',
         element: (
           <ExigeLogin tipo="cliente">
-            <MeusPedidos />
-          </ExigeLogin>
-        ),
-      },
-      {
-        path: 'avaliar/:idItem',
-        element: (
-          <ExigeLogin tipo="cliente">
-            <AvaliarPeca />
-          </ExigeLogin>
-        ),
-      },
-      {
-        path: 'enderecos',
-        element: (
-          <ExigeLogin tipo="cliente">
-            {emConstrucao('Endereços', 'O cadastro de endereços está em construção.')}
-          </ExigeLogin>
-        ),
-      },
-      {
-        path: 'chamados',
-        element: (
-          <ExigeLogin tipo="cliente">
-            <ChamadosCliente />
+            <AreaDaConta />
           </ExigeLogin>
         ),
         children: [
-          { index: true, element: <SemChamadoEscolhido /> },
-          { path: 'novo', element: <NovoChamadoCliente /> },
-          { path: ':idChamado', element: <ConversaCliente /> },
+          { path: 'conta', element: <VisaoGeralConta /> },
+          { path: 'pedidos', element: <MeusPedidos /> },
+          { path: 'avaliar/:idItem', element: <AvaliarPeca /> },
+          { path: 'enderecos', element: <Enderecos /> },
+          {
+            path: 'chamados',
+            element: <ChamadosCliente />,
+            children: [
+              { index: true, element: <SemChamadoEscolhido /> },
+              { path: 'novo', element: <NovoChamadoCliente /> },
+              { path: ':idChamado', element: <ConversaCliente /> },
+            ],
+          },
         ],
       },
     ],

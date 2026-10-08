@@ -45,7 +45,7 @@ export function Status({ tipo, valor, className }: { tipo: TipoStatus; valor: st
   const { rotulos, tons } = STATUS[tipo]
   const tom: Tom = (tons as Record<string, Tom>)[valor] ?? 'neutro'
   return (
-    <span className={cn('inline-flex items-center px-2 py-0.5 text-xs font-medium whitespace-nowrap', TONS[tom], className)}>
+    <span className={cn('inline-flex items-center rounded-sm px-2 py-0.5 text-xs font-medium whitespace-nowrap', TONS[tom], className)}>
       {rotulos[valor] ?? valor}
     </span>
   )

@@ -1,25 +1,16 @@
 import { useState, type ReactNode, type SubmitEvent } from 'react'
-import { ChevronDown, Package, Search, ShoppingBag, User } from 'lucide-react'
+import { Package, Search, ShoppingBag, User } from 'lucide-react'
 import { Link, Outlet, useLocation, useNavigate, useSearchParams } from 'react-router'
 import { cn } from 'cn'
 
 import { useAuth } from '@/auth/contexto'
 import { Logo } from '@/components/Logo'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuGroup,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
-import { api, type Esquema } from '@/lib/api'
+import type { Esquema } from '@/lib/api'
 import { useCategorias } from '@/lib/listas'
-import { useCarregar } from '@/lib/useCarregar'
 import { CarrinhoProvider } from '@/pages/loja/carrinho/CarrinhoProvider'
 import { useCarrinho } from '@/pages/loja/carrinho/contexto'
 import { GavetaCarrinho } from '@/pages/loja/carrinho/GavetaCarrinho'
+import { useChamadosDaConta } from '@/pages/loja/conta/useChamadosDaConta'
 
 // plataforma do cliente: a vitrine é pública; a conta aparece à direita do topo
 export function LayoutCliente() {
@@ -171,7 +162,7 @@ function BuscaDaLoja() {
 function Conta() {
   const { sessao, perfil } = useAuth()
 
-  if (sessao && perfil?.tipo_conta === 'cliente') return <MenuDaConta nome={perfil.nome} />
+  if (sessao && perfil?.tipo_conta === 'cliente') return <LinkDaConta nome={perfil.nome} />
   if (sessao && perfil?.tipo_conta === 'interna') {
     return <Link to="/interno" className="text-sm hover:underline">Ir para a plataforma interna</Link>
   }
@@ -184,52 +175,24 @@ function Conta() {
   )
 }
 
-function MenuDaConta({ nome }: { nome: string }) {
-  const { sair } = useAuth()
-  const local = useLocation()
-  const navegar = useNavigate()
-
-  // volta ao início da loja antes de encerrar a sessão: numa página que pede login
-  // (ex.: Chamados) a proteção mandaria para /entrar
-  function sairDaConta() {
-    navegar('/loja', { replace: true })
-    void sair()
-  }
-  // confere de novo a cada troca de página, para o aviso sumir depois de ler a resposta
-  const { dados } = useCarregar(
-    () => api<Esquema<'Pagina_ChamadoSaida_'>>('/chamados', { params: { limit: 100 } }),
-    [local.pathname],
-  )
-  const temNova = (dados?.items ?? []).some((c) => c.mensagens_nao_lidas > 0)
+// logado: leva direto à área "Minha conta" (o menu das seções e o Sair ficam lá);
+// o ponto terracota avisa resposta nova nos chamados
+function LinkDaConta({ nome }: { nome: string }) {
+  const { naoLidas } = useChamadosDaConta()
   const primeiroNome = nome.split(' ')[0]
 
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger className="flex items-center gap-2 text-sm whitespace-nowrap outline-none hover:underline focus-visible:ring-2 focus-visible:ring-ring">
-        <span className="relative">
-          <User className="size-4" aria-hidden="true" />
-          {temNova && <span className="absolute -top-0.5 -right-0.5 size-2 rounded-full bg-terracota" />}
-        </span>
-        Olá, {primeiroNome}
-        {temNova && <span className="sr-only">, você tem resposta nova nos chamados</span>}
-        <ChevronDown className="size-3.5" aria-hidden="true" />
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-52">
-        {/* o rótulo do base-ui precisa estar dentro de um grupo */}
-        <DropdownMenuGroup>
-          <DropdownMenuLabel className="text-xs font-medium text-muted-foreground">Minha conta</DropdownMenuLabel>
-        </DropdownMenuGroup>
-        <DropdownMenuItem render={<Link to="/loja/pedidos" />}>Meus pedidos</DropdownMenuItem>
-        <DropdownMenuItem render={<Link to="/loja/chamados" />}>
-          Chamados
-          {temNova && <span className="ml-auto size-2 rounded-full bg-terracota" aria-label="Resposta nova" />}
-        </DropdownMenuItem>
-        <DropdownMenuItem render={<Link to="/loja/enderecos" />}>Endereços</DropdownMenuItem>
-        <DropdownMenuItem render={<Link to="/loja/ajuda" />}>Ajuda</DropdownMenuItem>
-        <DropdownMenuSeparator />
-        <DropdownMenuItem onClick={sairDaConta}>Sair</DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
+    <Link to="/loja/conta" className="group flex items-center gap-2 text-sm whitespace-nowrap">
+      <span className="relative">
+        <User className="size-5" aria-hidden="true" />
+        {naoLidas > 0 && <span className="absolute -top-0.5 -right-0.5 size-2.5 rounded-full bg-terracota ring-2 ring-background" />}
+      </span>
+      <span className="leading-tight">
+        <span className="hidden text-xs text-muted-foreground sm:block">Olá, {primeiroNome}</span>
+        <span className="font-medium group-hover:underline">Minha conta</span>
+      </span>
+      {naoLidas > 0 && <span className="sr-only">, você tem resposta nova nos chamados</span>}
+    </Link>
   )
 }
 
