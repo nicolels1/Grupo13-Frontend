@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react'
+import { useState, type SubmitEvent } from 'react'
 import { LoaderCircle } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
@@ -11,9 +11,25 @@ type Endereco = Esquema<'EnderecoSaida'>
 
 const VAZIO = { cep: '', rua: '', numero: '', complemento: '', bairro: '', cidade: '', uf: '' }
 
-// endereço novo no próprio checkout: o CEP preenche rua, bairro, cidade e UF; o resto continua editável
-export function FormEndereco({ aoSalvar, aoCancelar }: { aoSalvar: (endereco: Endereco) => void; aoCancelar?: () => void }) {
-  const [campos, setCampos] = useState(VAZIO)
+// endereço novo (checkout e Endereços) ou alterado (Endereços, com `inicial`): o CEP preenche rua,
+// bairro, cidade e UF; o resto continua editável
+export function FormEndereco({
+  aoSalvar,
+  aoCancelar,
+  inicial,
+}: {
+  aoSalvar: (endereco: Endereco) => void
+  aoCancelar?: () => void
+  inicial?: Endereco
+}) {
+  const [campos, setCampos] = useState(
+    inicial
+      ? {
+          cep: mascaraCep(inicial.cep), rua: inicial.rua, numero: inicial.numero, complemento: inicial.complemento ?? '',
+          bairro: inicial.bairro, cidade: inicial.cidade, uf: inicial.uf,
+        }
+      : VAZIO,
+  )
   const [buscando, setBuscando] = useState(false)
   const [avisoCep, setAvisoCep] = useState<string | null>(null)
   const { enviar, enviando, erro } = useEnviar()
@@ -42,11 +58,11 @@ export function FormEndereco({ aoSalvar, aoCancelar }: { aoSalvar: (endereco: En
     }))
   }
 
-  async function salvar(evento: FormEvent) {
+  async function salvar(evento: SubmitEvent) {
     evento.preventDefault()
     const criado = await enviar(() =>
-      api<Endereco>('/enderecos', {
-        metodo: 'POST',
+      api<Endereco>(inicial ? `/enderecos/${inicial.id_endereco}` : '/enderecos', {
+        metodo: inicial ? 'PATCH' : 'POST',
         corpo: {
           ...campos,
           cep: soDigitos(campos.cep),
@@ -111,7 +127,7 @@ export function FormEndereco({ aoSalvar, aoCancelar }: { aoSalvar: (endereco: En
 
       {erro && <p role="alert" className="text-sm text-ferrugem sm:col-span-6">{erro}</p>}
       <div className="flex flex-wrap gap-3 sm:col-span-6">
-        <Button type="submit" size="loja" disabled={enviando}>Salvar endereço</Button>
+        <Button type="submit" size="loja" disabled={enviando}>{inicial ? 'Salvar alterações' : 'Salvar endereço'}</Button>
         {aoCancelar && (
           <Button type="button" variant="outline" size="loja" onClick={aoCancelar}>Cancelar</Button>
         )}
