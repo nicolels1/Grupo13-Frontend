@@ -4,11 +4,11 @@ import { Link, useLocation, useNavigate } from 'react-router'
 import { cn } from 'cn'
 
 import { Aviso, Carregando, Sucesso } from '@/components/Estados'
+import { Miniatura } from '@/components/Peca'
 import { Status } from '@/components/Status'
 import { Button, buttonVariants } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { api, type Esquema } from '@/lib/api'
-import { corDaPeca } from '@/lib/cores'
 import { dataCurta, METODOS_PAGAMENTO, moeda, plural } from '@/lib/formato'
 import { useCarregar, useEnviar } from '@/lib/useCarregar'
 import { guardarPedidoEmAberto } from './checkout/pedidoEmAberto'
@@ -236,11 +236,7 @@ function AvaliarUltimaPeca({ pedidos, aoVerTodas }: { pedidos: Pedido[]; aoVerTo
       {ultima && (
         <>
           <div className="flex items-center gap-3 rounded-lg bg-white/10 p-3">
-            <span
-              className="size-9 shrink-0 rounded-full ring-2 ring-white/50"
-              style={{ backgroundColor: corDaPeca(ultima.item.cor) }}
-              aria-hidden="true"
-            />
+            <Miniatura cor={ultima.item.cor} foto={ultima.item.foto_url} className="size-9 rounded-full ring-2 ring-white/50" />
             <span className="min-w-0 text-sm">
               <span className="block truncate font-medium">{ultima.item.produto}</span>
               <span className="text-white/90">{ultima.item.cor}, tamanho {rotuloTamanho(ultima.item.tamanho)}</span>
@@ -476,7 +472,7 @@ function ItemDoPedido({ item, pedido, podeAvaliar }: { item: Item; pedido: Pedid
   return (
     <li className="flex flex-wrap items-center justify-between gap-3 py-3 text-sm">
       <span className="flex items-center gap-3">
-        <span className="size-8 shrink-0 rounded-full" style={{ backgroundColor: corDaPeca(item.cor) }} aria-hidden="true" />
+        <Miniatura cor={item.cor} foto={item.foto_url} className="size-8 rounded-full" />
         <span>
           <span className="block">{item.quantidade}× {item.produto}</span>
           <span className="text-muted-foreground">{item.cor}, tamanho {rotuloTamanho(item.tamanho)}</span>

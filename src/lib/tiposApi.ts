@@ -2507,6 +2507,11 @@ export interface components {
              * @description Avaliação já feita para este item, se houver
              */
             id_avaliacao: number | null;
+            /**
+             * Foto Url
+             * @description Primeira foto da cor comprada; vazio quando o produto não tem foto
+             */
+            foto_url: string | null;
         };
         /** ItemQuantidade */
         ItemQuantidade: {
