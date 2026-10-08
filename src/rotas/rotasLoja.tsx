@@ -2,7 +2,7 @@ import type { RouteObject } from 'react-router'
 
 import { ExigeLogin } from '@/auth/Protecao'
 import { LayoutCliente } from '@/layouts/LayoutCliente'
-import { Cadastro, Entrar } from '@/pages/Entrar'
+import { Cadastro, Entrar, EsqueciSenha, RedefinirSenha } from '@/pages/Entrar'
 import { AjudaLoja } from '@/pages/loja/Ajuda'
 import { AvaliarPeca } from '@/pages/loja/Avaliar'
 import { CarrinhoLoja } from '@/pages/loja/Carrinho'
@@ -20,6 +20,8 @@ import { ProdutosLoja } from '@/pages/loja/Produtos'
 export const rotasLoja: RouteObject[] = [
   { path: '/entrar', element: <Entrar /> },
   { path: '/cadastro', element: <Cadastro /> },
+  { path: '/esqueci-senha', element: <EsqueciSenha /> },
+  { path: '/redefinir-senha', element: <RedefinirSenha /> },
   {
     path: '/loja',
     element: <LayoutCliente />,

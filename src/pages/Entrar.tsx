@@ -1,13 +1,15 @@
 import { useState, type ReactNode, type SubmitEvent } from 'react'
 import { Check, Eye, EyeOff } from 'lucide-react'
-import { Link, Navigate, useLocation, useNavigate } from 'react-router'
+import { Link, Navigate, useLocation, useNavigate, useSearchParams } from 'react-router'
 import { cn } from 'cn'
 
 import { useAuth } from '@/auth/contexto'
+import { Carregando } from '@/components/Estados'
 import { Logo } from '@/components/Logo'
 import { Button, buttonVariants } from '@/components/ui/button'
 import { Input, Label } from '@/components/ui/input'
 import { api, ErroApi, type Esquema } from '@/lib/api'
+import { supabase } from '@/lib/supabaseClient'
 
 // o design pede uma mensagem só para credencial errada: não diz se o e-mail ou o CPF existe
 const LOGIN_INCORRETO = 'E-mail, CPF ou senha incorretos.'
@@ -15,12 +17,20 @@ const SENHA_MINIMA = 6
 
 type Destino = { voltarPara?: string } | null
 
-// moldura das telas de conta: fundo marinho-escuro de ponta a ponta e o cartão branco no meio
-function MolduraConta({ children }: { children: ReactNode }) {
+// moldura das telas de conta: fundo marinho-escuro de ponta a ponta e o cartão branco no meio.
+// As telas de senha têm pouco conteúdo: o cartão largo e mais alto não deixa a tela vazia
+function MolduraConta({ children, larga = false }: { children: ReactNode; larga?: boolean }) {
   return (
-    <main className="flex min-h-svh flex-col items-center bg-marinho-escuro px-4 py-10 text-foreground">
+    <main className={cn('flex min-h-svh flex-col items-center bg-marinho-escuro px-4 py-10 text-foreground', larga && 'sm:justify-center')}>
       <Logo para="/loja" className="mb-10 text-2xl text-white" />
-      <div className="w-full max-w-md border-t-4 border-terracota bg-background p-8 sm:p-10">{children}</div>
+      <div
+        className={cn(
+          'w-full border-t-4 border-terracota bg-background',
+          larga ? 'max-w-2xl p-8 sm:px-16 sm:py-16 [&_h1]:sm:text-4xl [&_p]:sm:text-base' : 'max-w-md p-8 sm:p-10',
+        )}
+      >
+        {children}
+      </div>
       <Link to="/loja" className="mt-6 text-sm text-white/85 underline underline-offset-4 hover:text-white">
         Voltar para a loja
       </Link>
@@ -70,6 +80,26 @@ function CampoSenha({
         {visivel ? <EyeOff className="size-4" aria-hidden="true" /> : <Eye className="size-4" aria-hidden="true" />}
       </button>
     </div>
+  )
+}
+
+// regra mostrada enquanto digita, não só depois do erro: círculo vazio enquanto falta,
+// cheio em aço (a cor de sucesso da paleta) quando cumpre
+function RegraDaSenha({ id, cumprida }: { id: string; cumprida: boolean }) {
+  return (
+    <p id={id} className={cn('flex items-center gap-2 text-sm', cumprida ? 'font-medium text-foreground' : 'text-muted-foreground')}>
+      <span
+        aria-hidden="true"
+        className={cn(
+          'flex size-5 shrink-0 items-center justify-center rounded-full border-2 transition-colors',
+          cumprida ? 'border-aco bg-aco text-white' : 'border-border',
+        )}
+      >
+        {cumprida && <Check className="size-3.5" strokeWidth={3} />}
+      </span>
+      Pelo menos {SENHA_MINIMA} caracteres
+      <span className="sr-only">{cumprida ? ', cumprido' : ', ainda não cumprido'}</span>
+    </p>
   )
 }
 
@@ -135,7 +165,10 @@ export function Entrar() {
           />
         </div>
         <div className="space-y-2">
-          <Label htmlFor="senha">Senha</Label>
+          <div className="flex items-baseline justify-between gap-4">
+            <Label htmlFor="senha">Senha</Label>
+            <Link to="/esqueci-senha" className="text-sm underline underline-offset-2 hover:text-aco">Esqueci minha senha</Link>
+          </div>
           <CampoSenha id="senha" valor={senha} aoMudar={setSenha} autoComplete="current-password" invalido={Boolean(erro)} />
         </div>
 
@@ -329,21 +362,7 @@ export function Cadastro() {
             descricao="regra-senha"
             invalido={Boolean(erros.senha)}
           />
-          {/* regra mostrada enquanto digita, não só depois do erro: círculo vazio enquanto falta,
-              cheio em aço (a cor de sucesso da paleta) quando cumpre */}
-          <p id="regra-senha" className={cn('flex items-center gap-2 text-sm', senhaOk ? 'font-medium text-foreground' : 'text-muted-foreground')}>
-            <span
-              aria-hidden="true"
-              className={cn(
-                'flex size-5 shrink-0 items-center justify-center rounded-full border-2 transition-colors',
-                senhaOk ? 'border-aco bg-aco text-white' : 'border-border',
-              )}
-            >
-              {senhaOk && <Check className="size-3.5" strokeWidth={3} />}
-            </span>
-            Pelo menos {SENHA_MINIMA} caracteres
-            <span className="sr-only">{senhaOk ? ', cumprido' : ', ainda não cumprido'}</span>
-          </p>
+          <RegraDaSenha id="regra-senha" cumprida={senhaOk} />
           <ErroDoCampo id="erro-senha" texto={erros.senha} />
         </div>
 
@@ -355,6 +374,183 @@ export function Cadastro() {
         <p className="text-center text-sm">
           Já tem conta? <Link to="/entrar" state={local.state} className="underline underline-offset-2">Entrar</Link>
         </p>
+      </form>
+    </MolduraConta>
+  )
+}
+
+// ---------- recuperar senha ----------
+
+// a recuperação é do Supabase Auth (case, seção 5): ele manda o e-mail com um link de 24h que
+// abre /redefinir-senha já com a sessão. Vale para cliente e para a equipe (o convite também)
+export function EsqueciSenha() {
+  const [email, setEmail] = useState('')
+  const [erro, setErro] = useState<string | null>(null)
+  const [enviando, setEnviando] = useState(false)
+  const [enviadoPara, setEnviadoPara] = useState<string | null>(null)
+
+  async function pedirLink(destino: string) {
+    setErro(null)
+    setEnviando(true)
+    const { error } = await supabase.auth.resetPasswordForEmail(destino, {
+      redirectTo: `${window.location.origin}/redefinir-senha`,
+    })
+    setEnviando(false)
+    if (error) {
+      setErro(error.status === 429 ? 'Muitos pedidos seguidos. Aguarde alguns minutos e tente de novo.' : 'Não foi possível enviar o link. Tente de novo.')
+      return
+    }
+    setEnviadoPara(destino)
+  }
+
+  function enviar(evento: SubmitEvent) {
+    evento.preventDefault()
+    const texto = email.trim()
+    const problema = texto ? validarCampo('email', texto) : 'Escreva o e-mail da sua conta.'
+    if (problema) {
+      setErro(problema)
+      return
+    }
+    void pedirLink(texto)
+  }
+
+  // a resposta é a mesma com ou sem conta, para a tela não revelar quais e-mails estão cadastrados
+  if (enviadoPara) {
+    return (
+      <MolduraConta larga>
+        <div className="space-y-5">
+          <h1 className="font-titulo text-3xl">Confira seu e-mail</h1>
+          <p className="text-sm">
+            Se houver uma conta com <span className="font-medium">{enviadoPara}</span>, enviamos um link para criar uma nova senha. Ele vale por 24 horas.
+          </p>
+          <p className="text-sm text-muted-foreground">Não chegou? Olhe a caixa de spam ou peça outro link.</p>
+          {erro && <p role="alert" className="text-sm text-ferrugem">{erro}</p>}
+          <Button type="button" variant="outline" size="loja" className="w-full sm:w-full" disabled={enviando} onClick={() => void pedirLink(enviadoPara)}>
+            {enviando ? 'Enviando...' : 'Enviar o link de novo'}
+          </Button>
+          <p className="text-center text-sm">
+            <Link to="/entrar" className="underline underline-offset-2">Voltar para entrar</Link>
+          </p>
+        </div>
+      </MolduraConta>
+    )
+  }
+
+  return (
+    <MolduraConta larga>
+      <form onSubmit={(e) => void enviar(e)} className="space-y-6" noValidate>
+        <div className="space-y-1">
+          <h1 className="font-titulo text-3xl">Esqueci minha senha</h1>
+          <p className="text-sm text-muted-foreground">Escreva o e-mail da sua conta. Enviamos um link para você criar uma senha nova.</p>
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="email-recuperar">E-mail</Label>
+          <Input
+            id="email-recuperar"
+            type="email"
+            autoComplete="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            maxLength={255}
+            className="h-11"
+            aria-invalid={Boolean(erro) || undefined}
+            aria-describedby={erro ? 'erro-recuperar' : undefined}
+            required
+          />
+          <ErroDoCampo id="erro-recuperar" texto={erro} />
+        </div>
+        <Button type="submit" size="loja" className="w-full sm:w-full" disabled={enviando}>
+          {enviando ? 'Enviando...' : 'Enviar link'}
+        </Button>
+        <p className="text-center text-sm">
+          Lembrou a senha? <Link to="/entrar" className="underline underline-offset-2">Entrar</Link>
+        </p>
+      </form>
+    </MolduraConta>
+  )
+}
+
+// aberta pelo link do e-mail: o cliente do Supabase lê o link e já entra na conta. Sem sessão,
+// o link venceu ou já foi usado
+export function RedefinirSenha() {
+  const { sessao } = useAuth()
+  const navegar = useNavigate()
+  // ?convite=1 vem do link do convite da equipe (ver supabaseClient): a pessoa ainda não tem senha
+  const [params] = useSearchParams()
+  const convite = params.get('convite') === '1'
+  const [senha, setSenha] = useState('')
+  const [erro, setErro] = useState<string | null>(null)
+  const [enviando, setEnviando] = useState(false)
+
+  if (sessao === undefined) {
+    return (
+      <MolduraConta larga>
+        <Carregando texto="Abrindo o link..." />
+      </MolduraConta>
+    )
+  }
+
+  if (!sessao) {
+    return (
+      <MolduraConta larga>
+        <div className="space-y-5">
+          <h1 className="font-titulo text-3xl">Link vencido</h1>
+          <p className="text-sm">
+            Este link já foi usado ou passou das 24 horas. Peça um novo para criar a sua senha. Se for um convite da equipe, também dá para pedir ao Admin que reenvie.
+          </p>
+          <Link to="/esqueci-senha" className={cn(buttonVariants({ size: 'loja' }), 'w-full sm:w-full')}>
+            Pedir outro link
+          </Link>
+        </div>
+      </MolduraConta>
+    )
+  }
+
+  async function enviar(evento: SubmitEvent) {
+    evento.preventDefault()
+    if (senha.length < SENHA_MINIMA) {
+      setErro(`A senha precisa de pelo menos ${SENHA_MINIMA} caracteres.`)
+      return
+    }
+    setErro(null)
+    setEnviando(true)
+    const { error } = await supabase.auth.updateUser({ password: senha })
+    setEnviando(false)
+    if (error) {
+      setErro(error.code === 'same_password' ? 'A nova senha precisa ser diferente da anterior.' : 'Não foi possível salvar a senha. Tente de novo.')
+      return
+    }
+    // "/" leva cada tipo de conta à sua plataforma
+    navegar('/', { replace: true })
+  }
+
+  return (
+    <MolduraConta larga>
+      <form onSubmit={(e) => void enviar(e)} className="space-y-6" noValidate>
+        <div className="space-y-1">
+          <h1 className="font-titulo text-3xl">{convite ? 'Crie sua senha' : 'Criar nova senha'}</h1>
+          <p className="text-sm text-muted-foreground">
+            {convite
+              ? `Boas-vindas à equipe da Casa Lorenzi. Crie uma senha para entrar na plataforma interna com ${sessao.user.email}.`
+              : `Para a conta ${sessao.user.email}.`}
+          </p>
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="senha-nova">{convite ? 'Senha' : 'Nova senha'}</Label>
+          <CampoSenha
+            id="senha-nova"
+            valor={senha}
+            aoMudar={setSenha}
+            autoComplete="new-password"
+            descricao="regra-senha-nova"
+            invalido={Boolean(erro)}
+          />
+          <RegraDaSenha id="regra-senha-nova" cumprida={senha.length >= SENHA_MINIMA} />
+          <ErroDoCampo id="erro-senha-nova" texto={erro} />
+        </div>
+        <Button type="submit" size="loja" className="w-full sm:w-full" disabled={enviando}>
+          {enviando ? 'Salvando...' : 'Salvar senha e entrar'}
+        </Button>
       </form>
     </MolduraConta>
   )
