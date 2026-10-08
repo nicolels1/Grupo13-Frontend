@@ -333,8 +333,8 @@ function FotosNovas({ fotos, aoMudar, cores }: { fotos: FotoNova[]; aoMudar: (fo
   )
 }
 
-// produto que já existe: as fotos na ordem da loja, com a cor de cada uma e setas para mudar a ordem.
-// A API não apaga foto: para trocar, envie outra e passe a antiga para o fim
+// produto que já existe: as fotos na ordem da loja, com a cor de cada uma, setas para mudar a ordem
+// e a lixeira (pede confirmação na própria foto antes de apagar)
 function FotosDoProduto({ produto, aoMudar }: { produto: Produto; aoMudar: () => void }) {
   const fotos = [...(produto.imagens ?? [])].sort((a, b) => a.ordem - b.ordem)
   const cores = coresDoProduto(produto)
@@ -342,7 +342,18 @@ function FotosDoProduto({ produto, aoMudar }: { produto: Produto; aoMudar: () =>
   const [corNovas, setCorNovas] = useState('')
   const [recusadas, setRecusadas] = useState<string[]>([])
   const [feito, setFeito] = useState<string | null>(null)
+  const [aApagar, setAApagar] = useState<number | null>(null)
   const { enviar, enviando, erro } = useEnviar()
+
+  async function apagar(foto: Imagem) {
+    setFeito(null)
+    const ok = await enviar(() => api<null>(`/imagens/${foto.id_imagem}`, { metodo: 'DELETE' }).then(() => true))
+    setAApagar(null)
+    if (ok) {
+      setFeito('Foto apagada.')
+      aoMudar()
+    }
+  }
 
   async function enviarNovas(evento: ChangeEvent<HTMLInputElement>) {
     const arquivos = [...(evento.target.files ?? [])]
@@ -389,6 +400,30 @@ function FotosDoProduto({ produto, aoMudar }: { produto: Produto; aoMudar: () =>
               <div className="relative">
                 <img src={foto.url} alt={`Foto ${i + 1}${foto.cor ? `, cor ${foto.cor}` : ''}`} className="aspect-[3/4] w-full object-cover" />
                 <span className="absolute top-2 left-2 bg-marinho-escuro/80 px-1.5 py-0.5 text-xs text-white">{i + 1}ª</span>
+                {aApagar === foto.id_imagem ? (
+                  <div className="absolute inset-x-0 bottom-0 space-y-2 bg-marinho-escuro/85 p-3 text-white">
+                    <p className="text-sm">Apagar esta foto? Não dá para desfazer.</p>
+                    <div className="flex gap-2">
+                      <Button type="button" size="sm" className="bg-ferrugem text-white hover:bg-ferrugem/90" disabled={enviando} onClick={() => apagar(foto)}>
+                        {enviando ? 'Apagando...' : 'Apagar'}
+                      </Button>
+                      <Button type="button" size="sm" variant="ghost" className="text-white hover:bg-white/15 hover:text-white" disabled={enviando} onClick={() => setAApagar(null)}>
+                        Manter
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <Button
+                    type="button"
+                    size="icon"
+                    aria-label={`Apagar a foto ${i + 1}`}
+                    disabled={enviando}
+                    onClick={() => setAApagar(foto.id_imagem)}
+                    className="absolute top-2 right-2 size-8 bg-marinho-escuro/80 text-white hover:bg-ferrugem"
+                  >
+                    <Trash2 />
+                  </Button>
+                )}
               </div>
               <div className="flex items-center gap-1">
                 <Button type="button" variant="ghost" size="icon" aria-label={`Passar a foto ${i + 1} para antes`} disabled={enviando || i === 0} onClick={() => mover(i, -1)}>
@@ -420,8 +455,8 @@ function FotosDoProduto({ produto, aoMudar }: { produto: Produto; aoMudar: () =>
         </Button>
       </div>
       <p className="text-xs text-muted-foreground">
-        JPG, PNG ou WEBP de até 5 MB. As fotos novas entram no fim. Foto não é apagada: para trocar, envie outra e passe a antiga
-        para o fim.
+        JPG, PNG ou WEBP de até 5 MB. As fotos novas entram no fim. Para trocar uma foto, envie a nova, coloque no lugar com as
+        setas e apague a antiga.
       </p>
       {recusadas.length > 0 && <Aviso titulo="Algumas fotos não entraram" mensagem={recusadas.join(' ')} />}
       {erro && <Aviso mensagem={erro} />}
