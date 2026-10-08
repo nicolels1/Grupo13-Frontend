@@ -7,9 +7,9 @@ import { Etiqueta, NomePeca } from '@/components/Peca'
 import { Button } from '@/components/ui/button'
 import { Input, Select } from '@/components/ui/input'
 import { api, type Esquema } from '@/lib/api'
-import { BLOCO_ACO } from '@/lib/estilos'
+import { BLOCO_ACO } from './estilos'
 import { dataCurta, mascaraCpf, METODOS_PAGAMENTO, moeda, plural } from '@/lib/formato'
-import { motivoBloqueio, prazoTroca, repartirEstorno, type ModoTroca, type TrocaFeita } from '@/lib/trocaDevolucao'
+import { motivoBloqueio, prazoTroca, repartirEstorno, type ModoTroca, type TrocaFeita } from './regrasTrocaDevolucao'
 import { useCarregar, useEnviar } from '@/lib/useCarregar'
 
 // formulário de troca e devolução de um pedido entregue, no balcão do Caixa

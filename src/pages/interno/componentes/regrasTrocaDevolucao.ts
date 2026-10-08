@@ -1,4 +1,4 @@
-import type { Esquema } from './api'
+import type { Esquema } from '@/lib/api'
 
 type Pedido = Esquema<'PedidoSaida'>
 type Pagamento = Esquema<'PagamentoSaida'>

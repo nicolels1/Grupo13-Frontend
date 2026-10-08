@@ -14,7 +14,7 @@ import { Campo, Input, Textarea } from '@/components/ui/input'
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet'
 import { useUnidadeEscolhida } from '@/layouts/unidadeEscolhida'
 import { api, ErroApi, type Esquema } from '@/lib/api'
-import { BLOCO_ACO } from '@/lib/estilos'
+import { BLOCO_ACO } from './componentes/estilos'
 import { dataCurta, dataHora, haQuanto, hora, mascaraCpf, METODOS_PAGAMENTO, moeda, plural } from '@/lib/formato'
 import { useCarregar, useEnviar } from '@/lib/useCarregar'
 

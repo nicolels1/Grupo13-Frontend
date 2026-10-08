@@ -8,7 +8,7 @@ import { Carousel, CarouselContent, CarouselItem, type CarouselApi } from '@/com
 import { api, type Esquema } from '@/lib/api'
 import { useCategorias } from '@/lib/listas'
 import { useCarregar } from '@/lib/useCarregar'
-import { CartaoProduto } from './CartaoProduto'
+import { CartaoProduto } from './componentes/CartaoProduto'
 
 const SLIDES = [
   {

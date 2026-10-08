@@ -10,11 +10,11 @@ import { Cabecalho } from '@/components/Navegacao'
 import { buttonVariants } from '@/components/ui/button'
 import { useUnidadeEscolhida } from '@/layouts/unidadeEscolhida'
 import { api, type Esquema, type OpcoesApi } from '@/lib/api'
-import { BLOCO_ACO } from '@/lib/estilos'
+import { BLOCO_ACO } from './componentes/estilos'
 import { moeda, plural } from '@/lib/formato'
 import { nomeUnidade } from '@/lib/listas'
 import { useCarregar } from '@/lib/useCarregar'
-import { GraficoChamados, GraficoMaisVendidas, GraficoVendas } from './GraficosVisaoGeral'
+import { GraficoChamados, GraficoMaisVendidas, GraficoVendas } from './componentes/GraficosVisaoGeral'
 
 type Perfil = Esquema<'Perfil'>
 type Resumo = Esquema<'Resumo'>

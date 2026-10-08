@@ -3,7 +3,7 @@ import { cn } from 'cn'
 
 import { ChartContainer, ChartLegend, ChartLegendContent, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart'
 import type { Esquema } from '@/lib/api'
-import { BLOCO_ACO } from '@/lib/estilos'
+import { BLOCO_ACO } from './estilos'
 import { moeda } from '@/lib/formato'
 
 type VendasDoDia = Esquema<'VendasDoDia'>

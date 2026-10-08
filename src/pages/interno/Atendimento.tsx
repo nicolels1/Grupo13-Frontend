@@ -19,9 +19,9 @@ import {
   tamanhoArquivo,
 } from '@/lib/formato'
 import { nomeUnidade } from '@/lib/listas'
-import { estornaveis, prazoTroca, type ModoTroca, type TrocaFeita } from '@/lib/trocaDevolucao'
+import { estornaveis, prazoTroca, type ModoTroca, type TrocaFeita } from './componentes/regrasTrocaDevolucao'
 import { useCarregar, useEnviar } from '@/lib/useCarregar'
-import { AtenderPedido } from './TrocaDevolucao'
+import { AtenderPedido } from './componentes/TrocaDevolucao'
 
 type Chamado = Esquema<'ChamadoSaida'>
 type Mensagem = Esquema<'MensagemSaida'>
