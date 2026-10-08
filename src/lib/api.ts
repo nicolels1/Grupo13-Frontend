@@ -19,7 +19,7 @@ export class ErroApi extends Error {
 }
 
 // o backend responde {"detail": "..."}; na validação (422) o detail é uma lista de erros
-function mensagemDoErro(corpo: unknown, status: number): string {
+export function mensagemDoErro(corpo: unknown, status: number): string {
   const detalhe = (corpo as { detail?: unknown } | null)?.detail
   if (typeof detalhe === 'string') return detalhe
   if (Array.isArray(detalhe) && detalhe.length > 0) {
