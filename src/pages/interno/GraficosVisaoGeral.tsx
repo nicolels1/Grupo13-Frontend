@@ -1,7 +1,9 @@
 import { Bar, BarChart, CartesianGrid, LabelList, XAxis, YAxis } from 'recharts'
+import { cn } from 'cn'
 
 import { ChartContainer, ChartLegend, ChartLegendContent, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart'
 import type { Esquema } from '@/lib/api'
+import { BLOCO_ACO } from '@/lib/estilos'
 import { moeda } from '@/lib/formato'
 
 type VendasDoDia = Esquema<'VendasDoDia'>
@@ -88,7 +90,7 @@ function NomeNoEixo({ y, payload }: { y?: number; payload?: { value: string } })
 export function GraficoMaisVendidas({ pecas }: { pecas: MaisVendida[] }) {
   const dados = pecas.map((p) => ({ ...p, nome: `${p.produto}, ${p.cor}, ${p.tamanho}` }))
   return (
-    <figure className="space-y-2 bg-aco-fundo p-5">
+    <figure className={cn('space-y-2', BLOCO_ACO)}>
       <figcaption className="text-sm font-medium">Mais vendidas na semana</figcaption>
       {dados.length === 0 ? (
         <p className="py-6 text-sm text-muted-foreground">Nenhuma venda nos últimos 7 dias.</p>

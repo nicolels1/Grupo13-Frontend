@@ -10,6 +10,7 @@ import { Cabecalho } from '@/components/Navegacao'
 import { buttonVariants } from '@/components/ui/button'
 import { useUnidadeEscolhida } from '@/layouts/unidadeEscolhida'
 import { api, type Esquema, type OpcoesApi } from '@/lib/api'
+import { BLOCO_ACO } from '@/lib/estilos'
 import { moeda, plural } from '@/lib/formato'
 import { nomeUnidade } from '@/lib/listas'
 import { useCarregar } from '@/lib/useCarregar'
@@ -258,7 +259,7 @@ function RedeAgora({ rede, unidades }: { rede: Esquema<'RedeAgora'>; unidades: E
   const t = rede.ticket_medio_30_dias
   const a = rede.avaliacoes
   return (
-    <section aria-labelledby="titulo-rede" className="space-y-8 bg-aco-fundo p-6">
+    <section aria-labelledby="titulo-rede" className={cn('space-y-8', BLOCO_ACO)}>
       <h2 id="titulo-rede" className="border-b border-foreground pb-3 text-lg font-medium">A rede agora</h2>
       <div className="grid grid-cols-2 gap-x-6 gap-y-8 md:grid-cols-4">
         <Numero rotulo="Vendas em 14 dias" valor={moeda(v.total.valor)} detalhe={variacao(v.total.variacao_valor_pct)} />

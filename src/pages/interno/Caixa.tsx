@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button'
 import { Campo, Input, Select } from '@/components/ui/input'
 import { useUnidadeEscolhida } from '@/layouts/unidadeEscolhida'
 import { api, ErroApi, todasAsPaginas, type Esquema } from '@/lib/api'
+import { BLOCO_ACO } from '@/lib/estilos'
 import { ordenarTamanhos } from '@/lib/cores'
 import { CANAIS, dataCurta, dataHora, haQuanto, hojeIso, hora, mascaraCpf, METODOS_PAGAMENTO, moeda, plural } from '@/lib/formato'
 import type { TrocaFeita } from '@/lib/trocaDevolucao'
@@ -290,7 +291,7 @@ function FormularioVenda({ loja, aoFinalizar }: { loja: Unidade; aoFinalizar: (p
         {resumo.erro && <Aviso mensagem={resumo.erro} />}
       </div>
 
-      <div className="space-y-6 lg:border-l lg:pl-8">
+      <div className={cn('h-fit space-y-6', BLOCO_ACO)}>
         <Campo id="venda-cpf" rotulo="CPF na nota?" opcional>
           <Input
             id="venda-cpf"
@@ -648,7 +649,7 @@ function VendasDeHoje({ loja }: { loja: Unidade }) {
         )}
       </div>
 
-      <div className="space-y-3 lg:border-l lg:pl-8">
+      <div className={cn('h-fit space-y-3', BLOCO_ACO)}>
         <p className="text-sm text-muted-foreground">{lista.dados ? `${plural(vendas.length, 'venda')} hoje` : 'Vendas de hoje'}</p>
         <dl className="space-y-2 text-sm">
           {Object.entries(METODOS_PAGAMENTO).map(([metodo, rotulo]) => (

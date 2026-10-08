@@ -14,6 +14,7 @@ import { Campo, Input, Textarea } from '@/components/ui/input'
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet'
 import { useUnidadeEscolhida } from '@/layouts/unidadeEscolhida'
 import { api, ErroApi, type Esquema } from '@/lib/api'
+import { BLOCO_ACO } from '@/lib/estilos'
 import { dataCurta, dataHora, haQuanto, hora, mascaraCpf, METODOS_PAGAMENTO, moeda, plural } from '@/lib/formato'
 import { useCarregar, useEnviar } from '@/lib/useCarregar'
 
@@ -369,7 +370,7 @@ function AcaoDoMomento({ pedido: p, aoFazer }: { pedido: Pedido; aoFazer: (mensa
   if (!conteudo) return null
 
   return (
-    <section aria-label="O que fazer agora" className="space-y-3 border-l-4 border-aco bg-aco-fundo p-5">
+    <section aria-label="O que fazer agora" className={cn('space-y-3', BLOCO_ACO)}>
       {conteudo}
       {erro && <Aviso mensagem={erro} />}
     </section>
