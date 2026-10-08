@@ -3,8 +3,10 @@ import { cn } from 'cn'
 
 import { corDaPeca } from '@/lib/cores'
 
-// bloco na cor da peça, no lugar da foto
-export function Miniatura({ cor, className }: { cor: string | null | undefined; className?: string }) {
+// bloco na cor da peça ou, quando houver, a foto
+// com `foto`, mostra a foto (a primeira do produto); sem foto, o bloco da cor
+export function Miniatura({ cor, foto, className }: { cor: string | null | undefined; foto?: string | null; className?: string }) {
+  if (foto) return <img src={foto} alt="" loading="lazy" className={cn('block size-10 shrink-0 object-cover', className)} />
   return (
     <span
       aria-hidden="true"

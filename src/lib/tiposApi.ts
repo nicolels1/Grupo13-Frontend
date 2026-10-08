@@ -411,7 +411,11 @@ export interface paths {
         get?: never;
         put?: never;
         post?: never;
-        delete?: never;
+        /**
+         * Remover Imagem
+         * @description Apaga a foto do produto e o arquivo no Storage. As outras mantêm a ordem.
+         */
+        delete: operations["remover_imagem_imagens__id_imagem__delete"];
         options?: never;
         head?: never;
         /** Alterar Imagem */
@@ -5010,6 +5014,49 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["ImagemSaida"];
                 };
+            };
+            /** @description Produto ou foto não encontrada */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Arquivo não aceito ou cor que o produto não tem */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Storage indisponível */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    remover_imagem_imagens__id_imagem__delete: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string;
+            };
+            path: {
+                id_imagem: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Produto ou foto não encontrada */
             404: {
