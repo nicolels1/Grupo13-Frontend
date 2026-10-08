@@ -85,25 +85,77 @@ export function InicioLoja() {
         )}
       </section>
 
-      {ativas.length > 0 && (
-        <section aria-labelledby="titulo-categorias" className="bg-ardosia text-white">
-          <div className="mx-auto max-w-7xl space-y-6 px-4 py-14 sm:px-6">
-            <h2 id="titulo-categorias" className="font-titulo text-3xl">Comprar por categoria</h2>
-            <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-              {ativas.map((categoria) => (
-                <Link
-                  key={categoria.id_categoria}
-                  to={`/loja/produtos?categoria=${categoria.id_categoria}`}
-                  className="flex aspect-[4/3] items-end border border-white/30 bg-white/10 p-5 font-titulo text-2xl transition-colors hover:bg-white/20"
-                >
-                  {categoria.nome}
-                </Link>
-              ))}
-            </div>
-          </div>
-        </section>
-      )}
+      {ativas.length > 0 && <CarrosselCategorias categorias={ativas} />}
     </>
+  )
+}
+
+// "Comprar por categoria": carrossel com setas sobre o bloco ardósia. Categoria com foto (enviada no
+// Catálogo) mostra a foto com o nome numa faixa marinho-escura translúcida (sem degradê, design);
+// sem foto, continua o quadrado translúcido sobre o ardósia
+function CarrosselCategorias({ categorias }: { categorias: Esquema<'CategoriaSaida'>[] }) {
+  const [controle, setControle] = useState<CarouselApi>()
+  const [podeVoltar, setPodeVoltar] = useState(false)
+  const [podeAvancar, setPodeAvancar] = useState(false)
+
+  useEffect(() => {
+    if (!controle) return
+    const atualizar = () => {
+      setPodeVoltar(controle.canScrollPrev())
+      setPodeAvancar(controle.canScrollNext())
+    }
+    atualizar()
+    controle.on('select', atualizar)
+    controle.on('reInit', atualizar)
+    return () => {
+      controle.off('select', atualizar)
+      controle.off('reInit', atualizar)
+    }
+  }, [controle])
+
+  const seta = 'flex size-10 items-center justify-center bg-white/15 text-white hover:bg-white/30 disabled:pointer-events-none disabled:opacity-30'
+
+  return (
+    <section aria-labelledby="titulo-categorias" className="bg-ardosia text-white">
+      <div className="mx-auto max-w-7xl space-y-6 px-4 py-14 sm:px-6">
+        <div className="flex items-end justify-between gap-4">
+          <h2 id="titulo-categorias" className="font-titulo text-3xl">Comprar por categoria</h2>
+          <div className="flex gap-2">
+            <button type="button" onClick={() => controle?.scrollPrev()} disabled={!podeVoltar} aria-label="Categorias anteriores" className={seta}>
+              <ChevronLeft className="size-5" aria-hidden="true" />
+            </button>
+            <button type="button" onClick={() => controle?.scrollNext()} disabled={!podeAvancar} aria-label="Próximas categorias" className={seta}>
+              <ChevronRight className="size-5" aria-hidden="true" />
+            </button>
+          </div>
+        </div>
+        <Carousel setApi={setControle} opts={{ align: 'start' }} aria-label="Categorias">
+          <CarouselContent className="-ml-3">
+            {categorias.map((categoria) => (
+              <CarouselItem key={categoria.id_categoria} className="basis-1/2 pl-3 lg:basis-1/4">
+                <Link
+                  to={`/loja/produtos?categoria=${categoria.id_categoria}`}
+                  className={cn(
+                    'relative flex aspect-[4/3] items-end overflow-hidden font-titulo text-2xl',
+                    categoria.imagem_url ? 'group' : 'border border-white/30 bg-white/10 p-5 transition-colors hover:bg-white/20',
+                  )}
+                >
+                  {categoria.imagem_url ? (
+                    <>
+                      {/* a foto é decorativa: o nome da categoria está escrito embaixo */}
+                      <img src={categoria.imagem_url} alt="" loading="lazy" className="absolute inset-0 size-full object-cover" />
+                      <span className="relative w-full bg-marinho-escuro/70 px-5 py-3 group-hover:bg-marinho-escuro/85">{categoria.nome}</span>
+                    </>
+                  ) : (
+                    categoria.nome
+                  )}
+                </Link>
+              </CarouselItem>
+            ))}
+          </CarouselContent>
+        </Carousel>
+      </div>
+    </section>
   )
 }
 

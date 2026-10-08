@@ -253,6 +253,30 @@ export interface paths {
         patch: operations["alterar_categoria_categorias__id_categoria__patch"];
         trace?: never;
     };
+    "/categorias/{id_categoria}/imagem": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Trocar Imagem Categoria
+         * @description Foto do carrossel da página inicial (JPG, PNG ou WEBP de até 5 MB), como multipart/form-data. Enviar de novo troca a foto.
+         */
+        post: operations["trocar_imagem_categoria_categorias__id_categoria__imagem_post"];
+        /**
+         * Remover Imagem Categoria
+         * @description Tira a foto: a categoria volta ao bloco de cor no carrossel.
+         */
+        delete: operations["remover_imagem_categoria_categorias__id_categoria__imagem_delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/produtos": {
         parameters: {
             query?: never;
@@ -1746,6 +1770,11 @@ export interface components {
             /** Conteudo */
             conteudo?: string | null;
         };
+        /** Body_trocar_imagem_categoria_categorias__id_categoria__imagem_post */
+        Body_trocar_imagem_categoria_categorias__id_categoria__imagem_post: {
+            /** Arquivo */
+            arquivo: string;
+        };
         /** CadastroCliente */
         CadastroCliente: {
             /** Nome */
@@ -1811,6 +1840,11 @@ export interface components {
             nome: string;
             /** Ativo */
             ativo: boolean;
+            /**
+             * Imagem Url
+             * @description Foto do carrossel da página inicial; vazio sem foto
+             */
+            imagem_url?: string | null;
         };
         /** ChamadoAlterar */
         ChamadoAlterar: {
@@ -4497,6 +4531,102 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
                 };
+            };
+        };
+    };
+    trocar_imagem_categoria_categorias__id_categoria__imagem_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string;
+            };
+            path: {
+                id_categoria: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["Body_trocar_imagem_categoria_categorias__id_categoria__imagem_post"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CategoriaSaida"];
+                };
+            };
+            /** @description Categoria não encontrada */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Arquivo não aceito */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Storage indisponível */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    remover_imagem_categoria_categorias__id_categoria__imagem_delete: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string;
+            };
+            path: {
+                id_categoria: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CategoriaSaida"];
+                };
+            };
+            /** @description Categoria não encontrada */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+            /** @description Storage indisponível */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
