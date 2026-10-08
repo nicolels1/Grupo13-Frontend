@@ -1,6 +1,6 @@
-import { Fragment, useState, type ChangeEvent, type FormEvent, type ReactNode } from 'react'
-import { ChevronLeft, ExternalLink, Plus, Trash2 } from 'lucide-react'
-import { Link, useNavigate, useParams } from 'react-router'
+import { Fragment, useEffect, useRef, useState, type ChangeEvent, type FormEvent, type ReactNode } from 'react'
+import { ArrowLeft, ArrowRight, ChevronLeft, ExternalLink, ImagePlus, Plus, Trash2 } from 'lucide-react'
+import { Link, useLocation, useNavigate, useParams } from 'react-router'
 import { cn } from 'cn'
 
 import { Aviso, Carregando, Sucesso } from '@/components/Estados'
@@ -21,9 +21,30 @@ type DadosProduto = { nome: string; id_categoria: string; descricao_cliente: str
 type EstoqueInicial = { id_unidade: string; canal: Canal; quantidade: string }
 type VarianteNova = { cor: string; tamanho: string; sku: string; preco: string; estoque_inicial: EstoqueInicial[] }
 type VarianteEditada = { id_variante: number; sku: string; preco: string; ativo: boolean }
+type Imagem = Esquema<'ImagemSaida'>
+// foto escolhida no formulário de produto novo: sobe depois que o produto existe
+type FotoNova = { chave: string; arquivo: File; previa: string; cor: string }
 
 const DADOS_VAZIOS: DadosProduto = { nome: '', id_categoria: '', descricao_cliente: '', descricao_tecnica: '', ativo: true }
 const VARIANTE_VAZIA: VarianteNova = { cor: '', tamanho: '', sku: '', preco: '', estoque_inicial: [] }
+// mesmas regras do backend para a foto de produto
+const TIPOS_FOTO = ['image/jpeg', 'image/png', 'image/webp']
+const FOTO_MAXIMA = 5 * 1024 * 1024
+
+// confere a foto antes de enviar; devolve o motivo da recusa ou null
+function problemaDaFoto(arquivo: File) {
+  if (!TIPOS_FOTO.includes(arquivo.type)) return `${arquivo.name}: envie JPG, PNG ou WEBP.`
+  if (arquivo.size > FOTO_MAXIMA) return `${arquivo.name}: passa de 5 MB. Envie uma menor.`
+  return null
+}
+
+// sobe uma foto do produto; cor vazia = vale para todas as cores
+function enviarFotoDoProduto(idProduto: number, arquivo: File, cor: string) {
+  const formulario = new FormData()
+  formulario.append('arquivo', arquivo)
+  if (cor) formulario.append('cor', cor)
+  return api<Imagem>(`/produtos/${idProduto}/imagens`, { metodo: 'POST', corpo: formulario })
+}
 
 function SecaoTitulo({ children, extra }: { children: ReactNode; extra?: ReactNode }) {
   return (
@@ -72,6 +93,8 @@ function FormularioProduto({ produto, recarregar }: { produto: Produto | null; r
   const [dados, setDados] = useState(inicial)
   const [variantesNovas, setVariantesNovas] = useState<VarianteNova[]>(produto ? [] : [{ ...VARIANTE_VAZIA }])
   const [salvo, setSalvo] = useState(false)
+  const [fotosNovas, setFotosNovas] = useState<FotoNova[]>([])
+  const avisoFotos = (useLocation().state as { avisoFotos?: string } | null)?.avisoFotos
   const { enviar, enviando, erro } = useEnviar()
   const mudar = (campo: keyof DadosProduto) => (e: ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     setSalvo(false)
@@ -92,7 +115,18 @@ function FormularioProduto({ produto, recarregar }: { produto: Produto | null; r
         },
       }))
       if (criado) {
-        navegar(`/interno/catalogo/${criado.id_produto}`, { replace: true })
+        let falharam = 0
+        for (const foto of fotosNovas) {
+          try {
+            await enviarFotoDoProduto(criado.id_produto, foto.arquivo, foto.cor)
+          } catch {
+            falharam += 1
+          }
+        }
+        const aviso = falharam
+          ? `Produto criado, mas ${plural(falharam, 'foto não foi enviada', 'fotos não foram enviadas')}. Envie de novo na seção Fotos.`
+          : undefined
+        navegar(`/interno/catalogo/${criado.id_produto}`, { replace: true, state: aviso ? { avisoFotos: aviso } : null })
       }
       return
     }
@@ -180,6 +214,17 @@ function FormularioProduto({ produto, recarregar }: { produto: Produto | null; r
           </section>
         )}
 
+        {!produto && (
+          <section>
+            <SecaoTitulo>Fotos</SecaoTitulo>
+            <FotosNovas
+              fotos={fotosNovas}
+              aoMudar={setFotosNovas}
+              cores={[...new Set(variantesNovas.filter((v) => v.sku.trim()).map((v) => v.cor.trim() || 'Única'))]}
+            />
+          </section>
+        )}
+
         {erro && <Aviso mensagem={erro} />}
         {salvo && <Sucesso>Dados do produto salvos.</Sucesso>}
         <div className="flex justify-end gap-2">
@@ -189,7 +234,7 @@ function FormularioProduto({ produto, recarregar }: { produto: Produto | null; r
             </Button>
           )}
           <Button type="submit" size="lg" className="h-11 px-5" disabled={enviando}>
-            {enviando ? 'Salvando...' : produto ? 'Salvar produto' : 'Criar produto'}
+            {enviando ? 'Salvando...' : produto ? 'Salvar produto' : fotosNovas.length ? 'Criar produto e enviar as fotos' : 'Criar produto'}
           </Button>
         </div>
       </form>
@@ -203,12 +248,172 @@ function FormularioProduto({ produto, recarregar }: { produto: Produto | null; r
             <TabelaVariantes produto={produto} aoMudar={recarregar} />
           </section>
           <section className="mt-14">
+            <SecaoTitulo extra={<span className="text-sm text-muted-foreground">{plural(produto.imagens?.length ?? 0, 'foto')}</span>}>
+              Fotos
+            </SecaoTitulo>
+            {avisoFotos && <div className="mb-4"><Aviso mensagem={avisoFotos} /></div>}
+            <FotosDoProduto produto={produto} aoMudar={recarregar} />
+          </section>
+          <section className="mt-14">
             <SecaoTitulo>Nova variação</SecaoTitulo>
             <NovaVariante idProduto={produto.id_produto} aoCriar={recarregar} />
           </section>
         </>
       )}
     </>
+  )
+}
+
+// produto novo: as fotos ficam escolhidas aqui (com prévia e cor) e sobem quando o produto é criado
+function FotosNovas({ fotos, aoMudar, cores }: { fotos: FotoNova[]; aoMudar: (fotos: FotoNova[]) => void; cores: string[] }) {
+  const seletor = useRef<HTMLInputElement>(null)
+  const [recusadas, setRecusadas] = useState<string[]>([])
+  // as prévias são links locais do navegador: saem da memória quando a tela fecha
+  const previas = useRef<string[]>([])
+  useEffect(() => {
+    previas.current = fotos.map((f) => f.previa)
+  }, [fotos])
+  useEffect(() => () => previas.current.forEach((url) => URL.revokeObjectURL(url)), [])
+
+  function escolher(evento: ChangeEvent<HTMLInputElement>) {
+    const arquivos = [...(evento.target.files ?? [])]
+    evento.target.value = ''
+    setRecusadas(arquivos.map(problemaDaFoto).filter((p): p is string => Boolean(p)))
+    const aceitas = arquivos.filter((a) => !problemaDaFoto(a))
+    aoMudar([...fotos, ...aceitas.map((arquivo) => ({ chave: crypto.randomUUID(), arquivo, previa: URL.createObjectURL(arquivo), cor: '' }))])
+  }
+
+  function tirar(foto: FotoNova) {
+    URL.revokeObjectURL(foto.previa)
+    aoMudar(fotos.filter((f) => f.chave !== foto.chave))
+  }
+
+  return (
+    <div className="space-y-4">
+      {fotos.length > 0 && (
+        <ul className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+          {fotos.map((foto, i) => (
+            <li key={foto.chave} className="space-y-2">
+              <img src={foto.previa} alt={`Foto ${i + 1} escolhida`} className="aspect-[3/4] w-full object-cover" />
+              <div className="flex items-center gap-1">
+                <Select aria-label={`Cor da foto ${i + 1}`} value={foto.cor} onChange={(e) => aoMudar(fotos.map((f) => (f.chave === foto.chave ? { ...f, cor: e.target.value } : f)))} className="h-8">
+                  <option value="">Todas as cores</option>
+                  {cores.map((c) => <option key={c} value={c}>{c}</option>)}
+                </Select>
+                <Button type="button" variant="ghost" size="icon" aria-label={`Tirar a foto ${i + 1}`} onClick={() => tirar(foto)}>
+                  <Trash2 />
+                </Button>
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
+      <input ref={seletor} type="file" accept={TIPOS_FOTO.join(',')} multiple onChange={escolher} className="sr-only" tabIndex={-1} aria-hidden="true" />
+      <Button type="button" variant="outline" onClick={() => seletor.current?.click()}>
+        <ImagePlus aria-hidden="true" /> Escolher fotos
+      </Button>
+      <p className="text-xs text-muted-foreground">
+        JPG, PNG ou WEBP de até 5 MB. As fotos aparecem na loja nesta ordem; a cor escolhida faz a foto aparecer só para aquela cor.
+      </p>
+      {recusadas.length > 0 && <Aviso titulo="Algumas fotos não entraram" mensagem={recusadas.join(' ')} />}
+    </div>
+  )
+}
+
+// produto que já existe: as fotos na ordem da loja, com a cor de cada uma e setas para mudar a ordem.
+// A API não apaga foto: para trocar, envie outra e passe a antiga para o fim
+function FotosDoProduto({ produto, aoMudar }: { produto: Produto; aoMudar: () => void }) {
+  const fotos = [...(produto.imagens ?? [])].sort((a, b) => a.ordem - b.ordem)
+  const cores = coresDoProduto(produto)
+  const seletor = useRef<HTMLInputElement>(null)
+  const [corNovas, setCorNovas] = useState('')
+  const [recusadas, setRecusadas] = useState<string[]>([])
+  const [feito, setFeito] = useState<string | null>(null)
+  const { enviar, enviando, erro } = useEnviar()
+
+  async function enviarNovas(evento: ChangeEvent<HTMLInputElement>) {
+    const arquivos = [...(evento.target.files ?? [])]
+    evento.target.value = ''
+    setFeito(null)
+    setRecusadas(arquivos.map(problemaDaFoto).filter((p): p is string => Boolean(p)))
+    const aceitas = arquivos.filter((a) => !problemaDaFoto(a))
+    if (aceitas.length === 0) return
+    const ok = await enviar(async () => {
+      for (const arquivo of aceitas) await enviarFotoDoProduto(produto.id_produto, arquivo, corNovas)
+      return true
+    })
+    if (ok) setFeito(`${plural(aceitas.length, 'foto enviada', 'fotos enviadas')}.`)
+    aoMudar()
+  }
+
+  // troca a foto de lugar com a vizinha (a ordem não precisa ser única no banco)
+  async function mover(indice: number, passo: -1 | 1) {
+    const foto = fotos[indice]
+    const vizinha = fotos[indice + passo]
+    if (!foto || !vizinha) return
+    setFeito(null)
+    const ok = await enviar(async () => {
+      await api<Imagem>(`/imagens/${foto.id_imagem}`, { metodo: 'PATCH', corpo: { ordem: vizinha.ordem } })
+      return api<Imagem>(`/imagens/${vizinha.id_imagem}`, { metodo: 'PATCH', corpo: { ordem: foto.ordem } })
+    })
+    if (ok) aoMudar()
+  }
+
+  async function mudarCor(foto: Imagem, cor: string) {
+    setFeito(null)
+    const ok = await enviar(() => api<Imagem>(`/imagens/${foto.id_imagem}`, { metodo: 'PATCH', corpo: { cor: cor || null } }))
+    if (ok) aoMudar()
+  }
+
+  return (
+    <div className="space-y-4">
+      {fotos.length === 0 ? (
+        <p className="text-sm text-muted-foreground">Sem fotos ainda. Na loja, o produto aparece com o bloco da cor.</p>
+      ) : (
+        <ul className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+          {fotos.map((foto, i) => (
+            <li key={foto.id_imagem} className="space-y-2">
+              <div className="relative">
+                <img src={foto.url} alt={`Foto ${i + 1}${foto.cor ? `, cor ${foto.cor}` : ''}`} className="aspect-[3/4] w-full object-cover" />
+                <span className="absolute top-2 left-2 bg-marinho-escuro/80 px-1.5 py-0.5 text-xs text-white">{i + 1}ª</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <Button type="button" variant="ghost" size="icon" aria-label={`Passar a foto ${i + 1} para antes`} disabled={enviando || i === 0} onClick={() => mover(i, -1)}>
+                  <ArrowLeft />
+                </Button>
+                <Select aria-label={`Cor da foto ${i + 1}`} value={foto.cor ?? ''} onChange={(e) => mudarCor(foto, e.target.value)} disabled={enviando} className="h-8">
+                  <option value="">Todas as cores</option>
+                  {cores.map((c) => <option key={c} value={c}>{c}</option>)}
+                </Select>
+                <Button type="button" variant="ghost" size="icon" aria-label={`Passar a foto ${i + 1} para depois`} disabled={enviando || i === fotos.length - 1} onClick={() => mover(i, 1)}>
+                  <ArrowRight />
+                </Button>
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
+
+      <div className="flex flex-wrap items-end gap-2">
+        <Campo id="fotos-cor" rotulo="Cor das fotos novas" className="w-48">
+          <Select id="fotos-cor" value={corNovas} onChange={(e) => setCorNovas(e.target.value)}>
+            <option value="">Todas as cores</option>
+            {cores.map((c) => <option key={c} value={c}>{c}</option>)}
+          </Select>
+        </Campo>
+        <input ref={seletor} type="file" accept={TIPOS_FOTO.join(',')} multiple onChange={enviarNovas} className="sr-only" tabIndex={-1} aria-hidden="true" />
+        <Button type="button" variant="outline" className="h-9" disabled={enviando} onClick={() => seletor.current?.click()}>
+          <ImagePlus aria-hidden="true" /> {enviando ? 'Enviando...' : 'Enviar fotos'}
+        </Button>
+      </div>
+      <p className="text-xs text-muted-foreground">
+        JPG, PNG ou WEBP de até 5 MB. As fotos novas entram no fim. Foto não é apagada: para trocar, envie outra e passe a antiga
+        para o fim.
+      </p>
+      {recusadas.length > 0 && <Aviso titulo="Algumas fotos não entraram" mensagem={recusadas.join(' ')} />}
+      {erro && <Aviso mensagem={erro} />}
+      {feito && <Sucesso>{feito}</Sucesso>}
+    </div>
   )
 }
 
