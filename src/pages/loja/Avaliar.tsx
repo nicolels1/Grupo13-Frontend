@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, type SubmitEvent } from 'react'
-import { ImagePlus, Star, X } from 'lucide-react'
+import { ArrowLeft, ImagePlus, Star, X } from 'lucide-react'
 import { Link, useParams, useSearchParams } from 'react-router'
 import { cn } from 'cn'
 
@@ -7,6 +7,7 @@ import { Aviso, Carregando, Sucesso } from '@/components/Estados'
 import { Button, buttonVariants } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { api, type Esquema } from '@/lib/api'
+import { corDaPeca } from '@/lib/cores'
 import { dataLonga } from '@/lib/formato'
 import { useCarregar, useEnviar } from '@/lib/useCarregar'
 import { rotuloTamanho } from './componentes/tamanhos'
@@ -26,11 +27,15 @@ function editavelAte(avaliacao: Avaliacao) {
   return new Date(new Date(avaliacao.criada_em).getTime() + DIAS_PARA_EDITAR * 24 * 60 * 60 * 1000)
 }
 
-// escrever (ou editar) a avaliação de uma peça de um pedido entregue: nota, texto opcional e até 5 fotos
+// escrever (ou editar) a avaliação de uma peça de um pedido entregue: nota, texto opcional e até 5 fotos.
+// Cartão centralizado; a faixa ardósia de cima (a cor das avaliações) diz qual peça está sendo avaliada
 export function AvaliarPeca() {
   const { idItem } = useParams()
   const [params] = useSearchParams()
   const idPedido = params.get('pedido')
+  // vindo das estrelas do cartão de Meus pedidos (?nota=), a nota já chega marcada
+  const notaDaUrl = Number(params.get('nota'))
+  const notaInicial = Number.isInteger(notaDaUrl) && notaDaUrl >= 1 && notaDaUrl <= 5 ? notaDaUrl : 0
   const pedido = useCarregar(() => (idPedido ? api<Pedido>(`/pedidos/${idPedido}`) : null), [idPedido])
   const item = pedido.dados?.itens.find((i) => String(i.id_item) === idItem)
   const idAvaliacao = item?.id_avaliacao ?? null
@@ -43,13 +48,29 @@ export function AvaliarPeca() {
   if (existente.erro) return <Problema mensagem={existente.erro} />
 
   return (
-    <div className="mx-auto max-w-2xl px-4 pt-8 sm:px-6">
-      <Link to="/loja/pedidos" className="text-sm underline underline-offset-4">Voltar para Meus pedidos</Link>
-      <h1 className="mt-4 font-titulo text-4xl">{existente.dados ? 'Sua avaliação' : 'Avaliar peça'}</h1>
-      <p className="mt-2 text-muted-foreground">
-        {item.produto}, {item.cor}, tamanho {rotuloTamanho(item.tamanho)}
-      </p>
-      <FormAvaliacao idItem={item.id_item} existente={existente.dados} />
+    <div className="mx-auto max-w-2xl overflow-hidden rounded-xl border bg-background shadow-xs">
+      <div className="space-y-5 bg-ardosia p-6 text-white sm:px-8">
+        <Link to="/loja/pedidos" className="inline-flex items-center gap-1.5 text-sm text-white/90 underline-offset-4 hover:underline">
+          <ArrowLeft className="size-4" aria-hidden="true" />
+          Voltar para Meus pedidos
+        </Link>
+        <div className="flex items-center gap-4">
+          <span
+            className="size-14 shrink-0 rounded-full ring-4 ring-white/30"
+            style={{ backgroundColor: corDaPeca(item.cor) }}
+            aria-hidden="true"
+          />
+          <div className="min-w-0">
+            <h1 className="font-titulo text-3xl leading-tight">{existente.dados ? 'Sua avaliação' : 'Avaliar peça'}</h1>
+            <p className="text-white/90">
+              {item.produto}, {item.cor}, tamanho {rotuloTamanho(item.tamanho)}
+            </p>
+          </div>
+        </div>
+      </div>
+      <div className="p-6 sm:px-8">
+        <FormAvaliacao idItem={item.id_item} existente={existente.dados} notaInicial={notaInicial} />
+      </div>
     </div>
   )
 }
@@ -63,8 +84,8 @@ function Problema({ mensagem }: { mensagem: string }) {
   )
 }
 
-function FormAvaliacao({ idItem, existente }: { idItem: number; existente: Avaliacao | null }) {
-  const [nota, setNota] = useState(existente?.nota ?? 0)
+function FormAvaliacao({ idItem, existente, notaInicial }: { idItem: number; existente: Avaliacao | null; notaInicial: number }) {
+  const [nota, setNota] = useState(existente?.nota ?? notaInicial)
   const [texto, setTexto] = useState(existente?.texto ?? '')
   const [fotos, setFotos] = useState<File[]>([])
   const [erroFotos, setErroFotos] = useState<string | null>(null)
@@ -121,22 +142,22 @@ function FormAvaliacao({ idItem, existente }: { idItem: number; existente: Avali
 
   if (publicada) {
     return (
-      <div className="mt-8 space-y-5">
+      <div className="space-y-5">
         <Sucesso>{existente ? 'Avaliação atualizada.' : 'Avaliação publicada. Obrigado por contar como foi.'}</Sucesso>
         <p className="text-sm">
           Você pode editar até {dataLonga(editavelAte(publicada).toISOString())}, pelo link "Ver avaliação" em Meus pedidos.
         </p>
         <div className="flex flex-wrap gap-3">
-          <Link to="/loja/pedidos" className={buttonVariants({ size: 'loja' })}>Voltar para Meus pedidos</Link>
+          <Link to="/loja/pedidos" className={cn(buttonVariants({ size: 'loja' }), 'rounded-full')}>Voltar para Meus pedidos</Link>
         </div>
       </div>
     )
   }
 
   return (
-    <form onSubmit={(e) => void publicar(e)} className="mt-8 space-y-7">
+    <form onSubmit={(e) => void publicar(e)} className="space-y-7">
       {existente && prazo && (
-        <p className={cn('border-l-4 p-3 text-sm', podeEditar ? 'border-aco bg-aco-fundo' : 'border-border bg-superficie')}>
+        <p className={cn('rounded-lg p-3 text-sm', podeEditar ? 'bg-aco-fundo' : 'bg-superficie')}>
           {podeEditar
             ? `Você pode editar até ${dataLonga(prazo.toISOString())}.`
             : `O prazo para editar acabou em ${dataLonga(prazo.toISOString())}.`}
@@ -144,9 +165,10 @@ function FormAvaliacao({ idItem, existente }: { idItem: number; existente: Avali
       )}
 
       <fieldset disabled={!podeEditar} className="space-y-7">
-        <div>
+        {/* a nota fica num bloco ardósia-claro: é a parte principal da avaliação */}
+        <div className="rounded-xl bg-ardosia-clara p-5">
           <p id="rotulo-nota" className="mb-3 font-medium">Sua nota</p>
-          <div role="radiogroup" aria-labelledby="rotulo-nota" className="flex items-center gap-1">
+          <div role="radiogroup" aria-labelledby="rotulo-nota" className="flex flex-wrap items-center gap-1">
             {[1, 2, 3, 4, 5].map((n) => (
               <button
                 key={n}
@@ -155,12 +177,12 @@ function FormAvaliacao({ idItem, existente }: { idItem: number; existente: Avali
                 aria-checked={nota === n}
                 aria-label={`${n} de 5: ${ROTULOS_DA_NOTA[n]}`}
                 onClick={() => setNota(n)}
-                className="p-1"
+                className="rounded-lg p-1 focus-visible:outline-2 focus-visible:outline-ring"
               >
-                <Star className={cn('size-9', n <= nota ? 'fill-marinho text-marinho' : 'text-border')} aria-hidden="true" />
+                <Star className={cn('size-9', n <= nota ? 'fill-marinho text-marinho' : 'text-ardosia/40')} aria-hidden="true" />
               </button>
             ))}
-            <span className="ml-3 text-sm text-muted-foreground" aria-live="polite">{ROTULOS_DA_NOTA[nota]}</span>
+            <span className="ml-3 text-sm font-medium text-marinho" aria-live="polite">{ROTULOS_DA_NOTA[nota]}</span>
           </div>
         </div>
 
@@ -187,23 +209,23 @@ function FormAvaliacao({ idItem, existente }: { idItem: number; existente: Avali
           </p>
           <div className="flex flex-wrap gap-2">
             {existente?.fotos.map((foto) => (
-              <img key={foto.id_foto} src={foto.url ?? ''} alt="Foto já enviada" className="size-24 bg-superficie object-cover" />
+              <img key={foto.id_foto} src={foto.url ?? ''} alt="Foto já enviada" className="size-24 rounded-lg bg-superficie object-cover" />
             ))}
             {previas.map((url, i) => (
               <div key={url} className="relative size-24">
-                <img src={url} alt={`Foto nova ${i + 1}`} className="size-full object-cover" />
+                <img src={url} alt={`Foto nova ${i + 1}`} className="size-full rounded-lg object-cover" />
                 <button
                   type="button"
                   onClick={() => setFotos((atuais) => atuais.filter((_, j) => j !== i))}
                   aria-label={`Tirar a foto nova ${i + 1}`}
-                  className="absolute top-1 right-1 flex size-6 items-center justify-center bg-marinho-escuro/80 text-white"
+                  className="absolute top-1 right-1 flex size-6 items-center justify-center rounded-full bg-marinho-escuro/80 text-white"
                 >
                   <X className="size-3.5" aria-hidden="true" />
                 </button>
               </div>
             ))}
             {vagas > 0 && podeEditar && (
-              <label className="flex size-24 cursor-pointer flex-col items-center justify-center gap-1 border border-dashed text-xs text-muted-foreground hover:border-foreground has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-ring">
+              <label className="flex size-24 cursor-pointer flex-col items-center justify-center gap-1 rounded-lg border border-dashed text-xs text-muted-foreground hover:border-ardosia hover:bg-ardosia-clara has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-ring">
                 <ImagePlus className="size-5" aria-hidden="true" />
                 Adicionar
                 <input
@@ -226,7 +248,7 @@ function FormAvaliacao({ idItem, existente }: { idItem: number; existente: Avali
 
       {erro && <p role="alert" className="text-sm text-ferrugem">{erro}</p>}
       {podeEditar && (
-        <Button type="submit" size="loja" disabled={enviando || nota === 0}>
+        <Button type="submit" size="loja" className="rounded-full" disabled={enviando || nota === 0}>
           {enviando ? 'Publicando...' : existente ? 'Salvar alterações' : 'Publicar avaliação'}
         </Button>
       )}
