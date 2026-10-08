@@ -93,11 +93,14 @@ function FormularioProduto({ produto, recarregar }: { produto: Produto | null; r
   const [dados, setDados] = useState(inicial)
   const [variantesNovas, setVariantesNovas] = useState<VarianteNova[]>(produto ? [] : [{ ...VARIANTE_VAZIA }])
   const [salvo, setSalvo] = useState(false)
+  // "Salvar produto" sem nada mudado avisa em vez de não fazer nada (fotos e variações salvam na hora)
+  const [nadaMudou, setNadaMudou] = useState(false)
   const [fotosNovas, setFotosNovas] = useState<FotoNova[]>([])
   const avisoFotos = (useLocation().state as { avisoFotos?: string } | null)?.avisoFotos
   const { enviar, enviando, erro } = useEnviar()
   const mudar = (campo: keyof DadosProduto) => (e: ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     setSalvo(false)
+    setNadaMudou(false)
     const alvo = e.target
     setDados({ ...dados, [campo]: alvo instanceof HTMLInputElement && alvo.type === 'checkbox' ? alvo.checked : alvo.value })
   }
@@ -134,7 +137,11 @@ function FormularioProduto({ produto, recarregar }: { produto: Produto | null; r
     const mudancas = Object.fromEntries(
       Object.entries(dados).filter(([campo, valor]) => valor !== inicial[campo as keyof DadosProduto]).map(([campo, valor]) => [campo, campo === 'id_categoria' ? Number(valor) : valor]),
     )
-    if (Object.keys(mudancas).length === 0) return
+    if (Object.keys(mudancas).length === 0) {
+      setNadaMudou(true)
+      return
+    }
+    setNadaMudou(false)
     const ok = await enviar(() => api<Produto>(`/produtos/${produto.id_produto}`, { metodo: 'PATCH', corpo: mudancas }))
     if (ok) {
       setSalvo(true)
@@ -227,6 +234,12 @@ function FormularioProduto({ produto, recarregar }: { produto: Produto | null; r
 
         {erro && <Aviso mensagem={erro} />}
         {salvo && <Sucesso>Dados do produto salvos.</Sucesso>}
+        {nadaMudou && (
+          <p role="status" className="text-sm text-muted-foreground">
+            Nada para salvar: nome, categoria, descrições e "à venda" não mudaram. Fotos e variações são salvas na hora, nas
+            próprias seções.
+          </p>
+        )}
         <div className="flex justify-end gap-2">
           {produto && (
             <Button type="button" variant="outline" size="lg" className="h-11 px-5" onClick={() => setDados(inicial)} disabled={enviando}>
