@@ -281,6 +281,7 @@ function DialogDenuncia({
               onChange={(e) => setMotivo(e.target.value)}
               placeholder="Ex.: linguagem ofensiva, dados pessoais, não fala da peça"
               required
+              className="field-sizing-content flex min-h-16 bg-transparent px-2.5 text-base md:text-sm disabled:cursor-not-allowed disabled:pointer-events-auto disabled:bg-input/50 aria-invalid:ring-3 aria-invalid:ring-destructive/20 dark:bg-input/30 dark:disabled:bg-input/80 dark:aria-invalid:border-destructive/50 dark:aria-invalid:ring-destructive/40"
             />
           </div>
           {erro && <p className="text-sm text-ferrugem">{erro}</p>}

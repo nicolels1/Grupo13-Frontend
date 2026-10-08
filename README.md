@@ -67,7 +67,8 @@ O frontend usa o Supabase só para o login. Todos os dados, inclusive os arquivo
 | Supabase JS | login (Supabase Auth) |
 | openapi-typescript | tipos da API gerados do OpenAPI do backend |
 | oxlint | lint |
-| Vitest + GitHub Actions | testes e verificações em cada PR |
+| Vitest | execução dos testes automatizados |
+| GitHub Actions | lint, testes e build em cada PR para `main` |
 | Vercel | deploy |
 
 ## Estrutura do projeto
@@ -98,7 +99,7 @@ src/
         └── componentes/ partes das telas do interno (gráficos, troca e devolução)
 ```
 
-Fora do `src/`: `docs/adr/` (decisões de arquitetura), `.github/workflows/` (verificações no GitHub), `.env.example` e `vercel.json`.
+Fora do `src/`: `public/imagens/carrossel/` (imagens estáticas dos destaques da loja, publicadas junto com o frontend), `docs/adr/` (decisões de arquitetura), `.github/workflows/` (verificações no GitHub), `.env.example` e `vercel.json`.
 
 Componente usado nas duas plataformas fica em `components/`; o que é de uma plataforma só fica em `componentes/` dentro da pasta dela.
 
@@ -180,13 +181,15 @@ Tudo que começa com `VITE_` vai para o navegador: nunca coloque uma chave secre
 
 ## Testes e CI
 
-Os testes ficam ao lado do arquivo que testam (`formato.test.ts` junto de `formato.ts`) e cobrem as funções puras: formatos de data, moeda e CPF, as regras de quem vê cada área do interno e a mensagem de erro da API.
+**Vitest** é a ferramenta que executa os testes automatizados do frontend. Os arquivos terminados em `.test.ts` ficam próximos do código testado. Hoje, os testes verificam funções de formato (datas, moeda, CPF, plural e tamanho de arquivo), o cálculo de datas no horário de Brasília, as regras de acesso às áreas internas e a tradução de erros da API.
+
+Esses são testes unitários de lógica: não abrem o navegador nem validam visualmente as telas. Para executar todos uma vez:
 
 ```bash
 npm test
 ```
 
-A cada push na `main` e em todo Pull Request, o GitHub roda lint, testes e build (`.github/workflows/verificacoes.yml`). O resultado aparece na aba Actions e no próprio PR.
+Em cada Pull Request para `main`, o GitHub Actions instala as dependências e roda lint, testes e build (`.github/workflows/verificacoes.yml`). Também roda no push direto para `main` ou manualmente pela aba Actions. O resultado aparece na aba Actions e no próprio PR.
 
 ## Convenções do código
 

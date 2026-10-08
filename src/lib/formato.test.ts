@@ -1,6 +1,6 @@
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 
-import { dataCurta, dataHora, mascaraCpf, moeda, plural, soDigitos, tamanhoArquivo } from './formato'
+import { dataCurta, dataHora, diasAtras, mascaraCpf, moeda, plural, soDigitos, tamanhoArquivo } from './formato'
 
 describe('moeda', () => {
   it('mostra o valor da API em reais', () => {
@@ -26,6 +26,18 @@ describe('datas no horário de Brasília', () => {
   it('mostra um traço quando não há data', () => {
     expect(dataCurta(null)).toBe('—')
     expect(dataHora(undefined)).toBe('—')
+  })
+})
+
+describe('diasAtras', () => {
+  afterEach(() => vi.useRealTimers())
+
+  it('calcula datas de calendário a partir do dia de Brasília', () => {
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date('2026-10-08T16:00:00Z'))
+
+    expect(diasAtras(0)).toBe('2026-10-08')
+    expect(diasAtras(7)).toBe('2026-10-01')
   })
 })
 

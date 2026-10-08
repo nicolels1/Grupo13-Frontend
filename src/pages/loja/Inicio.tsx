@@ -16,21 +16,21 @@ const SLIDES = [
     texto: 'Peças leves para a primavera e o verão.',
     acao: 'Ver as novidades',
     para: '/loja/produtos?ordem=novidades',
-    fundo: 'bg-marinho',
+    imagem: '/imagens/carrossel/linho.jpg',
   },
   {
     titulo: 'Alfaiataria',
     texto: 'Cortes retos que vão do trabalho ao fim de semana.',
     acao: 'Ver a alfaiataria',
     para: '/loja/produtos?busca=alfaiataria',
-    fundo: 'bg-marinho-escuro',
+    imagem: '/imagens/carrossel/tecido-dourado.png',
   },
   {
     titulo: 'Retire grátis na loja',
     texto: 'Compre pelo site e retire em qualquer loja da rede, sem pagar frete.',
     acao: 'Saber como funciona',
     para: '/loja/ajuda#pedidos-e-entrega',
-    fundo: 'bg-aco',
+    imagem: '/imagens/carrossel/loja.jpg',
   },
 ]
 
@@ -198,8 +198,10 @@ function Destaques() {
       <CarouselContent className="ml-0">
         {SLIDES.map((slide, i) => (
           <CarouselItem key={slide.titulo} className="pl-0" aria-label={`${i + 1} de ${SLIDES.length}`}>
-            <div className={cn('text-white', slide.fundo)}>
-              <div className="mx-auto flex min-h-[26rem] max-w-7xl flex-col justify-end gap-5 px-4 pt-14 pb-20 sm:min-h-[32rem] sm:px-16">
+            <div className="relative isolate overflow-hidden text-white">
+              <img src={slide.imagem} alt="" className="absolute inset-0 size-full object-cover" />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/25 to-black/10" aria-hidden="true" />
+              <div className="relative mx-auto flex min-h-[26rem] max-w-7xl flex-col justify-end gap-5 px-4 pt-14 pb-20 sm:min-h-[32rem] sm:px-16">
                 <h2 className="font-titulo text-5xl sm:text-7xl">{slide.titulo}</h2>
                 <p className="max-w-md text-base text-white/85">{slide.texto}</p>
                 <Link

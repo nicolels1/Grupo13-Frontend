@@ -191,7 +191,7 @@ function FormAvaliacao({ idItem, existente, notaInicial }: { idItem: number; exi
             value={texto}
             onChange={(e) => setTexto(e.target.value.slice(0, LIMITE_DO_TEXTO))}
             placeholder="Caimento, tecido, tamanho: o que ajudaria quem vai comprar"
-            className="min-h-32"
+            className="field-sizing-content flex min-h-32 bg-transparent px-2.5 text-base md:text-sm disabled:cursor-not-allowed disabled:pointer-events-auto disabled:bg-input/50 aria-invalid:ring-3 aria-invalid:ring-destructive/20 dark:bg-input/30 dark:disabled:bg-input/80 dark:aria-invalid:border-destructive/50 dark:aria-invalid:ring-destructive/40"
             aria-describedby="contador-texto"
           />
           <p id="contador-texto" className="text-right text-xs text-muted-foreground">
