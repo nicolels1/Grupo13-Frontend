@@ -149,7 +149,14 @@ export function Estoque() {
                 const online = somar(p.linhas.filter((l) => l.canal === 'online'))
                 return (
                   <Fragment key={p.produto}>
-                    <tr className={cn('cursor-pointer border-b hover:bg-superficie', aberta && 'bg-superficie')} onClick={() => setAberto(aberta ? null : p.produto)}>
+                    {/* produto com peça abaixo do mínimo: a linha inteira em terracota-claro, como as pendências */}
+                    <tr
+                      className={cn(
+                        'cursor-pointer border-b',
+                        p.abaixo > 0 ? 'bg-terracota-fundo hover:bg-terracota-fundo/70' : cn('hover:bg-superficie', aberta && 'bg-superficie'),
+                      )}
+                      onClick={() => setAberto(aberta ? null : p.produto)}
+                    >
                       <td className="pl-2">
                         <button type="button" aria-expanded={aberta} aria-label={`Matriz de ${p.produto}`} className="flex">
                           {aberta ? <ChevronDown className="size-4" /> : <ChevronRight className="size-4" />}

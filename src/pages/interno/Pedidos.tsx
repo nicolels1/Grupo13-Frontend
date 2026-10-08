@@ -248,7 +248,7 @@ function DetalhePedido({ pedido: p, aoMudar }: { pedido: Pedido; aoMudar: () => 
         </dl>
       </section>
 
-      <div className="grid gap-8 sm:grid-cols-2">
+      <div className={cn('grid gap-8 sm:grid-cols-2', BLOCO_ACO)}>
         <section className="space-y-2 text-sm">
           <h3 className="font-medium">Pagamento</h3>
           {pagamentos.length === 0 && <p className="text-muted-foreground">Nenhum pagamento ainda.</p>}
