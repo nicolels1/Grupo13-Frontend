@@ -93,7 +93,7 @@ function Categorias({ categorias }: { categorias: Esquema<'CategoriaSaida'>[] })
   return (
     <nav
       aria-label="Categorias"
-      className="col-span-2 row-start-3 -mx-4 flex min-w-0 gap-6 overflow-x-auto px-4 lg:col-span-1 lg:row-start-auto lg:mx-0 lg:px-0"
+      className="col-span-2 row-start-3 -mx-4 flex min-w-0 gap-6 overflow-x-auto px-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden lg:col-span-1 lg:row-start-auto lg:mx-0 lg:px-0"
     >
       <LinkCategoria para="/loja/produtos" ativa={naLista && !categoriaAtual && !params.get('busca')}>
         Todos
@@ -176,7 +176,8 @@ function Conta() {
 }
 
 // logado: leva direto à área "Minha conta" (o menu das seções e o Sair ficam lá);
-// o ponto terracota avisa resposta nova nos chamados
+// o ponto terracota avisa resposta nova nos chamados. No celular fica só o ícone, como "Pedidos",
+// para não cobrir a logo
 function LinkDaConta({ nome }: { nome: string }) {
   const { naoLidas } = useChamadosDaConta()
   const primeiroNome = nome.split(' ')[0]
@@ -187,7 +188,7 @@ function LinkDaConta({ nome }: { nome: string }) {
         <User className="size-5" aria-hidden="true" />
         {naoLidas > 0 && <span className="absolute -top-0.5 -right-0.5 size-2.5 rounded-full bg-terracota ring-2 ring-background" />}
       </span>
-      <span className="leading-tight">
+      <span className="sr-only leading-tight sm:not-sr-only">
         <span className="hidden text-xs text-muted-foreground sm:block">Olá, {primeiroNome}</span>
         <span className="font-medium group-hover:underline">Minha conta</span>
       </span>

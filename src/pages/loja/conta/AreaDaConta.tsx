@@ -42,9 +42,9 @@ export function AreaDaConta() {
         </div>
       </div>
 
-      {/* abas: no celular deslizam para o lado; "Sair" fica no fim, separado das seções */}
+      {/* abas: no celular deslizam para o lado (sem mostrar a barra); "Sair" fica no fim, separado das seções */}
       <nav aria-label="Minha conta" className="border-b bg-background">
-        <ul className="mx-auto flex max-w-7xl gap-1 overflow-x-auto px-4 py-2.5 sm:px-6">
+        <ul className="mx-auto flex max-w-7xl gap-1 overflow-x-auto px-4 py-2.5 sm:px-6 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           {SECOES.map(({ para, rotulo, icone: Icone, exata }) => (
             <li key={para} className="shrink-0">
               <NavLink

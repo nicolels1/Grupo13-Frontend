@@ -101,7 +101,7 @@ export function MeusPedidos() {
       {pedidos.length > 0 && (
         <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_20rem]">
           <div className="flex min-w-0 flex-col gap-4">
-            <div className="grid gap-3 sm:grid-cols-3">
+            <div className="grid grid-cols-3 gap-2 sm:gap-3">
               <Resumo
                 cor="bg-terracota-fundo text-terracota"
                 icone={<CircleAlert className="size-5" aria-hidden="true" />}
@@ -125,7 +125,7 @@ export function MeusPedidos() {
               />
             </div>
             <div className="flex-1 overflow-hidden rounded-xl border bg-background shadow-xs">
-              <div role="tablist" aria-label="Filtrar pedidos" className="flex overflow-x-auto border-b">
+              <div role="tablist" aria-label="Filtrar pedidos" className="flex overflow-x-auto border-b [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
                 {abas.map((a) => (
                   <button
                     key={a.valor}
@@ -185,6 +185,7 @@ export function MeusPedidos() {
 }
 
 // cartão do resumo: ícone num quadrado na cor do assunto, número grande e o que pede atenção; clicar filtra a lista
+// (no celular os três cabem lado a lado: ícone em cima, número e texto embaixo)
 function Resumo({ cor, icone, numero, texto, aoClicar }: {
   cor: string
   icone: ReactNode
@@ -196,12 +197,15 @@ function Resumo({ cor, icone, numero, texto, aoClicar }: {
     <button
       type="button"
       onClick={aoClicar}
-      className={cn('flex items-center gap-4 rounded-xl border bg-background p-4 text-left shadow-xs transition-shadow hover:shadow-md', numero === 0 && 'opacity-60')}
+      className={cn(
+        'flex flex-col items-start gap-2 rounded-xl border bg-background p-3 text-left shadow-xs transition-shadow hover:shadow-md sm:flex-row sm:items-center sm:gap-4 sm:p-4',
+        numero === 0 && 'opacity-60',
+      )}
     >
-      <span className={cn('flex size-11 shrink-0 items-center justify-center rounded-lg', cor)}>{icone}</span>
+      <span className={cn('flex size-9 shrink-0 items-center justify-center rounded-lg sm:size-11', cor)}>{icone}</span>
       <span>
-        <span className="block text-2xl font-medium tabular-nums">{numero}</span>
-        <span className="block text-sm text-muted-foreground">{texto}</span>
+        <span className="block text-xl font-medium tabular-nums sm:text-2xl">{numero}</span>
+        <span className="block text-xs leading-snug text-muted-foreground sm:text-sm">{texto}</span>
       </span>
     </button>
   )
@@ -361,7 +365,8 @@ function LinhaPedido({ pedido, aberto, aoAlternar, aoMudar }: {
           <Package className="size-5" />
         </span>
 
-        <div className="min-w-0 flex-1">
+        {/* basis: o número e a data nunca ficam espremidos; sem espaço, preço e ações descem para a linha de baixo */}
+        <div className="min-w-0 flex-1 basis-48">
           <h2 id={`pedido-${pedido.id_pedido}`} className="font-medium tabular-nums">Pedido {pedido.codigo_venda}</h2>
           <p className="text-sm text-muted-foreground">
             {dataCurta(pedido.criado_em)}, {plural(pecas, 'peça', 'peças')},{' '}
@@ -374,7 +379,7 @@ function LinhaPedido({ pedido, aberto, aoAlternar, aoMudar }: {
           <Status tipo="pedido" valor={pedido.status} />
         </div>
 
-        <div className="flex w-full flex-wrap items-center justify-end gap-3 sm:w-auto">
+        <div className="ml-auto flex flex-wrap items-center justify-end gap-3">
           {pedido.status === 'aguardando_pagamento' && <Button onClick={continuarPagamento}>Continuar pagamento</Button>}
           {paraAvaliar && (
             <Link
