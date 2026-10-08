@@ -74,6 +74,13 @@ function Pessoas() {
     () => api<Esquema<'Pagina_UsuarioItem_'>>('/usuarios', { params: { tipo_conta: 'interna', busca: busca.trim(), id_modelo_acesso: idModelo, limit: POR_PAGINA, offset } }),
     [busca, idModelo, offset],
   )
+  // Admins primeiro (e em destaque); o resto na ordem da API. A lista não diz quem é Admin, mas
+  // traz o modelo de cada pessoa, e os modelos dizem qual é o de Admin
+  const modelosAdmin = new Set((modelos.dados?.items ?? []).filter((m) => m.eh_admin).map((m) => m.id_modelo))
+  const ehAdminDaLista = (id: number | null) => id !== null && modelosAdmin.has(id)
+  const pessoasEmOrdem = [...(lista.dados?.items ?? [])].sort(
+    (a, b) => Number(ehAdminDaLista(b.id_modelo_acesso)) - Number(ehAdminDaLista(a.id_modelo_acesso)),
+  )
   const filtro = (setter: (valor: string) => void) => (e: ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     setter(e.target.value)
     setOffset(0)
@@ -114,10 +121,15 @@ function Pessoas() {
                 </tr>
               </thead>
               <tbody>
-                {lista.dados.items.map((p) => (
+                {pessoasEmOrdem.map((p) => (
                   <tr
                     key={p.id_usuario}
-                    className={cn('cursor-pointer border-b hover:bg-superficie', aberta === p.id_usuario && 'bg-superficie')}
+                    className={cn(
+                      'cursor-pointer border-b',
+                      ehAdminDaLista(p.id_modelo_acesso)
+                        ? cn('bg-aco-fundo hover:bg-aco-fundo/70', aberta === p.id_usuario && 'bg-aco-fundo/70')
+                        : cn('hover:bg-superficie', aberta === p.id_usuario && 'bg-superficie'),
+                    )}
                     onClick={() => setAberta(p.id_usuario)}
                   >
                     <td className="py-3 pl-2">
