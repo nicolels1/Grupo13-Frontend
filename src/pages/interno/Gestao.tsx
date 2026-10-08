@@ -11,6 +11,7 @@ import { useUnidadeEscolhida } from '@/layouts/unidadeEscolhida'
 import { api, type Esquema } from '@/lib/api'
 import { plural, STATUS_CONTA } from '@/lib/formato'
 import { limparListas } from '@/lib/listas'
+import { BLOCO_ACO } from '@/lib/estilos'
 import { useCarregar, useEnviar } from '@/lib/useCarregar'
 
 type Modelo = Esquema<'ModeloSaida'>
@@ -519,8 +520,10 @@ function EditorModelo({ modelo, modelos, permissoes, aoSalvar }: {
   if (modelo?.eh_admin) {
     return (
       <section className="space-y-4">
-        <h2 className="text-2xl font-medium">{modelo.nome}</h2>
-        <p className="text-sm text-muted-foreground">{plural(modelo.pessoas, 'pessoa')} com este modelo.</p>
+        <div className={cn(BLOCO_ACO, 'space-y-2')}>
+          <h2 className="text-2xl font-medium">{modelo.nome}</h2>
+          <p className="text-sm text-muted-foreground">{plural(modelo.pessoas, 'pessoa')} com este modelo.</p>
+        </div>
         <p className="max-w-xl bg-superficie p-4 text-sm">
           O Admin tem todas as permissões, inclusive as que forem criadas depois, e é o único que gerencia contas,
           modelos de acesso e unidades. Por isso este modelo não é editado aqui.
@@ -533,7 +536,7 @@ function EditorModelo({ modelo, modelos, permissoes, aoSalvar }: {
 
   return (
     <form onSubmit={salvar} className="space-y-8">
-      <div className="space-y-2">
+      <div className={cn(BLOCO_ACO, 'space-y-2')}>
         <h2 className="text-2xl font-medium">{novo ? 'Novo modelo' : modelo.nome}</h2>
         {!novo && (
           <p className="text-sm text-muted-foreground">
