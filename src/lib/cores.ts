@@ -1,4 +1,5 @@
-// enquanto não há fotos dos produtos, a peça aparece como um bloco na cor dela (como no design)
+// peça sem foto aparece como um bloco na cor dela (como no design). O nome da cor vem do cadastro,
+// no masculino ou no feminino ("Branco" ou "Branca"): normalizar() tira acento e leva para o masculino
 const CORES: Record<string, string> = {
   areia: '#d6cab5',
   'off-white': '#eae6de',
@@ -12,24 +13,53 @@ const CORES: Record<string, string> = {
   'verde-oliva': '#a3a189',
   verde: '#a3a189',
   'azul claro': '#c7cfd5',
+  'azul escuro': '#55627a',
   azul: '#8a9bb3',
   marinho: '#4a5670',
   cinza: '#bfbdba',
   grafite: '#757983',
   preto: '#3a3a3a',
+  marrom: '#8a6f5c',
+  mostarda: '#c9a95c',
+  amarelo: '#ddcb8f',
+  vermelho: '#a8574b',
+  laranja: '#cf8a5f',
+  roxo: '#7d6a88',
+  lilas: '#b5a7c2',
+}
+
+// femininos que viram masculino ("branca" → "branco"); só as cores que mudam com o gênero
+const FEMININOS: Record<string, string> = {
+  branca: 'branco',
+  preta: 'preto',
+  vermelha: 'vermelho',
+  amarela: 'amarelo',
+  roxa: 'roxo',
+  clara: 'claro',
+  escura: 'escuro',
 }
 
 const NEUTRAS = ['#dad0bf', '#c7cfd5', '#bfa38b', '#eae6de', '#a3a189', '#c59a87', '#9a7c7c']
 
 function normalizar(texto: string | null | undefined) {
-  return String(texto ?? '').trim().toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
+  return String(texto ?? '')
+    .trim()
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')
+    .split(/\s+/)
+    .map((palavra) => FEMININOS[palavra] ?? palavra)
+    .join(' ')
 }
+
+// nomes mais longos primeiro: "azul escuro" ganha de "azul" na busca parcial
+const NOMES = Object.keys(CORES).sort((a, b) => b.length - a.length)
 
 export function corDaPeca(cor: string | null | undefined, semente: number | string = 0) {
   const chave = normalizar(cor)
   const exata = CORES[chave]
   if (exata) return exata
-  const parcial = Object.keys(CORES).find((nome) => chave.includes(nome))
+  const parcial = NOMES.find((nome) => chave.includes(nome))
   if (parcial) return CORES[parcial]!
   // cor sem mapa: um tom neutro estável para a mesma peça
   const soma = [...chave].reduce((total, letra) => total + letra.charCodeAt(0), Number(semente) || 0)
