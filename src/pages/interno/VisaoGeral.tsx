@@ -107,8 +107,8 @@ export function VisaoGeral() {
 
   const titulo = unidade ? nomeUnidade(unidades, Number(unidade)) : 'Toda a rede'
   const abertas = (pendencias.dados ?? []).filter((p) => p.total > 0).length
-  // as que pedem atenção vêm primeiro; dentro de cada grupo, a ordem de sempre (o sort é estável)
-  const pendenciasEmOrdem = [...(pendencias.dados ?? [])].sort((a, b) => Number(b.total > 0) - Number(a.total > 0))
+  // as que pedem atenção vêm primeiro, da maior para a menor; as zeradas, na ordem de sempre (o sort é estável)
+  const pendenciasEmOrdem = [...(pendencias.dados ?? [])].sort((a, b) => b.total - a.total)
   // as duas colunas já existem antes do resumo chegar, pelo perfil: assim os números carregam ao
   // lado das pendências, e não aparecem embaixo delas para depois pular de lugar
   const teraNumeros = admin || VENDAS.some(pode) || pode('atender_chamado')
@@ -195,15 +195,33 @@ function Atalhos({ pode }: { pode: (codigo: string) => boolean }) {
   )
 }
 
-// número grande; quando há o que fazer, a linha inteira fica em terracota-claro (pendência, no
-// design); quando não, o número fica cinza com "tudo em dia"
+// quanto mais coisa parada, mais forte o terracota (pendência, no design). Faixas fixas, para a mesma
+// quantidade ter sempre o mesmo peso: 1 a 4 só o fundo claro; 5 a 9 ganha a barra e o número em
+// terracota; 10 ou mais, fundo mais forte e texto em negrito
+const PENDENCIA_MEDIA = 5
+const PENDENCIA_ALTA = 10
+
+// número grande; zerada, o número fica cinza com "tudo em dia"
 function LinhaPendencia({ pendencia: p }: { pendencia: Pendencia }) {
   const ha = p.total > 0
+  const media = p.total >= PENDENCIA_MEDIA
+  const alta = p.total >= PENDENCIA_ALTA
   return (
     <li>
-      <Link to={p.para} className={cn('group flex items-center gap-4 border-b px-3 py-4', ha ? 'bg-terracota-fundo hover:bg-terracota-fundo/70' : 'hover:bg-superficie')}>
-        <span className={cn('w-12 shrink-0 text-right text-3xl font-medium tabular-nums', !ha && 'text-muted-foreground')}>{p.total}</span>
-        <span className="min-w-0 flex-1 text-sm">
+      <Link
+        to={p.para}
+        className={cn(
+          'group flex items-center gap-4 border-b px-3 py-4',
+          !ha && 'hover:bg-superficie',
+          ha && !alta && 'bg-terracota-fundo hover:bg-terracota/10',
+          alta && 'bg-terracota/20 hover:bg-terracota/25',
+          media && 'shadow-[inset_4px_0_0_var(--terracota)]',
+        )}
+      >
+        <span className={cn('w-12 shrink-0 text-right text-3xl font-medium tabular-nums', !ha && 'text-muted-foreground', media && 'text-terracota')}>
+          {p.total}
+        </span>
+        <span className={cn('min-w-0 flex-1 text-sm', alta && 'font-semibold')}>
           {p.total === 1 ? p.singular : p.rotulo}
           {!ha && <span className="block text-xs text-muted-foreground">tudo em dia</span>}
         </span>
