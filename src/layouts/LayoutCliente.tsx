@@ -1,10 +1,11 @@
-import { useState, type ReactNode, type SubmitEvent } from 'react'
-import { Package, Search, ShoppingBag, User } from 'lucide-react'
+import { useLayoutEffect, useRef, useState, useSyncExternalStore, type ReactNode, type SubmitEvent } from 'react'
+import { ChevronDown, ChevronLeft, ChevronRight, Package, Search, ShoppingBag, User } from 'lucide-react'
 import { Link, Outlet, useLocation, useNavigate, useSearchParams } from 'react-router'
 import { cn } from 'cn'
 
 import { useAuth } from '@/auth/contexto'
 import { Logo } from '@/components/Logo'
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import type { Esquema } from '@/lib/api'
 import { useCategorias } from '@/lib/listas'
 import { CarrinhoProvider } from '@/pages/loja/carrinho/CarrinhoProvider'
@@ -84,30 +85,194 @@ function BotaoCarrinho() {
   )
 }
 
+// categorias do topo. No computador entram as que cabem e o resto vai para "Mais"; no celular a linha
+// rola com o dedo e as setinhas avisam que tem mais para o lado
 function Categorias({ categorias }: { categorias: Esquema<'CategoriaSaida'>[] }) {
   const local = useLocation()
   const [params] = useSearchParams()
+  const telaGrande = useTelaGrande()
   const naLista = local.pathname === '/loja/produtos'
   const categoriaAtual = naLista ? params.get('categoria') : null
 
+  const itens: ItemCategoria[] = [
+    { chave: 'todos', nome: 'Todos', para: '/loja/produtos', ativa: naLista && !categoriaAtual && !params.get('busca') },
+    ...categorias.map((c) => ({
+      chave: String(c.id_categoria),
+      nome: c.nome,
+      para: `/loja/produtos?categoria=${c.id_categoria}`,
+      ativa: categoriaAtual === String(c.id_categoria),
+    })),
+  ]
+
   return (
-    <nav
-      aria-label="Categorias"
-      className="col-span-2 row-start-3 -mx-4 flex min-w-0 gap-6 overflow-x-auto px-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden lg:col-span-1 lg:row-start-auto lg:mx-0 lg:px-0"
+    <div className="relative col-span-2 row-start-3 -mx-4 min-w-0 lg:col-span-1 lg:row-start-auto lg:mx-0">
+      {telaGrande ? <CategoriasComMais itens={itens} /> : <CategoriasDeArrastar itens={itens} />}
+    </div>
+  )
+}
+
+type ItemCategoria = { chave: string; nome: string; para: string; ativa: boolean }
+
+// mesmo ponto do lg do Tailwind, onde o topo vira uma linha só
+const TELA_GRANDE = '(min-width: 64rem)'
+
+function useTelaGrande() {
+  return useSyncExternalStore(
+    (avisar) => {
+      const consulta = window.matchMedia(TELA_GRANDE)
+      consulta.addEventListener('change', avisar)
+      return () => consulta.removeEventListener('change', avisar)
+    },
+    () => window.matchMedia(TELA_GRANDE).matches,
+  )
+}
+
+// a conta usa uma cópia invisível da linha inteira para saber a largura de cada categoria
+// e do "Mais"; refaz quando a tela muda de tamanho ou a lista muda
+function CategoriasComMais({ itens }: { itens: ItemCategoria[] }) {
+  const linha = useRef<HTMLElement>(null)
+  const medida = useRef<HTMLDivElement>(null)
+  const [cabem, setCabem] = useState(itens.length)
+
+  useLayoutEffect(() => {
+    const nav = linha.current
+    const copia = medida.current
+    if (!nav || !copia) return
+
+    function calcular() {
+      if (!nav || !copia) return
+      const larguras = Array.from(copia.children, (el) => el.getBoundingClientRect().width)
+      const larguraMais = larguras.pop() ?? 0
+      const espaco = parseFloat(getComputedStyle(copia).columnGap) || 0
+      const disponivel = nav.clientWidth
+      const ocupado = (n: number) => larguras.slice(0, n).reduce((soma, l) => soma + l, 0) + espaco * Math.max(n - 1, 0)
+
+      if (ocupado(larguras.length) <= disponivel) {
+        setCabem(larguras.length)
+        return
+      }
+      let n = larguras.length - 1
+      while (n > 1 && ocupado(n) + espaco + larguraMais > disponivel) n--
+      setCabem(n)
+    }
+
+    calcular()
+    const observador = new ResizeObserver(calcular)
+    observador.observe(nav)
+    return () => observador.disconnect()
+  }, [itens.length])
+
+  const visiveis = itens.slice(0, cabem)
+  const escondidas = itens.slice(cabem)
+
+  return (
+    <>
+      <nav ref={linha} aria-label="Categorias" className="flex min-w-0 items-center gap-5 overflow-hidden">
+        {visiveis.map((item) => (
+          <LinkCategoria key={item.chave} para={item.para} ativa={item.ativa}>{item.nome}</LinkCategoria>
+        ))}
+        {escondidas.length > 0 && (
+          <DropdownMenu>
+            <DropdownMenuTrigger
+              className={cn(
+                'flex shrink-0 items-center gap-1 border-b-2 py-1 text-sm outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring',
+                escondidas.some((i) => i.ativa) ? 'border-foreground font-medium' : 'border-transparent hover:border-border',
+              )}
+            >
+              Mais
+              <ChevronDown className="size-3.5" aria-hidden="true" />
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" className="w-52">
+              {escondidas.map((item) => (
+                <DropdownMenuItem
+                  key={item.chave}
+                  render={<Link to={item.para} aria-current={item.ativa ? 'page' : undefined} />}
+                  className={cn('px-3 py-2', item.ativa && 'font-medium')}
+                >
+                  {item.nome}
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        )}
+      </nav>
+
+      <div ref={medida} aria-hidden="true" className="pointer-events-none invisible absolute top-0 left-0 flex gap-5 whitespace-nowrap">
+        {itens.map((item) => (
+          <span key={item.chave} className={cn('py-1 text-sm', item.ativa && 'font-medium')}>{item.nome}</span>
+        ))}
+        <span className="flex items-center gap-1 py-1 text-sm font-medium">
+          Mais
+          <ChevronDown className="size-3.5" />
+        </span>
+      </div>
+    </>
+  )
+}
+
+function CategoriasDeArrastar({ itens }: { itens: ItemCategoria[] }) {
+  const linha = useRef<HTMLElement>(null)
+  const [lados, setLados] = useState({ esquerda: false, direita: false })
+
+  useLayoutEffect(() => {
+    const nav = linha.current
+    if (!nav) return
+
+    function conferir() {
+      if (!nav) return
+      setLados({
+        esquerda: nav.scrollLeft > 1,
+        direita: nav.scrollLeft + nav.clientWidth < nav.scrollWidth - 1,
+      })
+    }
+
+    conferir()
+    nav.addEventListener('scroll', conferir, { passive: true })
+    const observador = new ResizeObserver(conferir)
+    observador.observe(nav)
+    return () => {
+      nav.removeEventListener('scroll', conferir)
+      observador.disconnect()
+    }
+  }, [itens.length])
+
+  function andar(sentido: 1 | -1) {
+    const nav = linha.current
+    if (nav) nav.scrollBy({ left: sentido * nav.clientWidth * 0.7, behavior: 'smooth' })
+  }
+
+  return (
+    <>
+      <nav
+        ref={linha}
+        aria-label="Categorias"
+        className="flex min-w-0 gap-6 overflow-x-auto px-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+      >
+        {itens.map((item) => (
+          <LinkCategoria key={item.chave} para={item.para} ativa={item.ativa}>{item.nome}</LinkCategoria>
+        ))}
+      </nav>
+      {lados.esquerda && <SetaCategorias lado="esquerda" aoClicar={() => andar(-1)} />}
+      {lados.direita && <SetaCategorias lado="direita" aoClicar={() => andar(1)} />}
+    </>
+  )
+}
+
+// a seta fica sobre um esmaecido para o nome cortado na ponta não parecer erro
+function SetaCategorias({ lado, aoClicar }: { lado: 'esquerda' | 'direita'; aoClicar: () => void }) {
+  const Icone = lado === 'esquerda' ? ChevronLeft : ChevronRight
+  return (
+    <button
+      type="button"
+      onClick={aoClicar}
+      aria-label={lado === 'esquerda' ? 'Ver categorias anteriores' : 'Ver mais categorias'}
+      className={cn(
+        'absolute inset-y-0 flex w-12 items-center from-background from-55% to-transparent',
+        lado === 'esquerda' ? 'left-0 justify-start bg-linear-to-r pl-2' : 'right-0 justify-end bg-linear-to-l pr-2',
+      )}
     >
-      <LinkCategoria para="/loja/produtos" ativa={naLista && !categoriaAtual && !params.get('busca')}>
-        Todos
-      </LinkCategoria>
-      {categorias.map((categoria) => (
-        <LinkCategoria
-          key={categoria.id_categoria}
-          para={`/loja/produtos?categoria=${categoria.id_categoria}`}
-          ativa={categoriaAtual === String(categoria.id_categoria)}
-        >
-          {categoria.nome}
-        </LinkCategoria>
-      ))}
-    </nav>
+      <Icone className="size-4" aria-hidden="true" />
+    </button>
   )
 }
 
@@ -141,7 +306,7 @@ function BuscaDaLoja() {
     <form
       role="search"
       onSubmit={buscar}
-      className="col-span-2 flex min-w-0 items-center gap-2 bg-superficie px-4 py-2 focus-within:ring-2 focus-within:ring-ring lg:col-span-1 lg:w-64"
+      className="col-span-2 flex min-w-0 items-center gap-2 bg-superficie px-4 py-2 focus-within:ring-2 focus-within:ring-ring lg:col-span-1 lg:w-48 xl:w-64"
     >
       <Search className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
       <label htmlFor="busca-loja" className="sr-only">Buscar produtos</label>
@@ -200,7 +365,20 @@ function LinkDaConta({ nome }: { nome: string }) {
 function Rodape({ categorias }: { categorias: Esquema<'CategoriaSaida'>[] }) {
   return (
     <footer className="mt-20 bg-marinho-escuro text-white">
-      <div className="mx-auto grid max-w-7xl gap-10 px-4 py-12 sm:grid-cols-2 sm:px-6 lg:grid-cols-4">
+      {/* faixa própria com todas as categorias: os nomes quebram de linha em vez de esticar uma coluna */}
+      {categorias.length > 0 && (
+        <nav aria-labelledby="rodape-categorias" className="mx-auto max-w-7xl border-b border-white/15 px-4 pt-12 pb-8 sm:px-6">
+          <h2 id="rodape-categorias" className="text-sm font-medium">Categorias</h2>
+          <ul className="mt-3 flex flex-wrap gap-x-6 gap-y-2 text-sm text-white/85">
+            {categorias.map((c) => (
+              <li key={c.id_categoria}>
+                <Link to={`/loja/produtos?categoria=${c.id_categoria}`} className="hover:text-white hover:underline">{c.nome}</Link>
+              </li>
+            ))}
+          </ul>
+        </nav>
+      )}
+      <div className="mx-auto grid max-w-7xl gap-10 px-4 py-12 sm:grid-cols-2 sm:px-6 lg:grid-cols-3">
         <ColunaRodape titulo="Minha conta">
           <Link to="/loja/pedidos">Meus pedidos</Link>
           <Link to="/loja/chamados">Chamados</Link>
@@ -211,11 +389,6 @@ function Rodape({ categorias }: { categorias: Esquema<'CategoriaSaida'>[] }) {
           <Link to="/loja/ajuda#trocas-e-devolucoes">Trocas e devoluções</Link>
           <Link to="/loja/ajuda#pedidos-e-entrega">Prazos de entrega</Link>
           <Link to="/loja/chamados/novo">Fale com a gente</Link>
-        </ColunaRodape>
-        <ColunaRodape titulo="Comprar">
-          {categorias.slice(0, 6).map((c) => (
-            <Link key={c.id_categoria} to={`/loja/produtos?categoria=${c.id_categoria}`}>{c.nome}</Link>
-          ))}
         </ColunaRodape>
         <ColunaRodape titulo="Atendimento">
           <span className="text-white/70">
