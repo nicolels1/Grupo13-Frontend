@@ -1,7 +1,6 @@
 import { createClient } from '@supabase/supabase-js'
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY
+import { SUPABASE_CHAVE_PUBLICA, SUPABASE_URL } from '@/config/ambiente'
 
 // o link do convite da equipe (e o de um link vencido) cai no endereço do site, não em
 // /redefinir-senha: antes de o cliente ler o link, leva para lá, onde a pessoa cria a senha
@@ -11,4 +10,4 @@ if (window.location.pathname !== '/redefinir-senha' && (link.includes('type=invi
   window.history.replaceState(null, '', `/redefinir-senha${convite}${link}`)
 }
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey)
+export const supabase = createClient(SUPABASE_URL, SUPABASE_CHAVE_PUBLICA)

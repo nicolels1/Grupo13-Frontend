@@ -9,6 +9,7 @@ import { Logo } from '@/components/Logo'
 import { Button, buttonVariants } from '@/components/ui/button'
 import { Input, Label } from '@/components/ui/input'
 import { api, ErroApi, type Esquema } from '@/lib/api'
+import { mascaraCpf, soDigitos } from '@/lib/formato'
 import { supabase } from '@/lib/supabaseClient'
 
 // o design pede uma mensagem só para credencial errada: não diz se o e-mail ou o CPF existe
@@ -202,19 +203,6 @@ function mensagemDoLogin(falha: unknown) {
 }
 
 // ---------- cadastro ----------
-
-function soDigitos(texto: string) {
-  return texto.replace(/\D/g, '')
-}
-
-// 12345678909 → 123.456.789-09, enquanto a pessoa digita
-function mascaraCpf(texto: string) {
-  const d = soDigitos(texto).slice(0, 11)
-  return d
-    .replace(/^(\d{3})(\d)/, '$1.$2')
-    .replace(/^(\d{3})\.(\d{3})(\d)/, '$1.$2.$3')
-    .replace(/\.(\d{3})(\d)/, '.$1-$2')
-}
 
 // dígitos verificadores do CPF: o backend confere de novo, aqui é só para avisar antes de enviar
 function cpfValido(texto: string) {

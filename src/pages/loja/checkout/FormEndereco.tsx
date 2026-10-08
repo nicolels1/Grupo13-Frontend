@@ -4,8 +4,9 @@ import { LoaderCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Campo, Input } from '@/components/ui/input'
 import { api, type Esquema } from '@/lib/api'
+import { soDigitos } from '@/lib/formato'
 import { useEnviar } from '@/lib/useCarregar'
-import { buscarCep, mascaraCep, soDigitos } from './cep'
+import { buscarCep, mascaraCep } from './cep'
 
 type Endereco = Esquema<'EnderecoSaida'>
 

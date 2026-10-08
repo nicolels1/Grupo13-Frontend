@@ -5,9 +5,8 @@ import { cn } from 'cn'
 import { Button } from '@/components/ui/button'
 import { Campo, Input } from '@/components/ui/input'
 import { api, type Esquema } from '@/lib/api'
-import { moeda } from '@/lib/formato'
+import { moeda, soDigitos } from '@/lib/formato'
 import { useEnviar } from '@/lib/useCarregar'
-import { soDigitos } from './cep'
 
 type Pedido = Esquema<'PedidoSaida'>
 type Metodo = 'pix' | 'cartao_credito' | 'cartao_debito'

@@ -128,9 +128,21 @@ export function hojeIso() {
   return new Date().toLocaleDateString('sv-SE', { timeZone: FUSO })
 }
 
+// "AAAA-MM-DD" de n dias atrás, no horário de Brasília (o meio-dia evita pular de dia no horário de verão)
+export function diasAtras(n: number) {
+  const d = new Date(`${hojeIso()}T12:00:00`)
+  d.setDate(d.getDate() - n)
+  return d.toLocaleDateString('sv-SE')
+}
+
+// só os números de um texto digitado (CPF, CEP, telefone)
+export function soDigitos(texto: string) {
+  return texto.replace(/\D/g, '')
+}
+
 // CPF digitado com a máscara 000.000.000-00 (aceita colar com ou sem pontos)
 export function mascaraCpf(texto: string) {
-  const d = texto.replace(/\D/g, '').slice(0, 11)
+  const d = soDigitos(texto).slice(0, 11)
   return d
     .replace(/^(\d{3})(\d)/, '$1.$2')
     .replace(/^(\d{3})\.(\d{3})(\d)/, '$1.$2.$3')
