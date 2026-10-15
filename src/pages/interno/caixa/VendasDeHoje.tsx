@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { Printer } from 'lucide-react'
 import { cn } from 'cn'
 
-import { Aviso, Carregando, Vazio } from '@/components/Estados'
+import { Aviso, Carregando, ListaCortada, Vazio } from '@/components/Estados'
 import { Etiqueta } from '@/components/Peca'
 import { Button } from '@/components/ui/button'
 import { api, type Esquema } from '@/lib/api'
@@ -51,9 +51,7 @@ export function VendasDeHoje({ loja }: { loja: Unidade }) {
         {lista.erro && <Aviso mensagem={lista.erro} />}
         {lista.carregando && !lista.dados && <Carregando />}
         {lista.dados && vendas.length === 0 && <Vazio>Nenhuma venda no caixa hoje.</Vazio>}
-        {lista.dados && lista.dados.total > vendas.length && (
-          <p className="pb-2 text-xs text-muted-foreground">Mostrando as {vendas.length} vendas mais recentes de {lista.dados.total}.</p>
-        )}
+        {lista.dados && <ListaCortada mostrados={vendas.length} total={lista.dados.total} dica="Aparecem as vendas mais recentes." />}
         {vendas.length > 0 && (
           <div className="overflow-x-auto">
             <table className="w-full min-w-[36rem] text-sm">

@@ -29,6 +29,20 @@ export function Vazio({ children }: { children: ReactNode }) {
   return <p className="border-y py-10 text-center text-sm text-muted-foreground">{children}</p>
 }
 
+// lista que a API devolveu cortada (pediu um limite e há mais): diz quantas faltam, em vez de sumir com elas
+export function ListaCortada({ mostrados, total, dica = 'Use a busca ou os filtros para achar o resto.' }: {
+  mostrados: number
+  total: number
+  dica?: string
+}) {
+  if (total <= mostrados) return null
+  return (
+    <p className="py-2 text-xs text-muted-foreground">
+      Mostrando {mostrados.toLocaleString('pt-BR')} de {total.toLocaleString('pt-BR')}. {dica}
+    </p>
+  )
+}
+
 // confirmação curta depois de salvar
 export function Sucesso({ children }: { children: ReactNode }) {
   return (

@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { cn } from 'cn'
 
-import { Aviso, Carregando } from '@/components/Estados'
+import { Aviso, Carregando, ListaCortada } from '@/components/Estados'
 import { NomePeca } from '@/components/Peca'
 import { Campo, Input } from '@/components/ui/input'
 import { api, todasAsPaginas, type Esquema } from '@/lib/api'
@@ -73,6 +73,7 @@ export function ConsultarPeca({ loja }: { loja: Unidade }) {
         )}
         {achadas.erro && <Aviso mensagem={achadas.erro} />}
         {!produto && achadas.dados && produtos.length === 0 && <p className="text-xs text-muted-foreground">Nenhuma peça com esse nome.</p>}
+        {!produto && achadas.dados && <ListaCortada mostrados={achadas.dados.items.length} total={achadas.dados.total} dica="Digite mais do nome para afinar a busca." />}
       </Campo>
 
       {estoque.erro && <Aviso mensagem={estoque.erro} />}

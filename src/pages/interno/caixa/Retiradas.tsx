@@ -2,7 +2,7 @@ import { useState, type FormEvent } from 'react'
 import { Check } from 'lucide-react'
 import { cn } from 'cn'
 
-import { Aviso, Carregando, Vazio } from '@/components/Estados'
+import { Aviso, Carregando, ListaCortada, Vazio } from '@/components/Estados'
 import { Etiqueta, NomePeca } from '@/components/Peca'
 import { Button } from '@/components/ui/button'
 import { Campo, Input } from '@/components/ui/input'
@@ -49,11 +49,12 @@ export function Retiradas({ loja }: { loja: Unidade }) {
     <div className="grid gap-10 lg:grid-cols-[22rem_1fr]">
       <div>
         <p className="mb-2 text-sm text-muted-foreground">
-          {lista.dados ? `${plural(prontas.length, 'pedido pronto', 'pedidos prontos')} para retirar` : 'Pedidos prontos para retirar'}
+          {lista.dados ? `${plural(lista.dados.total, 'pedido pronto', 'pedidos prontos')} para retirar` : 'Pedidos prontos para retirar'}
         </p>
         {lista.erro && <Aviso mensagem={lista.erro} />}
         {lista.carregando && !lista.dados && <Carregando />}
         {lista.dados && prontas.length === 0 && <Vazio>Nenhuma retirada esperando nesta loja.</Vazio>}
+        {lista.dados && <ListaCortada mostrados={prontas.length} total={lista.dados.total} dica="As outras aparecem conforme estas forem entregues." />}
         <ul>
           {prontas.map((p) => {
             const dias = diasDesde(p.pronto_retirada_em)
