@@ -1,40 +1,36 @@
-import type { ReactElement } from 'react'
+import { Suspense, type ReactElement } from 'react'
 import { Outlet, useOutletContext, type RouteObject } from 'react-router'
 
 import { AREAS } from '@/auth/areas'
 import { ExigeArea, ExigeLogin } from '@/auth/Protecao'
+import { Carregando } from '@/components/Estados'
 import { LayoutInterno } from '@/layouts/LayoutInterno'
-import { Atendimento } from '@/pages/interno/Atendimento'
-import { Caixa } from '@/pages/interno/Caixa'
-import { Catalogo } from '@/pages/interno/Catalogo'
-import { Estoque } from '@/pages/interno/Estoque'
-import { HistoricoEstoque } from '@/pages/interno/HistoricoEstoque'
-import { Gestao } from '@/pages/interno/Gestao'
-import { Moderacao } from '@/pages/interno/Moderacao'
-import { Movimentacoes } from '@/pages/interno/Movimentacoes'
-import { Pedidos } from '@/pages/interno/Pedidos'
-import { ProdutoInterno } from '@/pages/interno/ProdutoInterno'
-import { Transferencias } from '@/pages/interno/Transferencias'
-import { VisaoGeral } from '@/pages/interno/VisaoGeral'
+import {
+  Atendimento, Caixa, Catalogo, Estoque, Gestao, HistoricoEstoque, Moderacao, Movimentacoes, Pedidos, ProdutoInterno, Transferencias,
+  VisaoGeral,
+} from './telasInterno'
+
+// enquanto o código da tela chega, o topo do interno continua e o miolo mostra "Carregando"
+const tela = (elemento: ReactElement) => <Suspense fallback={<Carregando />}>{elemento}</Suspense>
 
 // telas de cada área da barra interna
 const TELAS: Record<string, { tela: ReactElement; filhas?: RouteObject[] }> = {
-  '': { tela: <VisaoGeral /> },
+  '': { tela: tela(<VisaoGeral />) },
   estoque: {
-    tela: <Estoque />,
+    tela: tela(<Estoque />),
     filhas: [
-      { path: 'movimentacoes', element: <Movimentacoes /> },
-      { path: 'historico', element: <HistoricoEstoque /> },
+      { path: 'movimentacoes', element: tela(<Movimentacoes />) },
+      { path: 'historico', element: tela(<HistoricoEstoque />) },
     ],
   },
-  transferencias: { tela: <Transferencias /> },
-  caixa: { tela: <Caixa /> },
-  pedidos: { tela: <Pedidos /> },
-  avaliacoes: { tela: <Moderacao /> },
+  transferencias: { tela: tela(<Transferencias />) },
+  caixa: { tela: tela(<Caixa />) },
+  pedidos: { tela: tela(<Pedidos />) },
+  avaliacoes: { tela: tela(<Moderacao />) },
   // o chamado aberto é a mesma caixa de entrada com a terceira coluna preenchida
-  atendimento: { tela: <Atendimento />, filhas: [{ path: ':idChamado', element: <Atendimento /> }] },
-  catalogo: { tela: <Catalogo />, filhas: [{ path: ':idProduto', element: <ProdutoInterno /> }] },
-  gestao: { tela: <Gestao /> },
+  atendimento: { tela: tela(<Atendimento />), filhas: [{ path: ':idChamado', element: tela(<Atendimento />) }] },
+  catalogo: { tela: tela(<Catalogo />), filhas: [{ path: ':idProduto', element: tela(<ProdutoInterno />) }] },
+  gestao: { tela: tela(<Gestao />) },
 }
 
 // um <Outlet> aninhado começa sem contexto: repassa o do LayoutInterno (unidade escolhida)
