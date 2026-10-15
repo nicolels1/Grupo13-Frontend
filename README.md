@@ -102,7 +102,7 @@ src/
         └── componentes/ partes das telas do interno (gráficos e estilos de bloco)
 ```
 
-Fora do `src/`: `public/imagens/carrossel/` (imagens estáticas dos destaques da loja, publicadas junto com o frontend), `docs/adr/` (decisões de arquitetura), `.github/workflows/` (verificações no GitHub), `.env.example` e `vercel.json`.
+Fora do `src/`: `docs/adr/` (decisões de arquitetura), `.github/workflows/` (verificações no GitHub), `.env.example` e `vercel.json`.
 
 Componente usado nas duas plataformas fica em `components/`; o que é de uma plataforma só fica em `componentes/` dentro da pasta dela. Cada rota tem o seu arquivo em `pages/`, e as telas nunca chamam o Supabase direto: entrar, sair e recuperar a senha passam pelo `useAuth()`.
 
