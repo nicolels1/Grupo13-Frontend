@@ -7,7 +7,7 @@ import { Aviso, Carregando } from '@/components/Estados'
 import { Carousel, CarouselContent, CarouselItem, type CarouselApi } from '@/components/ui/carousel'
 import { api, type Esquema } from '@/lib/api'
 import { useCategorias } from '@/lib/listas'
-import { useCarregar } from '@/lib/useCarregar'
+import { useCarregar, useIntervalo } from '@/lib/useCarregar'
 import { CartaoProduto } from './componentes/CartaoProduto'
 
 const SLIDES = [
@@ -179,11 +179,7 @@ function Destaques() {
     }
   }, [controle])
 
-  useEffect(() => {
-    if (!controle || pausado || prefereMenosMovimento()) return
-    const relogio = window.setInterval(() => controle.scrollNext(), TROCA_A_CADA_MS)
-    return () => window.clearInterval(relogio)
-  }, [controle, pausado])
+  useIntervalo(() => controle?.scrollNext(), controle && !pausado && !prefereMenosMovimento() ? TROCA_A_CADA_MS : null)
 
   return (
     <Carousel

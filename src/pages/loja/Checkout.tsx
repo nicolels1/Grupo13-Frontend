@@ -7,7 +7,7 @@ import { Aviso, Carregando } from '@/components/Estados'
 import { Button, buttonVariants } from '@/components/ui/button'
 import { api, type Esquema } from '@/lib/api'
 import { moeda } from '@/lib/formato'
-import { useCarregar, useEnviar } from '@/lib/useCarregar'
+import { useCarregar, useEnviar, useIntervalo } from '@/lib/useCarregar'
 import { useCarrinho } from './carrinho/contexto'
 import { useResumo, type ResumoCarrinho } from './carrinho/useResumo'
 import { FormEndereco } from './checkout/FormEndereco'
@@ -315,11 +315,7 @@ function ContadorReserva({ expiraEm, aoVencer }: { expiraEm: string | null; aoVe
   const restante = expiraEm ? Math.max(0, new Date(expiraEm).getTime() - agora) : 0
   const vencida = expiraEm !== null && restante === 0
 
-  useEffect(() => {
-    if (vencida) return
-    const relogio = window.setInterval(() => setAgora(Date.now()), 1000)
-    return () => window.clearInterval(relogio)
-  }, [vencida])
+  useIntervalo(() => setAgora(Date.now()), vencida ? null : 1000)
 
   if (!expiraEm) return null
   if (vencida) {
