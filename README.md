@@ -190,9 +190,10 @@ Tudo que começa com `VITE_` vai para o navegador: nunca coloque uma chave secre
 - funções de formato (datas no horário de Brasília, moeda, CPF, plural e tamanho de arquivo) e a tradução de erros da API;
 - as regras de acesso às áreas internas;
 - as regras das telas: troca, devolução e estorno, variações e fotos do produto, anexos dos chamados, CEP, pedido em aberto no checkout, fotos por cor e os pedidos da conta;
-- as listas com cache (unidades e variantes) e os hooks de carregamento e envio (`useCarregar`, `useEnviar`, `useAdiado`).
+- as listas com cache (unidades e variantes) e os hooks de carregamento, envio e intervalo;
+- as telas de entrar e a proteção das rotas, com o roteador de verdade e o `useAuth()` trocado por um de teste (`src/auth/authDeTeste.ts`): login por e-mail e CPF, credencial errada, volta à página de origem, conta do tipo errado e área sem permissão.
 
-São testes unitários de lógica: não validam visualmente as telas. Os testes de hooks precisam de um componente React e rodam num navegador simulado (jsdom, com o Testing Library), marcado no topo do arquivo com `// @vitest-environment jsdom`; os outros rodam direto no Node. Para executar todos uma vez:
+Não validam o visual das telas. Os testes de hooks e de telas precisam do React e rodam num navegador simulado (jsdom, com o Testing Library), marcado no topo do arquivo com `// @vitest-environment jsdom`; os outros rodam direto no Node. Para executar todos uma vez:
 
 ```bash
 npm test
