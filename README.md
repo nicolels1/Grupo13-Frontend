@@ -79,7 +79,7 @@ src/
 ├── App.tsx              roteador: junta as rotas da loja e do interno
 ├── main.tsx             ponto de entrada
 ├── index.css            fontes, tokens de cor e estilos base
-├── auth/                sessão e perfil (AuthProvider), proteção das rotas e áreas por permissão
+├── auth/                sessão, perfil e ações do Supabase Auth (AuthProvider), proteção das rotas e áreas
 ├── config/              o que muda por ambiente: endereço da API e projeto do Supabase
 ├── components/          componentes usados nas duas plataformas (logo, estados de tela, navegação, peça, status)
 │   └── ui/              componentes do shadcn/ui ajustados ao design
@@ -88,13 +88,14 @@ src/
 │                        (cada arquivo com o seu teste ao lado, ex.: formato.ts e formato.test.ts)
 ├── rotas/               rotasLoja.tsx e rotasInterno.tsx
 └── pages/
-    ├── Entrar.tsx       entrar, cadastro, esqueci a senha e criar nova senha
-    ├── Basicas.tsx      rota inicial, página não encontrada e erro
+    ├── RotaInicial.tsx, NaoEncontrada.tsx, ErroDaPagina.tsx
+    ├── acesso/          entrar, cadastro, esqueci a senha e criar nova senha (uma tela por arquivo)
+    │   └── componentes/ moldura das telas de conta e campos de senha
     ├── loja/            telas da plataforma do cliente
     │   ├── carrinho/    estado, gaveta e lista de itens do carrinho
     │   ├── checkout/    endereço, CEP e pagamento simulado
     │   ├── conta/       área "Minha conta"
-    │   ├── chamados/    conversa e anexos
+    │   ├── chamados/    chamado novo, conversa, mensagens e anexos
     │   └── componentes/ partes das telas da loja (cartão do produto, avaliações, estrelas, fotos)
     └── interno/         telas da plataforma interna
         └── componentes/ partes das telas do interno (gráficos, troca e devolução)
@@ -102,7 +103,7 @@ src/
 
 Fora do `src/`: `public/imagens/carrossel/` (imagens estáticas dos destaques da loja, publicadas junto com o frontend), `docs/adr/` (decisões de arquitetura), `.github/workflows/` (verificações no GitHub), `.env.example` e `vercel.json`.
 
-Componente usado nas duas plataformas fica em `components/`; o que é de uma plataforma só fica em `componentes/` dentro da pasta dela.
+Componente usado nas duas plataformas fica em `components/`; o que é de uma plataforma só fica em `componentes/` dentro da pasta dela. Cada rota tem o seu arquivo em `pages/`, e as telas nunca chamam o Supabase direto: entrar, sair e recuperar a senha passam pelo `useAuth()`.
 
 ## Login e permissões
 
