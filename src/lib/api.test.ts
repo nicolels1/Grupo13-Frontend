@@ -1,9 +1,11 @@
-import { describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 
-// o cliente do Supabase precisa das variáveis do .env; aqui só a mensagem de erro importa
-vi.mock('./supabaseClient', () => ({ supabase: { auth: { getSession: vi.fn() } } }))
+// o cliente do Supabase e o endereço da API vêm do .env: aqui os dois são de mentira
+const auth = vi.hoisted(() => ({ getSession: vi.fn(), signOut: vi.fn() }))
+vi.mock('./supabaseClient', () => ({ supabase: { auth } }))
+vi.mock('@/config/ambiente', () => ({ API_URL: 'http://api.teste' }))
 
-const { mensagemDoErro } = await import('./api')
+const { api, mensagemDoErro, SESSAO_VENCIDA } = await import('./api')
 
 describe('mensagemDoErro', () => {
   it('usa o texto que o backend mandou', () => {
@@ -21,5 +23,36 @@ describe('mensagemDoErro', () => {
 
   it('erro sem texto e sem ser do servidor tem uma mensagem geral', () => {
     expect(mensagemDoErro({}, 400)).toBe('Não foi possível concluir a operação.')
+  })
+})
+
+describe('api', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals()
+    vi.clearAllMocks()
+  })
+
+  const resposta = (status: number, corpo: unknown) => vi.fn().mockResolvedValue({ status, ok: status < 300, json: async () => corpo })
+  const comSessao = () => auth.getSession.mockResolvedValue({ data: { session: { access_token: 'token-de-teste' } } })
+
+  it('manda o token e devolve os dados', async () => {
+    comSessao()
+    const buscar = resposta(200, { nome: 'Ana' })
+    vi.stubGlobal('fetch', buscar)
+    expect(await api('/me')).toEqual({ nome: 'Ana' })
+    expect(buscar.mock.calls[0]![1].headers.Authorization).toBe('Bearer token-de-teste')
+  })
+
+  it('token recusado encerra a sessão local e avisa', async () => {
+    comSessao()
+    vi.stubGlobal('fetch', resposta(401, { detail: 'Token inválido' }))
+    await expect(api('/me')).rejects.toMatchObject({ status: 401, message: SESSAO_VENCIDA })
+    expect(auth.signOut).toHaveBeenCalledWith({ scope: 'local' })
+  })
+
+  it('401 sem token (ex.: login por CPF errado) não mexe na sessão', async () => {
+    vi.stubGlobal('fetch', resposta(401, { detail: 'CPF ou senha inválidos' }))
+    await expect(api('/login/cpf', { metodo: 'POST', corpo: {}, autenticado: false })).rejects.toThrow('CPF ou senha inválidos')
+    expect(auth.signOut).not.toHaveBeenCalled()
   })
 })
