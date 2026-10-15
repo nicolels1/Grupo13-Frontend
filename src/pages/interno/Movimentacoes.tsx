@@ -13,7 +13,7 @@ import { Campo, Input, Select, Textarea } from '@/components/ui/input'
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet'
 import { useUnidadeEscolhida } from '@/layouts/unidadeEscolhida'
 import { api, type Esquema } from '@/lib/api'
-import { CANAIS, codigoTransferencia, dataCurta, hojeIso, hora, TIPOS_MOVIMENTACAO } from '@/lib/formato'
+import { CANAIS, codigoTransferencia, dataCurta, diasAtras, hora, TIPOS_MOVIMENTACAO } from '@/lib/formato'
 import { nomeUnidade } from '@/lib/listas'
 import { useCarregar, useEnviar } from '@/lib/useCarregar'
 import { AbasEstoque, AcoesEstoque } from './Estoque'
@@ -24,13 +24,6 @@ type PaginaEstoque = Esquema<'Pagina_EstoqueItem_'>
 
 const POR_PAGINA = 25
 const PERIODOS = { 7: 'Últimos 7 dias', 30: 'Últimos 30 dias', 90: 'Últimos 90 dias', '': 'Todo o período' }
-
-function diasAtras(dias: string) {
-  if (!dias) return undefined
-  const d = new Date(`${hojeIso()}T12:00:00`)
-  d.setDate(d.getDate() - Number(dias))
-  return d.toLocaleDateString('sv-SE')
-}
 
 export function Movimentacoes() {
   const { perfil } = useAuth()
@@ -55,7 +48,7 @@ export function Movimentacoes() {
 
   const lista = useCarregar(
     () => api<Esquema<'Pagina_MovimentacaoItem_'>>('/movimentacoes-estoque', {
-      params: { id_unidade: unidade, busca: busca.trim(), de: diasAtras(periodo), tipo, limit: POR_PAGINA, offset },
+      params: { id_unidade: unidade, busca: busca.trim(), de: periodo ? diasAtras(Number(periodo)) : undefined, tipo, limit: POR_PAGINA, offset },
     }),
     [unidade, busca, periodo, tipo, offset],
   )
