@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
 
+import { useAuth } from '@/auth/contexto'
 import { CarrinhoContext, MAXIMO_POR_PECA, type ItemDoCarrinho, type ValorCarrinho } from './contexto'
 
 const CHAVE = 'casa-lorenzi:carrinho'
@@ -26,6 +27,17 @@ function limitar(quantidade: number) {
 export function CarrinhoProvider({ children }: { children: ReactNode }) {
   const [itens, setItens] = useState<ItemDoCarrinho[]>(lerGuardado)
   const [gavetaAberta, setGavetaAberta] = useState(false)
+  const { sessao } = useAuth()
+  const idUsuario = sessao === undefined ? undefined : (sessao?.user?.id ?? null)
+  const [idAnterior, setIdAnterior] = useState(idUsuario)
+
+  // quem estava logado saiu (por qualquer botão "Sair" ou em outra aba): o carrinho sai junto, para a
+  // próxima pessoa no mesmo navegador não herdar as peças. Entrar não mexe: o visitante monta o carrinho
+  // e faz login só para finalizar
+  if (idUsuario !== idAnterior) {
+    setIdAnterior(idUsuario)
+    if (idAnterior && idUsuario === null) setItens([])
+  }
 
   useEffect(() => {
     try {
