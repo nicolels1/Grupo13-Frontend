@@ -111,6 +111,7 @@ Componente usado nas duas plataformas fica em `components/`; o que é de uma pla
 - Há uma só tela de login (`/entrar`), por e-mail ou CPF. Depois de entrar, conta de cliente vai para a loja e conta interna para a Visão Geral.
 - O perfil vem da API (`GET /me`) com as permissões efetivas da conta. A barra do interno mostra só as áreas que a conta pode usar; o que ela não pode fazer nem aparece.
 - Esconder na tela é conveniência: a regra de verdade é do backend, que recusa qualquer ação sem permissão.
+- Se a API recusar o token (401), a sessão desta aba é encerrada e a página protegida leva de volta ao `/entrar`.
 - A recuperação de senha e o convite de funcionário usam o mesmo link do Supabase Auth, que abre a página `/redefinir-senha`.
 
 | Área | Aparece para quem tem |
@@ -207,7 +208,7 @@ Em cada Pull Request para `main`, o GitHub Actions instala as dependências e ro
 - **Dependências conferidas pelo lint:** o oxlint confere a lista de dependências do `useEffect`, do `useCallback` e também do `useCarregar`. Quando uma "chave" resume um valor de propósito, a exceção leva o motivo no próprio comentário (`// eslint-disable-next-line react-hooks/exhaustive-deps -- motivo`).
 - **Códigos de permissão** vêm da lista `PERMISSOES` de `src/auth/areas.ts`, a mesma das migrações do backend: um código escrito errado não compila. Permissão nova no backend entra nessa lista também.
 - **Rótulos de status e categorias** (`src/lib/formato.ts`) são conferidos com os valores que a API declara: depois de `npm run tipos:api`, o `tsc` aponta o rótulo que faltar.
-- **Datas** no horário de Brasília e valores em reais, pelas funções de `src/lib/formato.ts`.
+- **Datas** no horário de Brasília, valores em reais e números (`numero`), pelas funções de `src/lib/formato.ts`. Atualização periódica (conversas, contador da reserva, carrossel) usa o `useIntervalo`.
 - **O navegador guarda só o carrinho** e preferências de tela; nada de dados de conta ou de permissão.
 - **Visual:** cores só pelos tokens do `src/index.css`, fontes Jost, Newsreader (títulos da loja) e Marcellus (logo), cantos retos, telas de 360 px ao desktop e acessibilidade mínima (rótulo em todo campo, foco visível, botão de ícone com `aria-label`). As regras completas ficam em [contexto/design-casa-lorenzi.md](contexto/design-casa-lorenzi.md).
 - **Componentes de interface** vêm do shadcn/ui (`npx shadcn@latest add <nome>`) e são ajustados ao design, em vez de escritos do zero.
