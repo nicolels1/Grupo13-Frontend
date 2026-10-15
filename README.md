@@ -26,7 +26,7 @@ Frontend da plataforma da Casa Lorenzi, desenvolvida no Case Tech da Trainee Ins
 
 **Plataforma do cliente (`/loja`)**
 
-- vitrine com carrossel, categorias, busca sem acento e tolerante a erro de digitação, filtros de tamanho e estoque e ordenação;
+- vitrine com carrossel (slides editados pelo interno), categorias, busca sem acento e tolerante a erro de digitação, filtros de tamanho e estoque e ordenação;
 - página do produto com fotos por cor, tamanhos esgotados riscados e avaliações com fotos, filtro "Com fotos", voto útil e denúncia;
 - carrinho salvo no navegador (gaveta e página), com barra de frete grátis;
 - checkout em uma página: entrega em casa (CEP preenchido pelo ViaCEP) ou retirada grátis numa loja, reserva de 15 minutos e pagamento simulado por Pix ou cartão de teste;
@@ -42,7 +42,7 @@ Frontend da plataforma da Casa Lorenzi, desenvolvida no Case Tech da Trainee Ins
 - **Pedidos** online para preparar, enviar e entregar;
 - **Atendimento** em caixa de entrada: filas, conversa com nota interna, troca, devolução e estorno a partir do chamado;
 - **Avaliações:** moderação das denúncias;
-- **Catálogo:** produtos, variantes, preços e fotos;
+- **Catálogo:** produtos, variantes, preços e fotos, e a aba **Destaques da página inicial**, onde se editam os slides do carrossel (texto, botão, link, foto, ordem e se aparecem na loja);
 - **Gestão** (só Admin): contas internas, modelos de acesso, exceções de permissão e unidades.
 
 ## Arquitetura e stack
