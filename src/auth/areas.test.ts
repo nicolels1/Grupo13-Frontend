@@ -35,7 +35,7 @@ describe('temPermissao', () => {
   it('Admin pode tudo', () => {
     const admin = perfil({ admin: true })
     expect(ehAdmin(admin)).toBe(true)
-    expect(temPermissao(admin, 'qualquer_permissao')).toBe(true)
+    expect(temPermissao(admin, 'gerenciar_contas')).toBe(true)
   })
 
   it('sem perfil não pode nada', () => {

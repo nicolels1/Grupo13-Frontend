@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 
 import { useAuth } from '@/auth/contexto'
-import { temPermissao } from '@/auth/areas'
+import { temPermissao, type CodigoPermissao } from '@/auth/areas'
 import { Aviso } from '@/components/Estados'
 import { Abas, Cabecalho } from '@/components/Navegacao'
 import { Campo, Select } from '@/components/ui/input'
@@ -15,7 +15,7 @@ import { VendasDeHoje } from './caixa/VendasDeHoje'
 type Aba = 'nova' | 'retiradas' | 'hoje' | 'consultar' | 'troca'
 
 // abas do Caixa e a permissão que cada uma pede (as mesmas das rotas do backend)
-const ABAS: { valor: Aba; rotulo: string; permissoes: string[] }[] = [
+const ABAS: { valor: Aba; rotulo: string; permissoes: CodigoPermissao[] }[] = [
   { valor: 'nova', rotulo: 'Nova venda', permissoes: ['registrar_venda_fisica'] },
   { valor: 'retiradas', rotulo: 'Retiradas', permissoes: ['preparar_entregar_pedido'] },
   { valor: 'hoje', rotulo: 'Vendas de hoje', permissoes: ['registrar_venda_fisica', 'preparar_entregar_pedido', 'registrar_troca_devolucao'] },
