@@ -86,7 +86,7 @@ src/
 ├── layouts/             LayoutCliente (topo e rodapé da loja) e LayoutInterno (barra das áreas e unidade)
 ├── lib/                 chamada à API, cliente do Supabase, tipos da API, formatos de data e moeda, listas
 │                        (cada arquivo com o seu teste ao lado, ex.: formato.ts e formato.test.ts)
-├── rotas/               rotasLoja.tsx e rotasInterno.tsx
+├── rotas/               rotasLoja.tsx e rotasInterno.tsx; telasLoja.ts e telasInterno.ts carregam cada tela só quando é aberta
 └── pages/
     ├── RotaInicial.tsx, NaoEncontrada.tsx, ErroDaPagina.tsx
     ├── acesso/          entrar, cadastro, esqueci a senha e criar nova senha (uma tela por arquivo)
@@ -199,7 +199,7 @@ Não validam o visual das telas. Os testes de hooks e de telas precisam do React
 npm test
 ```
 
-Em cada Pull Request para `main`, o GitHub Actions instala as dependências e roda lint, testes e build (`.github/workflows/verificacoes.yml`). Também roda no push direto para `main` ou manualmente pela aba Actions. O resultado aparece na aba Actions e no próprio PR.
+Em cada Pull Request para `main`, o GitHub Actions instala as dependências, confere as vulnerabilidades das dependências que vão para o site (`npm audit --omit=dev`) e roda lint, testes e build (`.github/workflows/verificacoes.yml`). Também roda no push direto para `main` ou manualmente pela aba Actions. O resultado aparece na aba Actions e no próprio PR.
 
 ## Convenções do código
 
@@ -212,7 +212,8 @@ Em cada Pull Request para `main`, o GitHub Actions instala as dependências e ro
 - **Datas** no horário de Brasília, valores em reais e números (`numero`), pelas funções de `src/lib/formato.ts`. Atualização periódica (conversas, contador da reserva, carrossel) usa o `useIntervalo`.
 - **O navegador guarda só o carrinho** e preferências de tela; nada de dados de conta ou de permissão.
 - **Visual:** cores só pelos tokens do `src/index.css`, fontes Jost, Newsreader (títulos da loja) e Marcellus (logo), cantos retos, telas de 360 px ao desktop e acessibilidade mínima (rótulo em todo campo, foco visível, botão de ícone com `aria-label`). As regras completas ficam em [contexto/design-casa-lorenzi.md](contexto/design-casa-lorenzi.md).
-- **Componentes de interface** vêm do shadcn/ui (`npx shadcn@latest add <nome>`) e são ajustados ao design, em vez de escritos do zero.
+- **Componentes de interface** vêm do shadcn/ui (`npx shadcn@latest add <nome>`) e são ajustados ao design, em vez de escritos do zero. O lint não aplica a `src/components/ui` as regras de fast refresh e de estado em efeito, que o próprio padrão do shadcn não segue; o resto do código passa no lint sem nenhum aviso.
+- **Tela nova** entra em `telasLoja.ts` ou `telasInterno.ts` (carregada só quando aberta) e na rota com `tela(...)`.
 
 **Como contribuir:** atualize a `main`, crie uma branch com nome curto em kebab-case sem prefixo (ex.: `loja-meus-pedidos`), faça commits pequenos no formato `tipo: mensagem` e rode `npm run lint`, `npm test` e `npm run build` antes de abrir o PR.
 

@@ -1,10 +1,37 @@
 {
   "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "plugins": ["react", "typescript", "oxc"],
-  "ignorePatterns": ["src/lib/tiposApi.ts"],
+  "plugins": [
+    "react",
+    "typescript",
+    "oxc"
+  ],
+  "ignorePatterns": [
+    "src/lib/tiposApi.ts"
+  ],
   "rules": {
     "react/rules-of-hooks": "error",
-    "react/exhaustive-deps": ["error", { "additionalHooks": "^useCarregar$" }],
-    "react/only-export-components": ["warn", { "allowConstantExport": true }]
-  }
+    "react/exhaustive-deps": [
+      "error",
+      {
+        "additionalHooks": "^useCarregar$"
+      }
+    ],
+    "react/only-export-components": [
+      "warn",
+      {
+        "allowConstantExport": true
+      }
+    ]
+  },
+  "overrides": [
+    {
+      "files": [
+        "src/components/ui/**"
+      ],
+      "rules": {
+        "react/only-export-components": "off",
+        "react/set-state-in-effect": "off"
+      }
+    }
+  ]
 }
