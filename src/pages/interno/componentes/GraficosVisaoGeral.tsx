@@ -4,7 +4,7 @@ import { cn } from 'cn'
 import { ChartContainer, ChartLegend, ChartLegendContent, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart'
 import type { Esquema } from '@/lib/api'
 import { BLOCO_ACO } from './estilos'
-import { moeda } from '@/lib/formato'
+import { moeda, moedaCurta } from '@/lib/formato'
 
 type VendasDoDia = Esquema<'VendasDoDia'>
 type MaisVendida = Esquema<'MaisVendida'>
@@ -21,12 +21,6 @@ const EIXO = { tickLine: false, axisLine: false, fontSize: 11 } as const
 
 // "05/10" a partir de "2026-10-05" (dia sem hora, já no horário de Brasília)
 const diaCurto = (iso: string) => `${iso.slice(8, 10)}/${iso.slice(5, 7)}`
-
-// R$ 4,2 mil no eixo: o tooltip mostra o valor exato
-function moedaCurta(valor: number) {
-  if (valor >= 1000) return `R$ ${(valor / 1000).toLocaleString('pt-BR', { maximumFractionDigits: 1 })} mil`
-  return `R$ ${valor.toLocaleString('pt-BR', { maximumFractionDigits: 0 })}`
-}
 
 const CONFIG_VENDAS = {
   online: { label: 'Online', color: 'var(--marinho)' },

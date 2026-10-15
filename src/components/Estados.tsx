@@ -1,6 +1,8 @@
 import type { ReactNode } from 'react'
 import { CircleCheck, LoaderCircle, TriangleAlert } from 'lucide-react'
 
+import { numero } from '@/lib/formato'
+
 export function Carregando({ texto = 'Carregando...' }: { texto?: string }) {
   return (
     <div role="status" className="flex items-center justify-center gap-2 p-8 text-sm text-muted-foreground">
@@ -38,7 +40,7 @@ export function ListaCortada({ mostrados, total, dica = 'Use a busca ou os filtr
   if (total <= mostrados) return null
   return (
     <p className="py-2 text-xs text-muted-foreground">
-      Mostrando {mostrados.toLocaleString('pt-BR')} de {total.toLocaleString('pt-BR')}. {dica}
+      Mostrando {numero(mostrados)} de {numero(total)}. {dica}
     </p>
   )
 }
