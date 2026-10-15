@@ -13,9 +13,9 @@ import { useUnidadeEscolhida } from '@/layouts/unidadeEscolhida'
 import { api, type Esquema } from '@/lib/api'
 import { CATEGORIAS_CHAMADO, dataCurta, dataHora, METODOS_PAGAMENTO, moeda, MOTIVOS_CONCLUSAO, plural, PRIORIDADES, STATUS_CHAMADO } from '@/lib/formato'
 import { nomeUnidade } from '@/lib/listas'
-import { estornaveis, prazoTroca, type ModoTroca, type TrocaFeita } from '../componentes/regrasTrocaDevolucao'
+import { estornaveis, prazoTroca, type ModoTroca, type TrocaFeita } from '../troca/regrasTrocaDevolucao'
 import { type Carga, useCarregar, useEnviar } from '@/lib/useCarregar'
-import { AtenderPedido } from '../componentes/TrocaDevolucao'
+import { AtenderPedido } from '../troca/TrocaDevolucao'
 
 type Chamado = Esquema<'ChamadoSaida'>
 type Pedido = Esquema<'PedidoSaida'>

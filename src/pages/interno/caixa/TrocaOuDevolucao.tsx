@@ -8,9 +8,9 @@ import { Button } from '@/components/ui/button'
 import { Campo, Input, Select } from '@/components/ui/input'
 import { api, type Esquema } from '@/lib/api'
 import { dataCurta, dataHora, mascaraCpf, METODOS_PAGAMENTO, moeda, soDigitos } from '@/lib/formato'
-import type { TrocaFeita } from '../componentes/regrasTrocaDevolucao'
+import type { TrocaFeita } from '../troca/regrasTrocaDevolucao'
 import { useCarregar } from '@/lib/useCarregar'
-import { AtenderPedido } from '../componentes/TrocaDevolucao'
+import { AtenderPedido } from '../troca/TrocaDevolucao'
 import { useImprimirAoAbrir } from './useImprimirAoAbrir'
 
 type Unidade = Esquema<'UnidadeSaida'>
