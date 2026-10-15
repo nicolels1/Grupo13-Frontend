@@ -68,6 +68,7 @@ O frontend usa o Supabase só para o login. Todos os dados, inclusive os arquivo
 | openapi-typescript | tipos da API gerados do OpenAPI do backend |
 | oxlint | lint |
 | Vitest | execução dos testes automatizados |
+| Testing Library + jsdom | testes dos hooks, num navegador simulado |
 | GitHub Actions | lint, testes e build em cada PR para `main` |
 | Vercel | deploy |
 
@@ -84,7 +85,7 @@ src/
 │   └── ui/              componentes do shadcn/ui ajustados ao design
 ├── layouts/             LayoutCliente (topo e rodapé da loja) e LayoutInterno (barra das áreas e unidade)
 ├── lib/                 chamada à API, cliente do Supabase, tipos da API, formatos de data e moeda, listas
-│                        (com os testes ao lado: formato.test.ts, api.test.ts)
+│                        (cada arquivo com o seu teste ao lado, ex.: formato.ts e formato.test.ts)
 ├── rotas/               rotasLoja.tsx e rotasInterno.tsx
 └── pages/
     ├── Entrar.tsx       entrar, cadastro, esqueci a senha e criar nova senha
@@ -181,9 +182,14 @@ Tudo que começa com `VITE_` vai para o navegador: nunca coloque uma chave secre
 
 ## Testes e CI
 
-**Vitest** é a ferramenta que executa os testes automatizados do frontend. Os arquivos terminados em `.test.ts` ficam próximos do código testado. Hoje, os testes verificam funções de formato (datas, moeda, CPF, plural e tamanho de arquivo), o cálculo de datas no horário de Brasília, as regras de acesso às áreas internas e a tradução de erros da API.
+**Vitest** é a ferramenta que executa os testes automatizados do frontend. Cada arquivo terminado em `.test.ts` fica ao lado do código que testa. Hoje, os testes verificam:
 
-Esses são testes unitários de lógica: não abrem o navegador nem validam visualmente as telas. Para executar todos uma vez:
+- funções de formato (datas no horário de Brasília, moeda, CPF, plural e tamanho de arquivo) e a tradução de erros da API;
+- as regras de acesso às áreas internas;
+- as regras das telas: troca, devolução e estorno, variações e fotos do produto, anexos dos chamados, CEP, pedido em aberto no checkout, fotos por cor e os pedidos da conta;
+- as listas com cache (unidades e variantes) e os hooks de carregamento e envio (`useCarregar`, `useEnviar`, `useAdiado`).
+
+São testes unitários de lógica: não validam visualmente as telas. Os testes de hooks precisam de um componente React e rodam num navegador simulado (jsdom, com o Testing Library), marcado no topo do arquivo com `// @vitest-environment jsdom`; os outros rodam direto no Node. Para executar todos uma vez:
 
 ```bash
 npm test
