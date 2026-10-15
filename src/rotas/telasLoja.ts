@@ -1,0 +1,23 @@
+import { lazy } from 'react'
+
+// as telas da loja e as de conta só baixam quando são abertas: quem chega pela página inicial leva só
+// o código dela e o do layout. A página inicial e o LayoutCliente continuam no pacote principal
+export const AjudaLoja = lazy(() => import('@/pages/loja/Ajuda').then((m) => ({ default: m.AjudaLoja })))
+export const AreaDaConta = lazy(() => import('@/pages/loja/conta/AreaDaConta').then((m) => ({ default: m.AreaDaConta })))
+export const AvaliarPeca = lazy(() => import('@/pages/loja/Avaliar').then((m) => ({ default: m.AvaliarPeca })))
+export const Cadastro = lazy(() => import('@/pages/acesso/Cadastro').then((m) => ({ default: m.Cadastro })))
+export const CarrinhoLoja = lazy(() => import('@/pages/loja/Carrinho').then((m) => ({ default: m.CarrinhoLoja })))
+export const ChamadosCliente = lazy(() => import('@/pages/loja/Chamados').then((m) => ({ default: m.ChamadosCliente })))
+export const CheckoutLoja = lazy(() => import('@/pages/loja/Checkout').then((m) => ({ default: m.CheckoutLoja })))
+export const ConfirmacaoPedido = lazy(() => import('@/pages/loja/Confirmacao').then((m) => ({ default: m.ConfirmacaoPedido })))
+export const ConversaCliente = lazy(() => import('@/pages/loja/chamados/ConversaCliente').then((m) => ({ default: m.ConversaCliente })))
+export const Enderecos = lazy(() => import('@/pages/loja/Enderecos').then((m) => ({ default: m.Enderecos })))
+export const Entrar = lazy(() => import('@/pages/acesso/Entrar').then((m) => ({ default: m.Entrar })))
+export const EsqueciSenha = lazy(() => import('@/pages/acesso/EsqueciSenha').then((m) => ({ default: m.EsqueciSenha })))
+export const MeusPedidos = lazy(() => import('@/pages/loja/MeusPedidos').then((m) => ({ default: m.MeusPedidos })))
+export const NovoChamadoCliente = lazy(() => import('@/pages/loja/chamados/NovoChamadoCliente').then((m) => ({ default: m.NovoChamadoCliente })))
+export const ProdutoLoja = lazy(() => import('@/pages/loja/Produto').then((m) => ({ default: m.ProdutoLoja })))
+export const ProdutosLoja = lazy(() => import('@/pages/loja/Produtos').then((m) => ({ default: m.ProdutosLoja })))
+export const RedefinirSenha = lazy(() => import('@/pages/acesso/RedefinirSenha').then((m) => ({ default: m.RedefinirSenha })))
+export const SemChamadoEscolhido = lazy(() => import('@/pages/loja/chamados/SemChamadoEscolhido').then((m) => ({ default: m.SemChamadoEscolhido })))
+export const VisaoGeralConta = lazy(() => import('@/pages/loja/conta/VisaoGeralConta').then((m) => ({ default: m.VisaoGeralConta })))
