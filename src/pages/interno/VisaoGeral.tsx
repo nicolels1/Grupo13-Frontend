@@ -42,9 +42,13 @@ function usePendencias(perfil: Perfil | null, unidade: string) {
   return useCarregar(async () => {
     // o total chega como número ou como a consulta que vai contar; tudo espera junto no fim
     const lista: (Omit<Pendencia, 'total'> & { total: number | Promise<number> })[] = []
-    const transferencias = pode('receber_transferencia') || pode('enviar_transferencia')
-      ? (await api<Esquema<'Pagina_TransferenciaSaida_'>>('/transferencias', { params: { id_unidade: unidade, limit: 200 } })).items
-      : []
+    // transferências numa situação: sem unidade, o total da API já é a resposta; com unidade, a API
+    // devolve as que saem e as que chegam, e a direção se confere aqui numa lista já pequena
+    const transferencias = async (status: string, direcao: 'id_unidade_destino' | 'id_unidade_origem') => {
+      if (!idUnidade) return contar('/transferencias', { status })
+      const pagina = await api<Esquema<'Pagina_TransferenciaSaida_'>>('/transferencias', { params: { status, id_unidade: unidade, limit: 200 } })
+      return pagina.items.filter((t) => t[direcao] === idUnidade).length
+    }
 
     if (ESTOQUE.some(pode)) {
       lista.push({
@@ -53,12 +57,16 @@ function usePendencias(perfil: Perfil | null, unidade: string) {
       })
     }
     if (pode('receber_transferencia')) {
-      const n = transferencias.filter((t) => t.status === 'enviada' && (!idUnidade || t.id_unidade_destino === idUnidade)).length
-      lista.push({ chave: 'chegando', rotulo: 'transferências para receber', singular: 'transferência para receber', para: '/interno/transferencias', total: n })
+      lista.push({
+        chave: 'chegando', rotulo: 'transferências para receber', singular: 'transferência para receber', para: '/interno/transferencias',
+        total: transferencias('enviada', 'id_unidade_destino'),
+      })
     }
     if (pode('enviar_transferencia')) {
-      const n = transferencias.filter((t) => t.status === 'solicitada' && (!idUnidade || t.id_unidade_origem === idUnidade)).length
-      lista.push({ chave: 'enviar', rotulo: 'transferências para enviar', singular: 'transferência para enviar', para: '/interno/transferencias', total: n })
+      lista.push({
+        chave: 'enviar', rotulo: 'transferências para enviar', singular: 'transferência para enviar', para: '/interno/transferencias',
+        total: transferencias('solicitada', 'id_unidade_origem'),
+      })
     }
     if (pode('preparar_entregar_pedido')) {
       lista.push({

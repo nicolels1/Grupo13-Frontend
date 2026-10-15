@@ -5,7 +5,7 @@ import { cn } from 'cn'
 
 import { useAuth } from '@/auth/contexto'
 import { temPermissao } from '@/auth/areas'
-import { Aviso, Carregando, Vazio } from '@/components/Estados'
+import { Aviso, Carregando, ListaCortada, Vazio } from '@/components/Estados'
 import { Abas, Cabecalho } from '@/components/Navegacao'
 import { Etiqueta, NomePeca } from '@/components/Peca'
 import { Status } from '@/components/Status'
@@ -86,6 +86,7 @@ export function Transferencias() {
           {lista.erro && <Aviso mensagem={lista.erro} />}
           {lista.carregando && !lista.dados && <Carregando />}
           {lista.dados && visiveis.length === 0 && <p className="py-8 text-sm text-muted-foreground">Nenhuma transferência aqui.</p>}
+          {lista.dados && <ListaCortada mostrados={todas.length} total={lista.dados.total} dica="Aparecem as mais recentes." />}
           <ul>
             {visiveis.map((t) => (
               <li key={t.id_transferencia}>

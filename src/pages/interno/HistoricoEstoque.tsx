@@ -9,7 +9,7 @@ import { Input, Label, Select } from '@/components/ui/input'
 import { useUnidadeEscolhida } from '@/layouts/unidadeEscolhida'
 import { api, todasAsPaginas, type Esquema } from '@/lib/api'
 import { ordenarTamanhos } from '@/lib/cores'
-import { CANAIS, codigoTransferencia, dataCurta, dataLonga, hojeIso, hora, paraApi, plural, TIPOS_MOVIMENTACAO } from '@/lib/formato'
+import { CANAIS, codigoTransferencia, dataCurta, dataLonga, diasAtras, hojeIso, hora, paraApi, plural, TIPOS_MOVIMENTACAO } from '@/lib/formato'
 import { useAdiado, useCarregar } from '@/lib/useCarregar'
 import { AbasEstoque, AcoesEstoque } from './Estoque'
 import { GraficoEvolucao } from './componentes/GraficoEvolucao'
@@ -25,13 +25,6 @@ const DIAS_NA_REGUA = 31
 const ATALHOS = [[7, 'Há 1 semana'], [14, 'Há 2 semanas'], [30, 'Há 1 mês']] as const
 const PERIODOS = [['7', '7 dias'], ['30', '30 dias'], ['90', '90 dias'], ['intervalo', 'Escolher intervalo']] as const
 const GRANULARIDADES = [['', 'Automático'], ['hora', 'Por hora'], ['dia', 'Por dia'], ['semana', 'Por semana']] as const
-
-// "AAAA-MM-DD" de n dias atrás, no horário de Brasília
-function diasAtras(n: number) {
-  const d = new Date(`${hojeIso()}T12:00:00`)
-  d.setDate(d.getDate() - n)
-  return d.toLocaleDateString('sv-SE')
-}
 
 const sinal = (n: number) => (n > 0 ? `+${n}` : n < 0 ? `−${Math.abs(n)}` : '0')
 
@@ -135,7 +128,7 @@ export function HistoricoEstoque() {
       </section>
 
       <div className="mb-4 flex flex-wrap items-center gap-2">
-        <label className="flex h-9 min-w-56 flex-1 items-center gap-2 border border-input px-3 sm:max-w-80">
+        <label className="flex h-9 min-w-56 flex-1 items-center gap-2 border border-input px-3 focus-within:ring-2 focus-within:ring-ring sm:max-w-80">
           <Search className="size-4 text-muted-foreground" aria-hidden="true" />
           <span className="sr-only">Buscar peça ou etiqueta</span>
           <input value={busca} onChange={(e) => reiniciar(setBusca)(e.target.value)} placeholder="Buscar peça ou etiqueta" className="w-full bg-transparent text-sm outline-none" />
