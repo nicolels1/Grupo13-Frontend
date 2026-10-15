@@ -203,6 +203,9 @@ Em cada Pull Request para `main`, o GitHub Actions instala as dependências e ro
 - **TypeScript `strict`**, sem `any`. O formato das respostas vem dos tipos gerados da API (`Esquema<'Nome'>`), nunca declarado à mão.
 - **Nomes em português**, com os termos do domínio do backend: "unidade", "variante", "plataforma interna".
 - **Toda chamada passa por `api()`** (`src/lib/api.ts`): ela envia o token e transforma o erro da API numa mensagem para a tela. Dados são carregados com `useCarregar` e toda tela trata carregando, erro e lista vazia.
+- **Dependências conferidas pelo lint:** o oxlint confere a lista de dependências do `useEffect`, do `useCallback` e também do `useCarregar`. Quando uma "chave" resume um valor de propósito, a exceção leva o motivo no próprio comentário (`// eslint-disable-next-line react-hooks/exhaustive-deps -- motivo`).
+- **Códigos de permissão** vêm da lista `PERMISSOES` de `src/auth/areas.ts`, a mesma das migrações do backend: um código escrito errado não compila. Permissão nova no backend entra nessa lista também.
+- **Rótulos de status e categorias** (`src/lib/formato.ts`) são conferidos com os valores que a API declara: depois de `npm run tipos:api`, o `tsc` aponta o rótulo que faltar.
 - **Datas** no horário de Brasília e valores em reais, pelas funções de `src/lib/formato.ts`.
 - **O navegador guarda só o carrinho** e preferências de tela; nada de dados de conta ou de permissão.
 - **Visual:** cores só pelos tokens do `src/index.css`, fontes Jost, Newsreader (títulos da loja) e Marcellus (logo), cantos retos, telas de 360 px ao desktop e acessibilidade mínima (rótulo em todo campo, foco visível, botão de ícone com `aria-label`). As regras completas ficam em [contexto/design-casa-lorenzi.md](contexto/design-casa-lorenzi.md).
