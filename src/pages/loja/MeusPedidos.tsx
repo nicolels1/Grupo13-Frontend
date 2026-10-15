@@ -31,7 +31,7 @@ const MOTIVOS_DO_CANCELAMENTO: Record<string, string> = {
 }
 
 // cor do ícone do pedido pela situação: terracota pede ação, aço anda, marinho terminou, cinza cancelou
-const COR_DA_SITUACAO: Record<string, string> = {
+const COR_DA_SITUACAO: Record<Pedido['status'], string> = {
   aguardando_pagamento: 'bg-terracota-fundo text-terracota',
   pago: 'bg-aco-fundo text-aco',
   enviado: 'bg-aco-fundo text-aco',

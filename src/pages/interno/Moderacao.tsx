@@ -31,10 +31,10 @@ export function Moderacao() {
         ? { status: 'publicada', com_denuncia_pendente: true, limit: POR_PAGINA, offset }
         : { status: 'oculta', limit: POR_PAGINA, offset },
     }),
-    [aba, offset],
+    [denunciadas, offset],
   )
   // os motivos vêm das denúncias pendentes (mais antigas primeiro), agrupadas pela avaliação
-  const denuncias = useCarregar(() => (denunciadas ? todasAsPaginas<Denuncia>('/moderacao/denuncias', { status: 'pendente' }) : null), [aba])
+  const denuncias = useCarregar(() => (denunciadas ? todasAsPaginas<Denuncia>('/moderacao/denuncias', { status: 'pendente' }) : null), [denunciadas])
   const contagem = useCarregar(
     () => api<PaginaAvaliacoes>('/moderacao/avaliacoes', { params: { status: 'publicada', com_denuncia_pendente: true, limit: 1 } }).then((r) => r.total),
     [],

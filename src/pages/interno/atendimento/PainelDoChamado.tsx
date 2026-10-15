@@ -14,14 +14,12 @@ import { api, type Esquema } from '@/lib/api'
 import { CATEGORIAS_CHAMADO, dataCurta, dataHora, METODOS_PAGAMENTO, moeda, MOTIVOS_CONCLUSAO, plural, PRIORIDADES, STATUS_CHAMADO } from '@/lib/formato'
 import { nomeUnidade } from '@/lib/listas'
 import { estornaveis, prazoTroca, type ModoTroca, type TrocaFeita } from '../componentes/regrasTrocaDevolucao'
-import { useCarregar, useEnviar } from '@/lib/useCarregar'
+import { type Carga, useCarregar, useEnviar } from '@/lib/useCarregar'
 import { AtenderPedido } from '../componentes/TrocaDevolucao'
 
 type Chamado = Esquema<'ChamadoSaida'>
 type Pedido = Esquema<'PedidoSaida'>
 type Historico = Esquema<'Lista_HistoricoSaida_'>
-// o que useCarregar devolve, para passar uma carga a outro componente
-type Carga<T> = { dados: T | null; erro: string | null; carregando: boolean; recarregar: () => void }
 
 // painel do chamado aberto: cliente, pedido, prioridade, repasse, troca, devolução, estorno e histórico
 

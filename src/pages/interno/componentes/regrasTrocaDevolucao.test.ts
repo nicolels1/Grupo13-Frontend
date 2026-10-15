@@ -23,7 +23,7 @@ function pagamento(dados: Partial<Pagamento>): Pagamento {
 }
 
 const loja = { tipo: 'loja' } as Unidade
-const centro = { tipo: 'centro_distribuicao' } as Unidade
+const centro = { tipo: 'cd' } as Unidade
 
 describe('prazoTroca', () => {
   it('vence 30 dias depois da entrega', () => {

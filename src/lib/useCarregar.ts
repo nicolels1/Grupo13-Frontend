@@ -4,13 +4,16 @@ import { ErroApi } from './api'
 
 type EstadoCarga<T> = { dados: T | null; erro: string | null; carregando: boolean }
 
+// o que o useCarregar devolve; serve para passar uma carga inteira a um componente filho
+export type Carga<T> = EstadoCarga<T> & { recarregar: () => void }
+
 /**
  * Carrega dados da API e acompanha o estado da chamada.
  *   const { dados, erro, carregando, recarregar } = useCarregar(() => api('/unidades'), [])
  * Refaz a chamada quando as dependências mudam; ignora a resposta de uma chamada antiga.
  * `buscar` pode devolver null para não carregar nada (ex.: falta um filtro obrigatório).
  */
-export function useCarregar<T>(buscar: () => Promise<T> | null, dependencias: DependencyList) {
+export function useCarregar<T>(buscar: () => Promise<T> | null, dependencias: DependencyList): Carga<T> {
   const [estado, setEstado] = useState<EstadoCarga<T>>({ dados: null, erro: null, carregando: true })
   const [versao, setVersao] = useState(0)
 

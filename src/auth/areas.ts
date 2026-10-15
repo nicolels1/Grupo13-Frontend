@@ -2,11 +2,35 @@ import type { Esquema } from '@/lib/api'
 
 type Perfil = Esquema<'Perfil'>
 
+// códigos de permissão que o backend cadastra (migrações de permissões do Grupo13-Backend). A API manda
+// as permissões do perfil como texto; esta lista fixa faz o tsc apontar um código escrito errado nas telas.
+// Permissão nova no backend entra aqui também
+export const PERMISSOES = [
+  'gerenciar_contas',
+  'gerenciar_modelos_acesso',
+  'gerenciar_catalogo',
+  'gerenciar_unidades',
+  'movimentar_estoque',
+  'definir_estoque_minimo',
+  'solicitar_transferencia',
+  'enviar_transferencia',
+  'receber_transferencia',
+  'registrar_venda_fisica',
+  'registrar_troca_devolucao',
+  'preparar_entregar_pedido',
+  'cancelar_pedido_equipe',
+  'corrigir_cadastro_cliente',
+  'atender_chamado',
+  'moderar_avaliacoes',
+] as const
+
+export type CodigoPermissao = (typeof PERMISSOES)[number]
+
 export type Area = {
   caminho: string
   rotulo: string
   // null = qualquer conta interna
-  permissoes: string[] | null
+  permissoes: CodigoPermissao[] | null
   somenteAdmin?: boolean
 }
 
@@ -46,7 +70,7 @@ export function ehAdmin(perfil: Perfil | null | undefined) {
   return Boolean(perfil?.modelo_acesso?.eh_admin)
 }
 
-export function temPermissao(perfil: Perfil | null | undefined, codigo: string) {
+export function temPermissao(perfil: Perfil | null | undefined, codigo: CodigoPermissao) {
   return ehAdmin(perfil) || Boolean(perfil?.permissoes?.includes(codigo))
 }
 

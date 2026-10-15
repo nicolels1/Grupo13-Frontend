@@ -4,7 +4,7 @@ import { Link } from 'react-router'
 import { cn } from 'cn'
 
 import { useAuth } from '@/auth/contexto'
-import { ehAdmin, temPermissao } from '@/auth/areas'
+import { ehAdmin, temPermissao, type CodigoPermissao } from '@/auth/areas'
 import { Aviso, Carregando } from '@/components/Estados'
 import { Cabecalho } from '@/components/Navegacao'
 import { buttonVariants } from '@/components/ui/button'
@@ -20,9 +20,9 @@ type Perfil = Esquema<'Perfil'>
 type Resumo = Esquema<'Resumo'>
 type Pendencia = { chave: string; rotulo: string; singular: string; para: string; total: number }
 
-const ESTOQUE = ['movimentar_estoque', 'definir_estoque_minimo']
+const ESTOQUE: CodigoPermissao[] = ['movimentar_estoque', 'definir_estoque_minimo']
 // quem vê a seção de vendas do resumo (a mesma regra do backend); atender_chamado vê a de atendimento
-const VENDAS = ['registrar_venda_fisica', 'preparar_entregar_pedido']
+const VENDAS: CodigoPermissao[] = ['registrar_venda_fisica', 'preparar_entregar_pedido']
 // a retirada vence em 7 dias; a partir de 5, entra nas pendências (mesmo corte do resumo)
 const RETIRADA_PERTO_DE_VENCER_DIAS = 5
 // cobertura abaixo disso é número fora do esperado na tabela das unidades
@@ -35,11 +35,10 @@ const contar = (caminho: string, params: OpcoesApi['params']) =>
 // pendências que a conta pode resolver, cada uma com a contagem e o lugar onde se resolve.
 // O resumo da Visão Geral não traz contagens por pessoa, então cada uma é uma consulta curta.
 function usePendencias(perfil: Perfil | null, unidade: string) {
-  const pode = (codigo: string) => temPermissao(perfil, codigo)
-  const idUnidade = unidade ? Number(unidade) : null
-  const chave = [unidade, perfil?.id_usuario].join('|')
-
+  // recarrega quando muda a unidade ou o perfil (outra pessoa ou permissões atualizadas)
   return useCarregar(async () => {
+    const pode = (codigo: CodigoPermissao) => temPermissao(perfil, codigo)
+    const idUnidade = unidade ? Number(unidade) : null
     // o total chega como número ou como a consulta que vai contar; tudo espera junto no fim
     const lista: (Omit<Pendencia, 'total'> & { total: number | Promise<number> })[] = []
     // transferências numa situação: sem unidade, o total da API já é a resposta; com unidade, a API
@@ -97,7 +96,7 @@ function usePendencias(perfil: Perfil | null, unidade: string) {
 
     const totais = await Promise.all(lista.map((p) => p.total))
     return lista.map((p, i): Pendencia => ({ ...p, total: totais[i] ?? 0 }))
-  }, [chave])
+  }, [perfil, unidade])
 }
 
 // início da plataforma interna: pendências, números e gráficos só das áreas da conta, na unidade
@@ -105,7 +104,7 @@ function usePendencias(perfil: Perfil | null, unidade: string) {
 export function VisaoGeral() {
   const { perfil } = useAuth()
   const { unidade, unidades } = useUnidadeEscolhida()
-  const pode = (codigo: string) => temPermissao(perfil, codigo)
+  const pode = (codigo: CodigoPermissao) => temPermissao(perfil, codigo)
   const admin = ehAdmin(perfil)
   const [dia] = useState(() => new Date().toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'America/Sao_Paulo' }))
 
@@ -181,7 +180,7 @@ export function VisaoGeral() {
   )
 }
 
-function Atalhos({ pode }: { pode: (codigo: string) => boolean }) {
+function Atalhos({ pode }: { pode: (codigo: CodigoPermissao) => boolean }) {
   return (
     <div className="flex flex-wrap gap-2">
       {pode('registrar_venda_fisica') && (

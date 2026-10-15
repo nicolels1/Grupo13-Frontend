@@ -39,7 +39,7 @@ function SecaoTitulo({ children, extra }: { children: ReactNode; extra?: ReactNo
 export function ProdutoInterno() {
   const { idProduto } = useParams()
   const novo = idProduto === 'novo'
-  const produto = useCarregar(() => (novo ? null : api<Produto>(`/produtos/${idProduto}`)), [idProduto])
+  const produto = useCarregar(() => (novo ? null : api<Produto>(`/produtos/${idProduto}`)), [novo, idProduto])
 
   if (!novo && produto.carregando && !produto.dados) return <Carregando />
   if (produto.erro) return <Aviso mensagem={produto.erro} />

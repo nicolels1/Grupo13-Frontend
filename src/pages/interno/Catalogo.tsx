@@ -12,11 +12,9 @@ import { api, type Esquema } from '@/lib/api'
 import { coresDoProduto, faixaDePreco } from '@/lib/cores'
 import { moeda, plural } from '@/lib/formato'
 import { limparListas } from '@/lib/listas'
-import { useCarregar, useEnviar } from '@/lib/useCarregar'
+import { type Carga, useCarregar, useEnviar } from '@/lib/useCarregar'
 
 type ListaCategorias = Esquema<'Lista_CategoriaSaida_'>
-// o que useCarregar devolve, para passar a lista de categorias ao painel
-type Carga<T> = { dados: T | null; erro: string | null; carregando: boolean; recarregar: () => void }
 
 const POR_PAGINA = 25
 // mesmas regras do backend para a foto da categoria (a do carrossel da página inicial)

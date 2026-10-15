@@ -32,7 +32,7 @@ export function TrocaOuDevolucao({ loja }: { loja: Unidade }) {
   const [idEscolhido, setIdEscolhido] = useState<number | null>(null)
   const [feito, setFeito] = useState<TrocaFeita | null>(null)
 
-  const busca = useCarregar(() => (filtro ? api<Esquema<'Lista_PedidoSaida_'>>('/balcao/pedidos', { params: filtro }) : null), [JSON.stringify(filtro)])
+  const busca = useCarregar(() => (filtro ? api<Esquema<'Lista_PedidoSaida_'>>('/balcao/pedidos', { params: filtro }) : null), [filtro])
   const achados = busca.dados?.items ?? []
   const escolhido = achados.length === 1 ? achados[0] : achados.find((p) => p.id_pedido === idEscolhido)
 
