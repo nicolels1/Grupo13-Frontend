@@ -12,7 +12,7 @@ import { coresDoProduto } from '@/lib/cores'
 import { plural } from '@/lib/formato'
 import { useCarregar, useEnviar } from '@/lib/useCarregar'
 import { EditorVariante, NovaVariante, TabelaVariantes } from './produto/Variantes'
-import { VARIANTE_VAZIA, varianteParaApi } from './produto/regrasVariante'
+import { novaLinha, varianteParaApi } from './produto/regrasVariante'
 import { enviarFotoDoProduto } from './produto/regrasFoto'
 import { FotosNovas, FotosDoProduto } from './produto/Fotos'
 
@@ -59,7 +59,7 @@ function FormularioProduto({ produto, recarregar }: { produto: Produto | null; r
       }
     : DADOS_VAZIOS
   const [dados, setDados] = useState(inicial)
-  const [variantesNovas, setVariantesNovas] = useState<VarianteNova[]>(produto ? [] : [{ ...VARIANTE_VAZIA }])
+  const [variantesNovas, setVariantesNovas] = useState<(VarianteNova & { chave: string })[]>(produto ? [] : [novaLinha()])
   const [salvo, setSalvo] = useState(false)
   // "Salvar produto" sem nada mudado avisa em vez de não fazer nada (fotos e variações salvam na hora)
   const [nadaMudou, setNadaMudou] = useState(false)
@@ -168,7 +168,7 @@ function FormularioProduto({ produto, recarregar }: { produto: Produto | null; r
           <section>
             <SecaoTitulo
               extra={
-                <Button type="button" variant="outline" onClick={() => setVariantesNovas([...variantesNovas, { ...VARIANTE_VAZIA }])}>
+                <Button type="button" variant="outline" onClick={() => setVariantesNovas([...variantesNovas, novaLinha()])}>
                   <Plus aria-hidden="true" /> Mais uma variação
                 </Button>
               }
@@ -178,10 +178,10 @@ function FormularioProduto({ produto, recarregar }: { produto: Produto | null; r
             <div className="space-y-4">
               {variantesNovas.map((v, i) => (
                 <EditorVariante
-                  key={i}
+                  key={v.chave}
                   indice={i}
                   valor={v}
-                  aoMudar={(novo) => setVariantesNovas(variantesNovas.map((x, j) => (j === i ? novo : x)))}
+                  aoMudar={(novo) => setVariantesNovas(variantesNovas.map((x, j) => (j === i ? { ...novo, chave: x.chave } : x)))}
                   aoTirar={variantesNovas.length > 1 ? () => setVariantesNovas(variantesNovas.filter((_, j) => j !== i)) : undefined}
                 />
               ))}

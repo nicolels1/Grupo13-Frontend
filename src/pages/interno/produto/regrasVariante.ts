@@ -9,6 +9,9 @@ type VarianteNova = { cor: string; tamanho: string; sku: string; preco: string; 
 
 export const VARIANTE_VAZIA: VarianteNova = { cor: '', tamanho: '', sku: '', preco: '', estoque_inicial: [] }
 
+// linha da lista de variações do produto novo: a chave fixa mantém cada linha no lugar quando uma do meio sai
+export const novaLinha = () => ({ ...VARIANTE_VAZIA, chave: crypto.randomUUID() })
+
 // a API recebe a variante nova com o estoque inicial já em números
 export function varianteParaApi(v: VarianteNova) {
   return {
