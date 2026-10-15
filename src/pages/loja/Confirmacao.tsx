@@ -5,13 +5,11 @@ import { Link, useParams } from 'react-router'
 import { Aviso, Carregando } from '@/components/Estados'
 import { buttonVariants } from '@/components/ui/button'
 import { api, type Esquema } from '@/lib/api'
-import { moeda } from '@/lib/formato'
+import { METODOS_PAGAMENTO, moeda } from '@/lib/formato'
 import { useCarregar } from '@/lib/useCarregar'
 import { rotuloTamanho } from './componentes/tamanhos'
 
 type Pedido = Esquema<'PedidoSaida'>
-
-const METODOS: Record<string, string> = { pix: 'Pix', cartao_credito: 'Cartão de crédito', cartao_debito: 'Cartão de débito' }
 
 // confirmação: número do pedido copiável primeiro, depois o que acontece agora, os itens e as ações
 export function ConfirmacaoPedido() {
@@ -69,7 +67,7 @@ export function ConfirmacaoPedido() {
         )}
         {pagamento && (
           <p className="text-sm text-muted-foreground">
-            Pago com {METODOS[pagamento.metodo] ?? pagamento.metodo}: {moeda(pagamento.valor)}.
+            Pago com {METODOS_PAGAMENTO[pagamento.metodo] ?? pagamento.metodo}: {moeda(pagamento.valor)}.
           </p>
         )}
       </section>

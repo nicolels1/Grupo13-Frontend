@@ -1,7 +1,15 @@
+import type { Esquema } from './api'
+
 // formatos de exibição usados nas duas plataformas (pt-BR, horário de Brasília)
 
 const MOEDA = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' })
 const FUSO = 'America/Sao_Paulo'
+
+// valores que a API declara para cada campo (tipos gerados do OpenAPI). Os rótulos abaixo usam
+// `satisfies` com eles: faltar um valor ou escrever uma chave errada vira erro no tsc, e a consulta
+// continua aceitando o texto que vem de campos sem valores fixos na API
+type Chamado = Esquema<'ChamadoSaida'>
+type MetodoPagamento = Esquema<'PagamentoFisico'>['metodo']
 
 // datas da API em ISO; sem data, as funções mostram "—"
 type Data = string | null | undefined
@@ -89,9 +97,13 @@ export const CATEGORIAS_CHAMADO: Record<string, string> = {
   estorno: 'Estorno',
   duvida: 'Dúvida',
   outros: 'Outros',
-}
+} satisfies Record<Chamado['categoria'], string>
 
-export const STATUS_CHAMADO: Record<string, string> = { aberto: 'Aberto', em_andamento: 'Em andamento', concluido: 'Concluído' }
+export const STATUS_CHAMADO: Record<string, string> = {
+  aberto: 'Aberto',
+  em_andamento: 'Em andamento',
+  concluido: 'Concluído',
+} satisfies Record<Chamado['status'], string>
 
 export const STATUS_PEDIDO: Record<string, string> = {
   aguardando_pagamento: 'Aguardando pagamento',
@@ -100,20 +112,33 @@ export const STATUS_PEDIDO: Record<string, string> = {
   pronto_para_retirada: 'Pronto para retirada',
   entregue: 'Entregue',
   cancelado: 'Cancelado',
-}
+} satisfies Record<Esquema<'PedidoSaida'>['status'], string>
 
 export const METODOS_PAGAMENTO: Record<string, string> = {
   pix: 'Pix',
   cartao_credito: 'Cartão de crédito',
   cartao_debito: 'Cartão de débito',
   dinheiro: 'Dinheiro',
-}
+} satisfies Record<MetodoPagamento, string>
 
 export const STATUS_PAGAMENTO: Record<string, string> = { pendente: 'Pendente', aprovado: 'Aprovado', recusado: 'Recusado' }
-export const PRIORIDADES: Record<string, string> = { baixa: 'Baixa', media: 'Média', alta: 'Alta' }
-export const MOTIVOS_CONCLUSAO: Record<string, string> = { resolvido: 'Resolvido', desistencia: 'Desistência', sem_resposta: 'Sem resposta' }
+export const PRIORIDADES: Record<string, string> = {
+  baixa: 'Baixa',
+  media: 'Média',
+  alta: 'Alta',
+} satisfies Record<NonNullable<Chamado['prioridade']>, string>
 
-export const STATUS_CONTA: Record<string, string> = { pendente_ativacao: 'Convite pendente', ativa: 'Ativa', inativa: 'Desativada' }
+export const MOTIVOS_CONCLUSAO: Record<string, string> = {
+  resolvido: 'Resolvido',
+  desistencia: 'Desistência',
+  sem_resposta: 'Sem resposta',
+} satisfies Record<NonNullable<Chamado['motivo_encerramento']>, string>
+
+export const STATUS_CONTA: Record<string, string> = {
+  pendente_ativacao: 'Convite pendente',
+  ativa: 'Ativa',
+  inativa: 'Desativada',
+} satisfies Record<Esquema<'UsuarioDetalhe'>['status_conta'], string>
 
 export function codigoTransferencia(id: number) {
   return `TR-${String(id).padStart(4, '0')}`
