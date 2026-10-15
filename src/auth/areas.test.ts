@@ -1,12 +1,12 @@
 import { describe, expect, it } from 'vitest'
 
 import type { Esquema } from '@/lib/api'
-import { AREAS, ehAdmin, podeVerArea, temPermissao, type Area } from './areas'
+import { AREAS, ehAdmin, podeVerArea, temPermissao, type Area, type CodigoPermissao } from './areas'
 
 type Perfil = Esquema<'Perfil'>
 
 // só os campos que as regras de área leem; o resto do perfil não importa aqui
-function perfil(dados: { tipo_conta?: string; admin?: boolean; permissoes?: string[] }): Perfil {
+function perfil(dados: { tipo_conta?: string; admin?: boolean; permissoes?: CodigoPermissao[] }): Perfil {
   return {
     id_usuario: '1',
     nome: 'Teste',

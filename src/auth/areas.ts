@@ -2,29 +2,9 @@ import type { Esquema } from '@/lib/api'
 
 type Perfil = Esquema<'Perfil'>
 
-// códigos de permissão que o backend cadastra (migrações de permissões do Grupo13-Backend). A API manda
-// as permissões do perfil como texto; esta lista fixa faz o tsc apontar um código escrito errado nas telas.
-// Permissão nova no backend entra aqui também
-export const PERMISSOES = [
-  'gerenciar_contas',
-  'gerenciar_modelos_acesso',
-  'gerenciar_catalogo',
-  'gerenciar_unidades',
-  'movimentar_estoque',
-  'definir_estoque_minimo',
-  'solicitar_transferencia',
-  'enviar_transferencia',
-  'receber_transferencia',
-  'registrar_venda_fisica',
-  'registrar_troca_devolucao',
-  'preparar_entregar_pedido',
-  'cancelar_pedido_equipe',
-  'corrigir_cadastro_cliente',
-  'atender_chamado',
-  'moderar_avaliacoes',
-] as const
-
-export type CodigoPermissao = (typeof PERMISSOES)[number]
+// códigos de permissão, vindos dos tipos gerados da API: o backend publica a lista no OpenAPI e confere
+// que ela é igual à das migrações. Código escrito errado nas telas não compila
+export type CodigoPermissao = Perfil['permissoes'][number]
 
 export type Area = {
   caminho: string
