@@ -15,7 +15,7 @@ import { SENHA_MINIMA } from './validacao'
 export function RedefinirSenha() {
   const { sessao, trocarSenha } = useAuth()
   const navegar = useNavigate()
-  // ?convite=1 vem do link do convite da equipe (ver supabaseClient): a pessoa ainda não tem senha
+  // ?convite=1 vem do link do convite da equipe (ver auth/linkDeSenha): a pessoa ainda não tem senha
   const [params] = useSearchParams()
   const convite = params.get('convite') === '1'
   const [senha, setSenha] = useState('')
