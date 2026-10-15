@@ -7,7 +7,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 vi.mock('./supabaseClient', () => ({ supabase: { auth: { getSession: vi.fn() } } }))
 
 const { ErroApi } = await import('./api')
-const { useAdiado, useCarregar, useEnviar } = await import('./useCarregar')
+const { useAdiado, useCarregar, useEnviar, useIntervalo } = await import('./useCarregar')
 
 // promessa que o teste resolve na hora que quiser, para controlar a ordem das respostas
 function adiada<T>() {
@@ -116,5 +116,42 @@ describe('useAdiado', () => {
     expect(result.current).toBe('ca')
     act(() => vi.advanceTimersByTime(100))
     expect(result.current).toBe('cami')
+  })
+})
+
+describe('useIntervalo', () => {
+  afterEach(() => {
+    vi.useRealTimers()
+  })
+
+  it('repete a ação no intervalo e para ao sair da tela', () => {
+    vi.useFakeTimers()
+    const acao = vi.fn()
+    const { unmount } = renderHook(() => useIntervalo(acao, 1000))
+    act(() => vi.advanceTimersByTime(3000))
+    expect(acao).toHaveBeenCalledTimes(3)
+    unmount()
+    act(() => vi.advanceTimersByTime(3000))
+    expect(acao).toHaveBeenCalledTimes(3)
+  })
+
+  it('null pausa', () => {
+    vi.useFakeTimers()
+    const acao = vi.fn()
+    renderHook(() => useIntervalo(acao, null))
+    act(() => vi.advanceTimersByTime(5000))
+    expect(acao).not.toHaveBeenCalled()
+  })
+
+  it('usa sempre a ação mais recente, sem reiniciar o relógio', () => {
+    vi.useFakeTimers()
+    const primeira = vi.fn()
+    const segunda = vi.fn()
+    const { rerender } = renderHook(({ acao }) => useIntervalo(acao, 1000), { initialProps: { acao: primeira } })
+    act(() => vi.advanceTimersByTime(600))
+    rerender({ acao: segunda })
+    act(() => vi.advanceTimersByTime(400))
+    expect(primeira).not.toHaveBeenCalled()
+    expect(segunda).toHaveBeenCalledTimes(1)
   })
 })

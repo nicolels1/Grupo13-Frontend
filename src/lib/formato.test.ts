@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
-import { dataCurta, dataHora, diasAtras, mascaraCpf, moeda, plural, soDigitos, tamanhoArquivo } from './formato'
+import { dataCurta, dataHora, diasAtras, mascaraCpf, moeda, moedaCurta, numero, plural, soDigitos, tamanhoArquivo } from './formato'
 
 describe('moeda', () => {
   it('mostra o valor da API em reais', () => {
@@ -11,6 +11,26 @@ describe('moeda', () => {
   it('mostra um traço quando não há valor', () => {
     expect(moeda(null)).toBe('—')
     expect(moeda('')).toBe('—')
+  })
+})
+
+describe('moedaCurta', () => {
+  it('mostra milhares com uma casa e o resto sem centavos', () => {
+    expect(moedaCurta(4230)).toBe('R$ 4,2 mil')
+    expect(moedaCurta(999.6)).toBe('R$ 1.000')
+    expect(moedaCurta(350)).toBe('R$ 350')
+  })
+})
+
+describe('numero', () => {
+  it('separa milhares com ponto e decimais com vírgula', () => {
+    expect(numero(1234)).toBe('1.234')
+    expect(numero(4.56, 1)).toBe('4,6')
+  })
+
+  it('com casas fixas mostra o zero', () => {
+    expect(numero(4, 1)).toBe('4')
+    expect(numero(4, 1, true)).toBe('4,0')
   })
 })
 

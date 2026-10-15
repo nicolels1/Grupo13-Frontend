@@ -2,6 +2,7 @@ import type { ReactNode } from 'react'
 import { cn } from 'cn'
 
 import { Button } from '@/components/ui/button'
+import { numero } from '@/lib/formato'
 
 type Aba<V extends string> = { valor: V; rotulo: string; contagem?: number | null }
 
@@ -76,7 +77,7 @@ export function Paginacao({
   return (
     <nav aria-label="Páginas" className="flex flex-wrap items-center justify-between gap-3 pt-4 text-sm">
       <span className="text-muted-foreground">
-        {offset + 1}–{fim} de {total.toLocaleString('pt-BR')} {rotulo}
+        {offset + 1}–{fim} de {numero(total)} {rotulo}
       </span>
       {ultima > 0 && (
         <div className="flex items-center gap-1">

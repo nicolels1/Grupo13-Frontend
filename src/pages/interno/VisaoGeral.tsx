@@ -11,7 +11,7 @@ import { buttonVariants } from '@/components/ui/button'
 import { useUnidadeEscolhida } from '@/layouts/unidadeEscolhida'
 import { api, type Esquema, type OpcoesApi } from '@/lib/api'
 import { BLOCO_ACO } from './componentes/estilos'
-import { moeda, plural } from '@/lib/formato'
+import { moeda, numero, plural } from '@/lib/formato'
 import { nomeUnidade } from '@/lib/listas'
 import { useCarregar } from '@/lib/useCarregar'
 import { GraficoChamados, GraficoMaisVendidas, GraficoVendas } from './componentes/GraficosVisaoGeral'
@@ -265,7 +265,7 @@ function Numero({ rotulo, valor, detalhe, alerta, className }: {
 
 // ---------- A rede agora (só Admin; sempre a rede inteira) ----------
 
-const umaCasa = (n: number) => n.toLocaleString('pt-BR', { maximumFractionDigits: 1 })
+const umaCasa = (n: number) => numero(n, 1)
 
 function variacao(pct: number | null | undefined) {
   if (pct === null || pct === undefined) return 'sem base para comparar'

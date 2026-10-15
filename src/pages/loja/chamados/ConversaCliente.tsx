@@ -8,7 +8,7 @@ import { Status } from '@/components/Status'
 import { buttonVariants } from '@/components/ui/button'
 import { api, type Esquema } from '@/lib/api'
 import { CATEGORIAS_CHAMADO, dataCurta, dataLonga } from '@/lib/formato'
-import { useCarregar } from '@/lib/useCarregar'
+import { useCarregar, useIntervalo } from '@/lib/useCarregar'
 import { CabecalhoDoLado } from './CabecalhoDoLado'
 import { useContextoChamados } from './contexto'
 import { IconeDaCategoria } from './IconeDaCategoria'
@@ -40,10 +40,7 @@ export function ConversaCliente() {
     if (mensagens.dados) recarregarLista()
   }, [mensagens.dados, recarregarLista])
 
-  useEffect(() => {
-    const relogio = window.setInterval(recarregarMensagens, INTERVALO_ATUALIZACAO)
-    return () => window.clearInterval(relogio)
-  }, [recarregarMensagens])
+  useIntervalo(recarregarMensagens, INTERVALO_ATUALIZACAO)
 
   // desce até a última mensagem ao abrir e quando chega uma nova (a atualização a cada 20 s sem
   // novidade não mexe na rolagem de quem está lendo mensagens antigas)

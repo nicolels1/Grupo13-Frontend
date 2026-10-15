@@ -31,6 +31,8 @@ export function mensagemDoErro(corpo: unknown, status: number): string {
   return 'Não foi possível concluir a operação.'
 }
 
+export const SESSAO_VENCIDA = 'Sua sessão expirou. Entre de novo para continuar.'
+
 type ValorSimples = string | number | boolean | null | undefined
 // uma lista repete o parâmetro na URL (?tamanho=P&tamanho=M)
 type ValorParametro = ValorSimples | ValorSimples[]
@@ -48,6 +50,7 @@ export type OpcoesApi = {
  *   api('/categorias', { metodo: 'POST', corpo: { nome: 'Camisas' } })
  *   api('/atendimento/chamados/7/anexos', { metodo: 'POST', corpo: formData })  // upload em multipart
  * Envia o token do Supabase (se houver sessão) e lança ErroApi quando a resposta não é 2xx.
+ * Token recusado (401) encerra a sessão local.
  */
 export async function api<T = unknown>(
   caminho: string,
@@ -84,6 +87,12 @@ export async function api<T = unknown>(
   // 204 não tem corpo: quem chama uma rota assim usa api<null>
   if (resposta.status === 204) return null as T
   const dados: unknown = await resposta.json().catch(() => null)
+  // token enviado e recusado (vencido ou inválido): a sessão não vale mais. Sair desta aba leva quem
+  // está numa página protegida ao /entrar, que volta para a mesma página depois do login
+  if (resposta.status === 401 && headers.Authorization) {
+    void supabase.auth.signOut({ scope: 'local' })
+    throw new ErroApi(401, SESSAO_VENCIDA, dados)
+  }
   if (!resposta.ok) throw new ErroApi(resposta.status, mensagemDoErro(dados, resposta.status), dados)
   return dados as T
 }

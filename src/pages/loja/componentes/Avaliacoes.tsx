@@ -9,7 +9,7 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Textarea } from '@/components/ui/input'
 import { api, type Esquema } from '@/lib/api'
-import { dataLonga, plural } from '@/lib/formato'
+import { dataLonga, numero, plural } from '@/lib/formato'
 import { useCarregar, useEnviar } from '@/lib/useCarregar'
 import { Estrelas } from './Estrelas'
 import { rotuloTamanho } from './tamanhos'
@@ -55,7 +55,7 @@ export function AvaliacoesDoProduto({ idProduto }: { idProduto: number }) {
           <div className="space-y-6">
             <div className="flex items-end gap-3 bg-marinho p-5 text-white">
               <span className="text-5xl font-medium tabular-nums">
-                {Number(dados.media ?? 0).toLocaleString('pt-BR', { minimumFractionDigits: 1 })}
+                {numero(Number(dados.media ?? 0), 1, true)}
               </span>
               <div className="space-y-1 pb-1">
                 <Estrelas nota={Number(dados.media ?? 0)} clara />

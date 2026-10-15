@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ChangeEvent, type FormEvent } from 'react'
+import { useRef, useState, type ChangeEvent, type FormEvent } from 'react'
 import { Paperclip, Send, X } from 'lucide-react'
 import { cn } from 'cn'
 
@@ -7,7 +7,7 @@ import { Abas } from '@/components/Navegacao'
 import { Button } from '@/components/ui/button'
 import { api, ErroApi, type Esquema } from '@/lib/api'
 import { CATEGORIAS_CHAMADO, dataHora, dataLonga, hora, tamanhoArquivo } from '@/lib/formato'
-import { useCarregar, useEnviar } from '@/lib/useCarregar'
+import { useCarregar, useEnviar, useIntervalo } from '@/lib/useCarregar'
 import { Prioridade } from './Fila'
 import { PainelDoChamado } from './PainelDoChamado'
 
@@ -25,12 +25,7 @@ export function ChamadoAberto({ idChamado, aoMudar }: { idChamado: string; aoMud
   const chamado = useCarregar(() => api<Chamado>(`/atendimento/chamados/${idChamado}`), [idChamado])
   const mensagens = useCarregar(() => api<Esquema<'Lista_MensagemSaida_'>>(`/atendimento/chamados/${idChamado}/mensagens`), [idChamado])
   const historico = useCarregar(() => api<Historico>(`/atendimento/chamados/${idChamado}/historico`), [idChamado])
-  const { recarregar: recarregarMensagens } = mensagens
-
-  useEffect(() => {
-    const id = setInterval(recarregarMensagens, INTERVALO_ATUALIZACAO)
-    return () => clearInterval(id)
-  }, [recarregarMensagens])
+  useIntervalo(mensagens.recarregar, INTERVALO_ATUALIZACAO)
 
   if (chamado.carregando && !chamado.dados) return <Carregando />
   if (chamado.erro || !chamado.dados) return <Aviso mensagem={chamado.erro ?? 'Chamado não encontrado.'} />
@@ -44,7 +39,7 @@ export function ChamadoAberto({ idChamado, aoMudar }: { idChamado: string; aoMud
   }
 
   function aposResponder() {
-    recarregarMensagens()
+    mensagens.recarregar()
     atualizarTudo()
   }
 

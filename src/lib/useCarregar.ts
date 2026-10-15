@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState, type DependencyList } from 'react'
+import { useCallback, useEffect, useRef, useState, type DependencyList } from 'react'
 
 import { ErroApi } from './api'
 
@@ -80,4 +80,21 @@ export function useAdiado<T>(valor: T, ms = 300) {
     return () => clearTimeout(espera)
   }, [valor, ms])
   return adiado
+}
+
+/**
+ * Repete uma ação de tempos em tempos (ex.: procurar mensagens novas a cada 20 s).
+ *   useIntervalo(recarregar, 20000)
+ * `ms` null pausa. A ação pode mudar a cada render: vale sempre a mais recente, sem reiniciar o relógio.
+ */
+export function useIntervalo(acao: () => void, ms: number | null) {
+  const atual = useRef(acao)
+  useEffect(() => {
+    atual.current = acao
+  })
+  useEffect(() => {
+    if (ms === null) return undefined
+    const relogio = window.setInterval(() => atual.current(), ms)
+    return () => window.clearInterval(relogio)
+  }, [ms])
 }

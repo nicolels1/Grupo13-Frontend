@@ -20,6 +20,17 @@ export function moeda(valor: string | number | null | undefined) {
   return MOEDA.format(Number(valor))
 }
 
+// valor curto para o eixo de um gráfico (R$ 4,2 mil); o valor exato fica no tooltip
+export function moedaCurta(valor: number) {
+  if (valor >= 1000) return `R$ ${numero(valor / 1000, 1)} mil`
+  return `R$ ${numero(valor)}`
+}
+
+// número em pt-BR (1.234 ou 4,5): `casas` é o máximo de casas decimais; com `fixas`, elas sempre aparecem (4,0)
+export function numero(valor: number, casas = 0, fixas = false) {
+  return valor.toLocaleString('pt-BR', { minimumFractionDigits: fixas ? casas : 0, maximumFractionDigits: casas })
+}
+
 export function dataCurta(iso: Data) {
   if (!iso) return '—'
   return new Date(iso).toLocaleDateString('pt-BR', { day: 'numeric', month: 'short', timeZone: FUSO }).replace('.', '')
