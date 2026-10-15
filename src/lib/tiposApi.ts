@@ -2378,8 +2378,11 @@ export interface components {
         };
         /** ExcecaoSaida */
         ExcecaoSaida: {
-            /** Codigo */
-            codigo: string;
+            /**
+             * Codigo
+             * @enum {string}
+             */
+            codigo: "gerenciar_contas" | "gerenciar_modelos_acesso" | "gerenciar_catalogo" | "gerenciar_unidades" | "movimentar_estoque" | "definir_estoque_minimo" | "solicitar_transferencia" | "enviar_transferencia" | "receber_transferencia" | "registrar_venda_fisica" | "registrar_troca_devolucao" | "preparar_entregar_pedido" | "cancelar_pedido_equipe" | "corrigir_cadastro_cliente" | "atender_chamado" | "moderar_avaliacoes";
             /**
              * Efeito
              * @enum {string}
@@ -2802,7 +2805,7 @@ export interface components {
             /** Pessoas */
             pessoas: number;
             /** Permissoes */
-            permissoes: string[];
+            permissoes: ("gerenciar_contas" | "gerenciar_modelos_acesso" | "gerenciar_catalogo" | "gerenciar_unidades" | "movimentar_estoque" | "definir_estoque_minimo" | "solicitar_transferencia" | "enviar_transferencia" | "receber_transferencia" | "registrar_venda_fisica" | "registrar_troca_devolucao" | "preparar_entregar_pedido" | "cancelar_pedido_equipe" | "corrigir_cadastro_cliente" | "atender_chamado" | "moderar_avaliacoes")[];
         };
         /** MovimentacaoItem */
         MovimentacaoItem: {
@@ -3197,12 +3200,15 @@ export interface components {
             id_unidade: number | null;
             modelo_acesso: components["schemas"]["ModeloAcessoSaida"] | null;
             /** Permissoes */
-            permissoes: string[];
+            permissoes: ("gerenciar_contas" | "gerenciar_modelos_acesso" | "gerenciar_catalogo" | "gerenciar_unidades" | "movimentar_estoque" | "definir_estoque_minimo" | "solicitar_transferencia" | "enviar_transferencia" | "receber_transferencia" | "registrar_venda_fisica" | "registrar_troca_devolucao" | "preparar_entregar_pedido" | "cancelar_pedido_equipe" | "corrigir_cadastro_cliente" | "atender_chamado" | "moderar_avaliacoes")[];
         };
         /** PermissaoSaida */
         PermissaoSaida: {
-            /** Codigo */
-            codigo: string;
+            /**
+             * Codigo
+             * @enum {string}
+             */
+            codigo: "gerenciar_contas" | "gerenciar_modelos_acesso" | "gerenciar_catalogo" | "gerenciar_unidades" | "movimentar_estoque" | "definir_estoque_minimo" | "solicitar_transferencia" | "enviar_transferencia" | "receber_transferencia" | "registrar_venda_fisica" | "registrar_troca_devolucao" | "preparar_entregar_pedido" | "cancelar_pedido_equipe" | "corrigir_cadastro_cliente" | "atender_chamado" | "moderar_avaliacoes";
             /** Descricao */
             descricao: string;
             /** So Admin */
@@ -3615,7 +3621,7 @@ export interface components {
              * Permissoes
              * @description Permissões efetivas: modelo + acrescentadas - retiradas
              */
-            permissoes: string[];
+            permissoes: ("gerenciar_contas" | "gerenciar_modelos_acesso" | "gerenciar_catalogo" | "gerenciar_unidades" | "movimentar_estoque" | "definir_estoque_minimo" | "solicitar_transferencia" | "enviar_transferencia" | "receber_transferencia" | "registrar_venda_fisica" | "registrar_troca_devolucao" | "preparar_entregar_pedido" | "cancelar_pedido_equipe" | "corrigir_cadastro_cliente" | "atender_chamado" | "moderar_avaliacoes")[];
             /**
              * Convite Pendente
              * @description O login ainda não foi confirmado (convite não aceito)
