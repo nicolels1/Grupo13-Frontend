@@ -98,7 +98,8 @@ src/
     │   ├── chamados/    chamado novo, conversa, mensagens e anexos
     │   └── componentes/ partes das telas da loja (cartão do produto, avaliações, estrelas, fotos)
     └── interno/         telas da plataforma interna
-        └── componentes/ partes das telas do interno (gráficos, troca e devolução)
+        ├── troca/       troca, devolução e estorno (usados no Caixa e no Atendimento) e as regras deles
+        └── componentes/ partes das telas do interno (gráficos e estilos de bloco)
 ```
 
 Fora do `src/`: `public/imagens/carrossel/` (imagens estáticas dos destaques da loja, publicadas junto com o frontend), `docs/adr/` (decisões de arquitetura), `.github/workflows/` (verificações no GitHub), `.env.example` e `vercel.json`.
