@@ -1,7 +1,9 @@
 import { createBrowserRouter, Outlet, RouterProvider, ScrollRestoration } from 'react-router'
 
 import { AuthProvider } from '@/auth/AuthProvider'
-import { ErroDaPagina, NaoEncontrada, RotaInicial } from '@/pages/Basicas'
+import { ErroDaPagina } from '@/pages/ErroDaPagina'
+import { NaoEncontrada } from '@/pages/NaoEncontrada'
+import { RotaInicial } from '@/pages/RotaInicial'
 import { rotasInterno } from '@/rotas/rotasInterno'
 import { rotasLoja } from '@/rotas/rotasLoja'
 
