@@ -51,7 +51,7 @@ export function Catalogo() {
       <div className="grid gap-10 xl:grid-cols-[1fr_20rem]">
         <div className="min-w-0">
           <div className="mb-4 flex flex-wrap gap-2">
-            <label className="flex h-9 min-w-56 flex-1 items-center gap-2 border border-input px-3 sm:max-w-80">
+            <label className="flex h-9 min-w-56 flex-1 items-center gap-2 border border-input px-3 focus-within:ring-2 focus-within:ring-ring sm:max-w-80">
               <Search className="size-4 text-muted-foreground" aria-hidden="true" />
               <span className="sr-only">Buscar produto</span>
               <input value={busca} onChange={filtro(setBusca)} placeholder="Buscar pelo nome" className="w-full bg-transparent text-sm outline-none" />

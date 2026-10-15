@@ -52,7 +52,7 @@ export function Pessoas() {
       <div className="min-w-0">
         <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
           <div className="flex flex-1 flex-wrap gap-2">
-            <label className="flex h-9 min-w-56 flex-1 items-center gap-2 border border-input px-3 sm:max-w-80">
+            <label className="flex h-9 min-w-56 flex-1 items-center gap-2 border border-input px-3 focus-within:ring-2 focus-within:ring-ring sm:max-w-80">
               <Search className="size-4 text-muted-foreground" aria-hidden="true" />
               <span className="sr-only">Buscar nome ou e-mail</span>
               <input value={busca} onChange={filtro(setBusca)} placeholder="Buscar nome ou e-mail" className="w-full bg-transparent text-sm outline-none" />

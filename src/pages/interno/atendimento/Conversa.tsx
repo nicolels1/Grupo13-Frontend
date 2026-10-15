@@ -180,7 +180,7 @@ function Responder({ chamado: c, aoEnviar }: { chamado: Chamado; aoEnviar: () =>
   }
 
   return (
-    <form onSubmit={responder} className={cn('border', interna && 'border-ardosia')}>
+    <form onSubmit={responder} className={cn('border focus-within:ring-2 focus-within:ring-ring', interna && 'border-ardosia')}>
       <div className="px-3 pt-2">
         <Abas
           rotulo="Tipo de resposta"
