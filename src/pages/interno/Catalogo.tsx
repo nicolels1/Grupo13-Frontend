@@ -1,10 +1,10 @@
 import { useRef, useState, type ChangeEvent, type FormEvent } from 'react'
 import { Plus, Search } from 'lucide-react'
-import { Link } from 'react-router'
+import { Link, useSearchParams } from 'react-router'
 import { cn } from 'cn'
 
 import { Aviso, Carregando, Sucesso, Vazio } from '@/components/Estados'
-import { Cabecalho, Paginacao } from '@/components/Navegacao'
+import { Abas, Cabecalho, Paginacao } from '@/components/Navegacao'
 import { Miniatura } from '@/components/Peca'
 import { Button, buttonVariants } from '@/components/ui/button'
 import { Input, Label, Select } from '@/components/ui/input'
@@ -13,6 +13,7 @@ import { coresDoProduto, faixaDePreco } from '@/lib/cores'
 import { moeda, plural } from '@/lib/formato'
 import { limparListas } from '@/lib/listas'
 import { type Carga, useCarregar, useEnviar } from '@/lib/useCarregar'
+import { Destaques } from './catalogo/Destaques'
 
 type ListaCategorias = Esquema<'Lista_CategoriaSaida_'>
 
@@ -21,7 +22,41 @@ const POR_PAGINA = 25
 const TIPOS_FOTO = ['image/jpeg', 'image/png', 'image/webp']
 const FOTO_MAXIMA = 5 * 1024 * 1024
 
+type Aba = 'produtos' | 'destaques'
+
+// o catálogo tem duas abas: os produtos (com as categorias ao lado) e os slides do carrossel da
+// página inicial. A aba fica no endereço (?aba=destaques), para dar para mandar o link
 export function Catalogo() {
+  const [params, setParams] = useSearchParams()
+  const aba: Aba = params.get('aba') === 'destaques' ? 'destaques' : 'produtos'
+
+  return (
+    <>
+      <Cabecalho
+        titulo="Catálogo"
+        subtitulo="O que a loja vende e o carrossel da página inicial."
+        abas={
+          <Abas
+            semLinha
+            rotulo="Partes do catálogo"
+            valor={aba}
+            aoMudar={(v) => setParams(v === 'destaques' ? { aba: v } : {}, { replace: true })}
+            abas={[{ valor: 'produtos', rotulo: 'Produtos' }, { valor: 'destaques', rotulo: 'Destaques da página inicial' }]}
+          />
+        }
+      >
+        {aba === 'produtos' && (
+          <Link to="/interno/catalogo/novo" className={cn(buttonVariants({ size: 'lg' }), 'h-11 px-4')}>
+            <Plus aria-hidden="true" /> Novo produto
+          </Link>
+        )}
+      </Cabecalho>
+      {aba === 'produtos' ? <Produtos /> : <Destaques />}
+    </>
+  )
+}
+
+function Produtos() {
   const [busca, setBusca] = useState('')
   const [idCategoria, setIdCategoria] = useState('')
   const [situacao, setSituacao] = useState('')
@@ -39,80 +74,72 @@ export function Catalogo() {
   }
 
   return (
-    <>
-      <Cabecalho titulo="Produtos" subtitulo="O que a loja vende: dados, variações de cor e tamanho e preços.">
-        <Link to="/interno/catalogo/novo" className={cn(buttonVariants({ size: 'lg' }), 'h-11 px-4')}>
-          <Plus aria-hidden="true" /> Novo produto
-        </Link>
-      </Cabecalho>
-
-      <div className="grid gap-10 xl:grid-cols-[1fr_20rem]">
-        <div className="min-w-0">
-          <div className="mb-4 flex flex-wrap gap-2">
-            <label className="flex h-9 min-w-56 flex-1 items-center gap-2 border border-input px-3 focus-within:ring-2 focus-within:ring-ring sm:max-w-80">
-              <Search className="size-4 text-muted-foreground" aria-hidden="true" />
-              <span className="sr-only">Buscar produto</span>
-              <input value={busca} onChange={filtro(setBusca)} placeholder="Buscar pelo nome" className="w-full bg-transparent text-sm outline-none" />
-            </label>
-            <Select aria-label="Categoria" value={idCategoria} onChange={filtro(setIdCategoria)} className="w-auto">
-              <option value="">Todas as categorias</option>
-              {categorias.dados?.items.map((c) => <option key={c.id_categoria} value={c.id_categoria}>{c.nome}</option>)}
-            </Select>
-            <Select aria-label="Situação" value={situacao} onChange={filtro(setSituacao)} className="w-auto">
-              <option value="">À venda e fora</option>
-              <option value="true">À venda</option>
-              <option value="false">Fora de venda</option>
-            </Select>
-          </div>
-
-          {lista.erro && <Aviso mensagem={lista.erro} />}
-          {lista.carregando && !lista.dados && <Carregando />}
-          {lista.dados?.items.length === 0 && <Vazio>Nenhum produto encontrado.</Vazio>}
-          {lista.dados && lista.dados.items.length > 0 && (
-            <div className="overflow-x-auto">
-              <table className="w-full min-w-[40rem] text-sm">
-                <thead className="text-left text-xs text-muted-foreground">
-                  <tr className="border-b">
-                    <th className="py-2 pl-2 font-medium">Produto</th>
-                    <th className="font-medium">Categoria</th>
-                    <th className="font-medium">Variações</th>
-                    <th className="text-right font-medium">Preço</th>
-                    <th className="pl-6 font-medium">Situação</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {lista.dados.items.map((p) => {
-                    const preco = faixaDePreco(p)
-                    const cores = coresDoProduto(p)
-                    return (
-                      <tr key={p.id_produto} className="border-b hover:bg-superficie">
-                        <td className="py-3 pl-2">
-                          <Link to={`/interno/catalogo/${p.id_produto}`} className="flex items-center gap-3 hover:underline">
-                            <Miniatura cor={cores[0]} foto={[...(p.imagens ?? [])].sort((a, b) => a.ordem - b.ordem)[0]?.url} />
-                            {p.nome}
-                          </Link>
-                        </td>
-                        <td>{nomeCategoria(p.id_categoria)}</td>
-                        <td className="text-muted-foreground">
-                          {plural(p.variantes.length, 'variação', 'variações')}, {plural(cores.length, 'cor', 'cores')}
-                        </td>
-                        <td className="text-right">
-                          {preco ? (preco.menor === preco.maior ? moeda(preco.menor) : `${moeda(preco.menor)} a ${moeda(preco.maior)}`) : '—'}
-                        </td>
-                        <td className={cn('pl-6', !p.ativo && 'text-muted-foreground')}>{p.ativo ? 'à venda' : 'fora de venda'}</td>
-                      </tr>
-                    )
-                  })}
-                </tbody>
-              </table>
-            </div>
-          )}
-          <Paginacao pagina={lista.dados} aoMudar={setOffset} rotulo="produtos" />
+    <div className="grid gap-10 xl:grid-cols-[1fr_20rem]">
+      <div className="min-w-0">
+        <div className="mb-4 flex flex-wrap gap-2">
+          <label className="flex h-9 min-w-56 flex-1 items-center gap-2 border border-input px-3 focus-within:ring-2 focus-within:ring-ring sm:max-w-80">
+            <Search className="size-4 text-muted-foreground" aria-hidden="true" />
+            <span className="sr-only">Buscar produto</span>
+            <input value={busca} onChange={filtro(setBusca)} placeholder="Buscar pelo nome" className="w-full bg-transparent text-sm outline-none" />
+          </label>
+          <Select aria-label="Categoria" value={idCategoria} onChange={filtro(setIdCategoria)} className="w-auto">
+            <option value="">Todas as categorias</option>
+            {categorias.dados?.items.map((c) => <option key={c.id_categoria} value={c.id_categoria}>{c.nome}</option>)}
+          </Select>
+          <Select aria-label="Situação" value={situacao} onChange={filtro(setSituacao)} className="w-auto">
+            <option value="">À venda e fora</option>
+            <option value="true">À venda</option>
+            <option value="false">Fora de venda</option>
+          </Select>
         </div>
 
-        <Categorias categorias={categorias} />
+        {lista.erro && <Aviso mensagem={lista.erro} />}
+        {lista.carregando && !lista.dados && <Carregando />}
+        {lista.dados?.items.length === 0 && <Vazio>Nenhum produto encontrado.</Vazio>}
+        {lista.dados && lista.dados.items.length > 0 && (
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[40rem] text-sm">
+              <thead className="text-left text-xs text-muted-foreground">
+                <tr className="border-b">
+                  <th className="py-2 pl-2 font-medium">Produto</th>
+                  <th className="font-medium">Categoria</th>
+                  <th className="font-medium">Variações</th>
+                  <th className="text-right font-medium">Preço</th>
+                  <th className="pl-6 font-medium">Situação</th>
+                </tr>
+              </thead>
+              <tbody>
+                {lista.dados.items.map((p) => {
+                  const preco = faixaDePreco(p)
+                  const cores = coresDoProduto(p)
+                  return (
+                    <tr key={p.id_produto} className="border-b hover:bg-superficie">
+                      <td className="py-3 pl-2">
+                        <Link to={`/interno/catalogo/${p.id_produto}`} className="flex items-center gap-3 hover:underline">
+                          <Miniatura cor={cores[0]} foto={[...(p.imagens ?? [])].sort((a, b) => a.ordem - b.ordem)[0]?.url} />
+                          {p.nome}
+                        </Link>
+                      </td>
+                      <td>{nomeCategoria(p.id_categoria)}</td>
+                      <td className="text-muted-foreground">
+                        {plural(p.variantes.length, 'variação', 'variações')}, {plural(cores.length, 'cor', 'cores')}
+                      </td>
+                      <td className="text-right">
+                        {preco ? (preco.menor === preco.maior ? moeda(preco.menor) : `${moeda(preco.menor)} a ${moeda(preco.maior)}`) : '—'}
+                      </td>
+                      <td className={cn('pl-6', !p.ativo && 'text-muted-foreground')}>{p.ativo ? 'à venda' : 'fora de venda'}</td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+        <Paginacao pagina={lista.dados} aoMudar={setOffset} rotulo="produtos" />
       </div>
-    </>
+
+      <Categorias categorias={categorias} />
+    </div>
   )
 }
 

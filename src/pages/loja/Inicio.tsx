@@ -10,30 +10,6 @@ import { useCategorias } from '@/lib/listas'
 import { useCarregar, useIntervalo } from '@/lib/useCarregar'
 import { CartaoProduto } from './componentes/CartaoProduto'
 
-const SLIDES = [
-  {
-    titulo: 'Linho',
-    texto: 'Peças leves para a primavera e o verão.',
-    acao: 'Ver as novidades',
-    para: '/loja/produtos?ordem=novidades',
-    imagem: '/imagens/carrossel/linho.jpg',
-  },
-  {
-    titulo: 'Alfaiataria',
-    texto: 'Cortes retos que vão do trabalho ao fim de semana.',
-    acao: 'Ver a alfaiataria',
-    para: '/loja/produtos?busca=alfaiataria',
-    imagem: '/imagens/carrossel/tecido-dourado.png',
-  },
-  {
-    titulo: 'Retire grátis na loja',
-    texto: 'Compre pelo site e retire em qualquer loja da rede, sem pagar frete.',
-    acao: 'Saber como funciona',
-    para: '/loja/ajuda#pedidos-e-entrega',
-    imagem: '/imagens/carrossel/loja.jpg',
-  },
-]
-
 // frete e retirada grátis já estão na faixa do topo e no carrossel: aqui entram as outras vantagens
 const VANTAGENS = [
   { icone: RefreshCcw, texto: 'Troca em até 30 dias em qualquer loja' },
@@ -165,7 +141,10 @@ function prefereMenosMovimento() {
 
 // carrossel de largura total: troca sozinho a cada 6 s, para enquanto o mouse ou o foco estão nele
 // e não troca sozinho para quem pediu menos movimento no sistema
+// os slides vêm da API (Catálogo > Destaques no interno), sem login: quem gerencia o catálogo
+// receberia também os desativados
 function Destaques() {
+  const destaques = useCarregar(() => api<Esquema<'Lista_DestaqueSaida_'>>('/destaques', { autenticado: false }), [])
   const [controle, setControle] = useState<CarouselApi>()
   const [atual, setAtual] = useState(0)
   const [pausado, setPausado] = useState(false)
@@ -181,6 +160,12 @@ function Destaques() {
 
   useIntervalo(() => controle?.scrollNext(), controle && !pausado && !prefereMenosMovimento() ? TROCA_A_CADA_MS : null)
 
+  // carregando: o espaço do carrossel já fica reservado, para a página não pular quando ele chega.
+  // Sem slide ativo (ou com a API fora do ar), a página começa direto nas vantagens
+  if (destaques.carregando && !destaques.dados) return <div className="min-h-[26rem] bg-marinho-escuro sm:min-h-[32rem]" aria-hidden="true" />
+  const slides = destaques.dados?.items ?? []
+  if (slides.length === 0) return null
+
   return (
     <Carousel
       setApi={setControle}
@@ -192,20 +177,20 @@ function Destaques() {
       onBlurCapture={() => setPausado(false)}
     >
       <CarouselContent className="ml-0">
-        {SLIDES.map((slide, i) => (
-          <CarouselItem key={slide.titulo} className="pl-0" aria-label={`${i + 1} de ${SLIDES.length}`}>
-            <div className="relative isolate overflow-hidden text-white">
-              <img src={slide.imagem} alt="" className="absolute inset-0 size-full object-cover" />
+        {slides.map((slide, i) => (
+          <CarouselItem key={slide.id_destaque} className="pl-0" aria-label={`${i + 1} de ${slides.length}`}>
+            <div className="relative isolate overflow-hidden bg-marinho-escuro text-white">
+              {slide.imagem_url && <img src={slide.imagem_url} alt="" className="absolute inset-0 size-full object-cover" />}
               <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/25 to-black/10" aria-hidden="true" />
               <div className="relative mx-auto flex min-h-[26rem] max-w-7xl flex-col justify-end gap-5 px-4 pt-14 pb-20 sm:min-h-[32rem] sm:px-16">
                 <h2 className="font-titulo text-5xl sm:text-7xl">{slide.titulo}</h2>
                 <p className="max-w-md text-base text-white/85">{slide.texto}</p>
                 <Link
-                  to={slide.para}
+                  to={slide.link}
                   tabIndex={i === atual ? 0 : -1}
                   className="inline-flex h-11 w-full items-center justify-center bg-white px-6 text-sm font-medium text-marinho-escuro hover:bg-white/90 sm:w-auto sm:self-start"
                 >
-                  {slide.acao}
+                  {slide.rotulo_botao}
                 </Link>
               </div>
             </div>
@@ -231,9 +216,9 @@ function Destaques() {
       </button>
 
       <div className="absolute bottom-6 left-1/2 flex -translate-x-1/2 gap-2">
-        {SLIDES.map((slide, i) => (
+        {slides.map((slide, i) => (
           <button
-            key={slide.titulo}
+            key={slide.id_destaque}
             type="button"
             onClick={() => controle?.scrollTo(i)}
             aria-label={`Ir para o destaque ${i + 1}: ${slide.titulo}`}

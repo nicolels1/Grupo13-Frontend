@@ -422,6 +422,65 @@ export interface paths {
         patch: operations["alterar_imagem_imagens__id_imagem__patch"];
         trace?: never;
     };
+    "/destaques": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Listar Destaques */
+        get: operations["listar_destaques_destaques_get"];
+        put?: never;
+        /** Criar Destaque */
+        post: operations["criar_destaque_destaques_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/destaques/{id_destaque}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Remover Destaque
+         * @description Apaga o slide e a foto dele. Para tirar da loja sem apagar, use ativo false.
+         */
+        delete: operations["remover_destaque_destaques__id_destaque__delete"];
+        options?: never;
+        head?: never;
+        /** Alterar Destaque */
+        patch: operations["alterar_destaque_destaques__id_destaque__patch"];
+        trace?: never;
+    };
+    "/destaques/{id_destaque}/imagem": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Trocar Imagem Destaque
+         * @description Foto do slide (JPG, PNG ou WEBP de até 5 MB), como multipart/form-data. Enviar de novo troca a foto.
+         */
+        post: operations["trocar_imagem_destaque_destaques__id_destaque__imagem_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/unidades": {
         parameters: {
             query?: never;
@@ -1779,6 +1838,11 @@ export interface components {
             /** Arquivo */
             arquivo: string;
         };
+        /** Body_trocar_imagem_destaque_destaques__id_destaque__imagem_post */
+        Body_trocar_imagem_destaque_destaques__id_destaque__imagem_post: {
+            /** Arquivo */
+            arquivo: string;
+        };
         /** CadastroCliente */
         CadastroCliente: {
             /** Nome */
@@ -2128,6 +2192,70 @@ export interface components {
              * @enum {string}
              */
             status_avaliacao: "publicada" | "oculta";
+        };
+        /** DestaqueAlterar */
+        DestaqueAlterar: {
+            /** Titulo */
+            titulo?: string | null;
+            /** Texto */
+            texto?: string | null;
+            /** Rotulo Botao */
+            rotulo_botao?: string | null;
+            /** Link */
+            link?: string | null;
+            /** Ordem */
+            ordem?: number | null;
+            /** Ativo */
+            ativo?: boolean | null;
+        };
+        /** DestaqueCriar */
+        DestaqueCriar: {
+            /** Titulo */
+            titulo: string;
+            /** Texto */
+            texto: string;
+            /**
+             * Rotulo Botao
+             * @description Texto do botão do slide
+             */
+            rotulo_botao: string;
+            /**
+             * Link
+             * @description Página da loja que o botão abre, começando com /
+             */
+            link: string;
+            /**
+             * Ordem
+             * @description Sem ordem, o slide entra no fim
+             */
+            ordem?: number | null;
+            /**
+             * Ativo
+             * @default true
+             */
+            ativo: boolean;
+        };
+        /** DestaqueSaida */
+        DestaqueSaida: {
+            /** Id Destaque */
+            id_destaque: number;
+            /** Titulo */
+            titulo: string;
+            /** Texto */
+            texto: string;
+            /** Rotulo Botao */
+            rotulo_botao: string;
+            /** Link */
+            link: string;
+            /**
+             * Imagem Url
+             * @description Foto do slide; vazio sem foto (bloco de cor)
+             */
+            imagem_url: string | null;
+            /** Ordem */
+            ordem: number;
+            /** Ativo */
+            ativo: boolean;
         };
         /** DevolucaoCriar */
         DevolucaoCriar: {
@@ -2615,6 +2743,11 @@ export interface components {
         Lista_CategoriaSaida_: {
             /** Items */
             items: components["schemas"]["CategoriaSaida"][];
+        };
+        /** Lista[DestaqueSaida] */
+        Lista_DestaqueSaida_: {
+            /** Items */
+            items: components["schemas"]["DestaqueSaida"][];
         };
         /** Lista[EmTransitoItem] */
         Lista_EmTransitoItem_: {
@@ -5126,6 +5259,203 @@ export interface operations {
                 content?: never;
             };
             /** @description Arquivo não aceito ou cor que o produto não tem */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Storage indisponível */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    listar_destaques_destaques_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Lista_DestaqueSaida_"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    criar_destaque_destaques_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DestaqueCriar"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DestaqueSaida"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    remover_destaque_destaques__id_destaque__delete: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string;
+            };
+            path: {
+                id_destaque: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Destaque não encontrado */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    alterar_destaque_destaques__id_destaque__patch: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string;
+            };
+            path: {
+                id_destaque: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DestaqueAlterar"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DestaqueSaida"];
+                };
+            };
+            /** @description Destaque não encontrado */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    trocar_imagem_destaque_destaques__id_destaque__imagem_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string;
+            };
+            path: {
+                id_destaque: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["Body_trocar_imagem_destaque_destaques__id_destaque__imagem_post"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DestaqueSaida"];
+                };
+            };
+            /** @description Destaque não encontrado */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Arquivo não aceito */
             422: {
                 headers: {
                     [name: string]: unknown;
