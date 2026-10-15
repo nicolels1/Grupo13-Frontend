@@ -12,12 +12,15 @@ export type ValorAuth = {
   entrarComEmail: (email: string, senha: string) => Promise<void>
   entrarComCpf: (cpf: string, senha: string) => Promise<void>
   sair: () => Promise<unknown>
+  // recuperação de senha: manda o link por e-mail e grava a senha nova de quem abriu o link
+  pedirLinkDeSenha: (email: string) => Promise<void>
+  trocarSenha: (senha: string) => Promise<void>
   recarregarPerfil: () => void
 }
 
 export const AuthContext = createContext<ValorAuth | null>(null)
 
-// sessão do Supabase, perfil da conta (GET /me) e as ações de entrar e sair
+// sessão do Supabase, perfil da conta (GET /me) e as ações de entrar, sair e recuperar a senha
 export function useAuth() {
   const contexto = useContext(AuthContext)
   if (!contexto) throw new Error('useAuth precisa estar dentro do <AuthProvider>')
