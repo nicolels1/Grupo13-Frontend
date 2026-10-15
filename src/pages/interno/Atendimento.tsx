@@ -26,6 +26,9 @@ const FILAS: { valor: Fila; rotulo: string; filtros: Record<string, string | boo
   { valor: 'concluidos', rotulo: 'Concluídos', filtros: { status: 'concluido' } },
 ]
 
+// filtros de cada fila, montados uma vez: a lista recarrega só quando a fila muda
+const FILTROS_DA_FILA = Object.fromEntries(FILAS.map((f) => [f.valor, f.filtros])) as Record<Fila, (typeof FILAS)[number]['filtros']>
+
 // caixa de entrada em três colunas (design, seção Atendimento): filas, lista e conversa.
 // A mesma tela atende /interno/atendimento e /interno/atendimento/:idChamado; o chamado aberto
 // fica na terceira coluna. No celular, a conversa toma a tela e há um link de volta para a fila.
@@ -35,11 +38,11 @@ export function Atendimento() {
   const [fila, setFila] = useState<Fila>('sem')
   const [categoria, setCategoria] = useState('')
   const [offset, setOffset] = useState(0)
-  const filtros = FILAS.find((f) => f.valor === fila)?.filtros ?? {}
+  const filtros = FILTROS_DA_FILA[fila]
 
   const lista = useCarregar(
     () => api<Esquema<'Pagina_ChamadoSaida_'>>('/atendimento/chamados', { params: { ...filtros, categoria, id_unidade: unidade, limit: POR_PAGINA, offset } }),
-    [fila, categoria, unidade, offset],
+    [filtros, categoria, unidade, offset],
   )
   // contagem de cada fila (só o total, uma linha por consulta)
   const contagens = useCarregar(

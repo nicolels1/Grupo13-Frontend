@@ -75,6 +75,7 @@ function FormularioVenda({ loja, aoFinalizar }: { loja: Unidade; aoFinalizar: (p
     () => (validos.length
       ? api<Esquema<'ResumoCarrinho'>>('/carrinho', { metodo: 'POST', corpo: { itens: validos.map((i) => ({ id_variante: i.linha.id_variante, quantidade: Number(i.quantidade) })) } })
       : null),
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- a chave resume os itens válidos; editar sem mudar o carrinho não busca de novo
     [chaveCarrinho],
   )
   const precos = Object.fromEntries((resumo.dados?.itens ?? []).map((i) => [i.id_variante, i]))

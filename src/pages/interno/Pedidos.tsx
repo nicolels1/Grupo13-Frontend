@@ -38,6 +38,9 @@ const FILAS: { valor: Fila; rotulo: string; filtros: { status?: Pedido['status']
   { valor: 'todos', rotulo: 'Todos', filtros: {} },
 ]
 
+// filtros de cada fila, montados uma vez: a lista recarrega só quando a fila muda
+const FILTROS_DA_FILA = Object.fromEntries(FILAS.map((f) => [f.valor, f.filtros])) as Record<Fila, (typeof FILAS)[number]['filtros']>
+
 // como o pedido chega à pessoa
 function comoRecebe(p: Pedido) {
   if (p.canal === 'loja_fisica') return `Compra na ${p.unidade}`
@@ -57,11 +60,11 @@ export function Pedidos() {
   const [offset, setOffset] = useState(0)
   const [corrigindo, setCorrigindo] = useState(false)
   const idVer = params.get('ver')
-  const filtros = FILAS.find((f) => f.valor === fila)?.filtros ?? {}
+  const filtros = FILTROS_DA_FILA[fila]
 
   const lista = useCarregar(
     () => api<PaginaPedidos>('/vendas/pedidos', { params: { ...filtros, id_unidade: unidade, limit: POR_PAGINA, offset } }),
-    [fila, unidade, offset],
+    [filtros, unidade, offset],
   )
   // contagem de cada fila (só o total; "Todos" não precisa)
   const contagens = useCarregar(

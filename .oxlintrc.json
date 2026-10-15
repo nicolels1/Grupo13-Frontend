@@ -4,6 +4,7 @@
   "ignorePatterns": ["src/lib/tiposApi.ts"],
   "rules": {
     "react/rules-of-hooks": "error",
+    "react/exhaustive-deps": ["error", { "additionalHooks": "^useCarregar$" }],
     "react/only-export-components": ["warn", { "allowConstantExport": true }]
   }
 }

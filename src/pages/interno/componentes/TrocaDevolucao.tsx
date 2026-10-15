@@ -40,14 +40,16 @@ export function AtenderPedido({
   const bloqueio = motivoBloqueio(pedido, loja)
 
   // na troca, as outras cores e tamanhos do mesmo produto com saldo na loja física desta loja
-  const nomes = [...new Set(pedido.itens.map((i) => i.produto))]
+  // a lista de nomes e o motivo de bloqueio mudam de identidade a cada render: a busca depende do texto deles
+  const chaveNomes = [...new Set(pedido.itens.map((i) => i.produto))].join('|')
+  const bloqueada = Boolean(bloqueio)
   const opcoes = useCarregar(
-    () => (modo === 'troca' && !bloqueio
-      ? Promise.all(nomes.map((nome) => api<Esquema<'Pagina_EstoqueItem_'>>('/balcao/estoque', {
+    () => (modo === 'troca' && !bloqueada
+      ? Promise.all(chaveNomes.split('|').map((nome) => api<Esquema<'Pagina_EstoqueItem_'>>('/balcao/estoque', {
         params: { id_unidade: loja.id_unidade, canal: 'loja_fisica', busca: nome, limit: 200 },
       }))).then((paginas) => paginas.flatMap((p) => p.items))
       : null),
-    [modo, loja.id_unidade, nomes.join('|'), Boolean(bloqueio)],
+    [modo, bloqueada, loja.id_unidade, chaveNomes],
   )
   const opcoesDoItem = (item: ItemPedido) => (opcoes.dados ?? []).filter((l) => l.produto === item.produto && l.id_variante !== item.id_variante && l.disponivel > 0)
 

@@ -12,6 +12,7 @@ export function useChamadosDaConta() {
   const ehCliente = perfil?.tipo_conta === 'cliente'
   const { dados } = useCarregar(
     () => (ehCliente ? api<Esquema<'Pagina_ChamadoSaida_'>>('/chamados', { params: { limit: 100 } }) : null),
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- o endereço não entra na busca: só faz conferir de novo a cada página
     [ehCliente, local.pathname],
   )
   const itens = dados?.items ?? []
