@@ -1,20 +1,12 @@
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
-import type { AuthError, Session } from '@supabase/supabase-js'
+import type { Session } from '@supabase/supabase-js'
 
 import { api, ErroApi, type Esquema } from '@/lib/api'
 import { supabase } from '@/lib/supabaseClient'
 import { AuthContext, type ValorAuth } from './contexto'
+import { erroDaTrocaDeSenha, erroDoLinkDeSenha, erroDoLogin } from './mensagens'
 
 type Perfil = Esquema<'Perfil'>
-
-// mensagens do Supabase Auth em português
-function traduzirErroLogin(erro: AuthError) {
-  const mensagem = erro.message
-  if (mensagem.includes('Invalid login credentials')) return 'E-mail ou senha inválidos'
-  if (mensagem.includes('Email not confirmed')) return 'E-mail ainda não confirmado'
-  if (erro.status === 429) return 'Muitas tentativas. Aguarde alguns minutos e tente de novo'
-  return 'Não foi possível entrar. Tente de novo.'
-}
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   // undefined = ainda lendo a sessão salva; null = ninguém logado
@@ -61,7 +53,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const entrarComEmail = useCallback(async (email: string, senha: string) => {
     const { error } = await supabase.auth.signInWithPassword({ email: email.trim(), password: senha })
-    if (error) throw new Error(traduzirErroLogin(error))
+    if (error) throw new Error(erroDoLogin(error))
   }, [])
 
   // login por CPF: o backend devolve a sessão do Supabase, que é entregue ao cliente do Supabase
@@ -71,10 +63,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       access_token: sessaoCpf.access_token,
       refresh_token: sessaoCpf.refresh_token,
     })
-    if (error) throw new Error(traduzirErroLogin(error))
+    if (error) throw new Error(erroDoLogin(error))
   }, [])
 
   const sair = useCallback(() => supabase.auth.signOut(), [])
+
+  // a recuperação é do Supabase Auth (case, seção 5): ele manda o e-mail com um link de 24h que
+  // abre /redefinir-senha já com a sessão. Vale para cliente e para a equipe (o convite também)
+  const pedirLinkDeSenha = useCallback(async (email: string) => {
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/redefinir-senha`,
+    })
+    if (error) throw new Error(erroDoLinkDeSenha(error))
+  }, [])
+
+  // grava a senha de quem abriu o link do e-mail (a sessão já vem do link)
+  const trocarSenha = useCallback(async (senha: string) => {
+    const { error } = await supabase.auth.updateUser({ password: senha })
+    if (error) throw new Error(erroDaTrocaDeSenha(error))
+  }, [])
 
   const valor = useMemo<ValorAuth>(
     () => ({
@@ -86,9 +93,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       entrarComEmail,
       entrarComCpf,
       sair,
+      pedirLinkDeSenha,
+      trocarSenha,
       recarregarPerfil,
     }),
-    [sessao, atual, idUsuario, entrarComEmail, entrarComCpf, sair, recarregarPerfil],
+    [sessao, atual, idUsuario, entrarComEmail, entrarComCpf, sair, pedirLinkDeSenha, trocarSenha, recarregarPerfil],
   )
 
   return <AuthContext.Provider value={valor}>{children}</AuthContext.Provider>
