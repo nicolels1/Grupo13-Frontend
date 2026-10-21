@@ -55,11 +55,6 @@ function Conferencia({ bate, carregando }: { bate: boolean | null; carregando?: 
     : <span className="font-medium text-ferrugem">a plataforma tem outro número: conferir a carga</span>
 }
 
-function Decisao({ codigo }: { codigo: string | null }) {
-  if (!codigo) return null
-  return <span title={`Decisão ${codigo} do registro de decisões da migração`} className="bg-superficie px-1.5 py-0.5 text-xs font-medium">{codigo}</span>
-}
-
 function Margem({ linhas }: { linhas: { decisao: string | null; texto: string; valor: string }[] }) {
   return (
     <div className="space-y-2">
@@ -67,7 +62,7 @@ function Margem({ linhas }: { linhas: { decisao: string | null; texto: string; v
       <ul className="space-y-1 text-sm">
         {linhas.map((l) => (
           <li key={l.texto} className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
-            <span className="flex items-baseline gap-2"><Decisao codigo={l.decisao} />{l.texto}</span>
+            <span>{l.texto}</span>
             <span className="tabular-nums text-muted-foreground">{l.valor}</span>
           </li>
         ))}
@@ -141,7 +136,7 @@ function Faturamento() {
             <tbody>
               {FATURAMENTO.ponte.map((p) => (
                 <tr key={p.texto} className="border-b border-aco/20 align-baseline">
-                  <td className="py-1.5 pr-3"><span className="flex items-baseline gap-2"><Decisao codigo={p.decisao} />{p.texto}</span></td>
+                  <td className="py-1.5 pr-3">{p.texto}</td>
                   <td className="text-right whitespace-nowrap tabular-nums">{p.decisao ? `${p.valor > 0 ? '+' : '−'}${moeda(Math.abs(p.valor))}` : moeda(p.valor)}</td>
                 </tr>
               ))}
@@ -243,7 +238,7 @@ function Estoque() {
           ))}
           <tr className="border-b">
             <td className="py-2">Em trânsito do CD para a loja</td>
-            <td className="text-muted-foreground">envios de 21/09 sem recebimento (E13)</td>
+            <td className="text-muted-foreground">envios de 21/09 sem recebimento</td>
             <td className="text-right tabular-nums">{numero(ESTOQUE.emTransito)}</td>
             <td className="text-right tabular-nums">{transito ? numero(transito) : '—'}</td>
           </tr>
@@ -261,7 +256,7 @@ function Passivo() {
   const daVulto = passivo.dados?.items.find((p) => p.marca === 'vulto') ?? null
 
   return (
-    <Secao titulo="Passivo de pontos do Vulto+" subtitulo="Em 01/10/2026: cada ponto pelo valor da época em que foi ganho (K3)">
+    <Secao titulo="Passivo de pontos do Vulto+" subtitulo="Em 01/10/2026: cada ponto pelo valor da época em que foi ganho">
       <div className="grid gap-8 sm:grid-cols-3">
         <Destaque
           rotulo="Nosso número"
