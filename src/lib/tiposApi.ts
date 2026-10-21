@@ -1746,6 +1746,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/visao-geral/faturamento": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Faturamento
+         * @description Faturamento por mês, unidade e canal da venda, com a regra dos três números da Vulto: venda paga sem o frete (à parte), menos as devoluções no mês em que saíram, sem cancelados. Meses no horário de Brasília.
+         */
+        get: operations["faturamento_visao_geral_faturamento_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/migracao/origem": {
         parameters: {
             query?: never;
@@ -2830,6 +2850,29 @@ export interface components {
              */
             efeito: "acrescentar" | "retirar";
         };
+        /** Faturamento */
+        Faturamento: {
+            /**
+             * De
+             * Format: date
+             */
+            de: string;
+            /**
+             * Ate
+             * Format: date
+             */
+            ate: string;
+            /** Id Unidade */
+            id_unidade: number | null;
+            /** Marca */
+            marca: ("lorenzi" | "vulto") | null;
+            /** Valor */
+            valor: string;
+            /** Frete */
+            frete: string;
+            /** Items */
+            items: components["schemas"]["LinhaDoFaturamento"][];
+        };
         /** FotoSaida */
         FotoSaida: {
             /** Id Foto */
@@ -3037,6 +3080,11 @@ export interface components {
             nome: string;
             /** Tipo */
             tipo: string;
+            /**
+             * Marca
+             * @enum {string}
+             */
+            marca: "lorenzi" | "vulto";
             vendas_7_dias: components["schemas"]["Volume"];
             /** Cobertura Dias */
             cobertura_dias: number | null;
@@ -3051,6 +3099,39 @@ export interface components {
             transferencias_esperando_envio: number;
             /** Transferencias Chegando */
             transferencias_chegando: number;
+        };
+        /** LinhaDoFaturamento */
+        LinhaDoFaturamento: {
+            /**
+             * Mes
+             * Format: date
+             * @description Primeiro dia do mês, no horário de Brasília
+             */
+            mes: string;
+            /** Id Unidade */
+            id_unidade: number;
+            /** Unidade */
+            unidade: string;
+            /**
+             * Canal Venda
+             * @description loja, site ou app (P3)
+             */
+            canal_venda: string;
+            /**
+             * Pedidos
+             * @description Pedidos pagos no mês; a devolução não conta pedido
+             */
+            pedidos: number;
+            /**
+             * Valor
+             * @description Sem o frete, menos as devoluções no mês em que saíram
+             */
+            valor: string;
+            /**
+             * Frete
+             * @description À parte (V7)
+             */
+            frete: string;
         };
         /** Lista[CategoriaSaida] */
         Lista_CategoriaSaida_: {
@@ -3940,6 +4021,11 @@ export interface components {
             ruptura_online_pct: number | null;
             vendas_14_dias: components["schemas"]["VendasPorCanal"];
             ticket_medio_30_dias: components["schemas"]["TicketPorCanal"];
+            /**
+             * Por Marca
+             * @description Casa Lorenzi × Vulto; só a marca filtrada, se houver
+             */
+            por_marca: components["schemas"]["VendasDaMarca"][];
             /** Primeira Resposta Mediana Horas */
             primeira_resposta_mediana_horas: number | null;
             /** Chamados Esperando Primeira Resposta */
@@ -4077,6 +4163,14 @@ export interface components {
         Resumo: {
             /** Id Unidade */
             id_unidade: number | null;
+            /** Marca */
+            marca: ("lorenzi" | "vulto") | null;
+            /**
+             * Referencia
+             * Format: date
+             * @description Último dia das janelas de 7, 14, 30 e 90 dias
+             */
+            referencia: string;
             /**
              * Gerado Em
              * Format: date-time
@@ -4084,7 +4178,7 @@ export interface components {
             gerado_em: string;
             /**
              * Vendas Por Dia
-             * @description Vendas ou Admin: 14 dias, pelo dia do pagamento, sem cancelados
+             * @description Vendas ou Admin: 14 dias por canal da venda, pelo dia do pagamento, sem cancelados
              */
             vendas_por_dia?: components["schemas"]["VendasDoDia"][] | null;
             /**
@@ -4094,7 +4188,12 @@ export interface components {
             mais_vendidas?: components["schemas"]["MaisVendida"][] | null;
             /** @description atender_chamado ou Admin */
             chamados?: components["schemas"]["Chamados"] | null;
-            /** @description Só Admin; sempre a rede inteira */
+            /**
+             * Pontos
+             * @description gerenciar_fidelidade ou Admin: o que cada marca deve em pontos hoje
+             */
+            pontos?: components["schemas"]["PassivoSaida"][] | null;
+            /** @description Só Admin; a rede inteira ou a marca filtrada */
             rede_agora?: components["schemas"]["RedeAgora"] | null;
             /**
              * Por Unidade
@@ -4186,10 +4285,15 @@ export interface components {
         };
         /** TicketPorCanal */
         TicketPorCanal: {
-            /** Online */
-            online: string | null;
-            /** Loja Fisica */
-            loja_fisica: string | null;
+            /** Loja */
+            loja: string | null;
+            /** Site */
+            site: string | null;
+            /**
+             * App
+             * @description Só quando o período tem venda pelo app, que existe só no histórico da Vulto
+             */
+            app?: string | null;
             /** Total */
             total: string | null;
         };
@@ -4550,6 +4654,17 @@ export interface components {
              */
             pontos_resgate?: number | null;
         };
+        /** VendasDaMarca */
+        VendasDaMarca: {
+            /**
+             * Marca
+             * @enum {string}
+             */
+            marca: "lorenzi" | "vulto";
+            vendas_14_dias: components["schemas"]["VolumeComVariacao"];
+            /** Ticket Medio 30 Dias */
+            ticket_medio_30_dias: string | null;
+        };
         /** VendasDoDia */
         VendasDoDia: {
             /**
@@ -4557,13 +4672,17 @@ export interface components {
              * Format: date
              */
             dia: string;
-            online: components["schemas"]["Volume"];
-            loja_fisica: components["schemas"]["Volume"];
+            loja: components["schemas"]["Volume"];
+            site: components["schemas"]["Volume"];
+            /** @description Só quando o período tem venda pelo app, que existe só no histórico da Vulto */
+            app?: components["schemas"]["Volume"] | null;
         };
         /** VendasPorCanal */
         VendasPorCanal: {
-            online: components["schemas"]["VolumeComVariacao"];
-            loja_fisica: components["schemas"]["VolumeComVariacao"];
+            loja: components["schemas"]["VolumeComVariacao"];
+            site: components["schemas"]["VolumeComVariacao"];
+            /** @description Só quando o período tem venda pelo app, que existe só no histórico da Vulto */
+            app?: components["schemas"]["VolumeComVariacao"] | null;
             total: components["schemas"]["VolumeComVariacao"];
         };
         /** Volume */
@@ -10939,6 +11058,10 @@ export interface operations {
             query?: {
                 /** @description Vazio: a rede inteira (rede_agora ignora o filtro) */
                 id_unidade?: number | null;
+                /** @description Vazio: as duas marcas. Vale para todas as seções */
+                marca?: ("lorenzi" | "vulto") | null;
+                /** @description Último dia das janelas; vazio: hoje. Ex.: 2026-09-30 para ver o histórico da Vulto, que vai até essa data */
+                referencia?: string | null;
             };
             header?: {
                 authorization?: string;
@@ -10978,14 +11101,71 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description Validation Error */
+            /** @description Referência no futuro */
             422: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
+                content?: never;
+            };
+        };
+    };
+    faturamento_visao_geral_faturamento_get: {
+        parameters: {
+            query: {
+                /** @description Primeiro dia do período. Ex.: 2025-01-01 */
+                de: string;
+                /** @description Último dia do período, inteiro. Ex.: 2026-09-30 */
+                ate: string;
+                /** @description Vazio: todas as unidades */
+                id_unidade?: number | null;
+                /** @description Vazio: as duas marcas */
+                marca?: ("lorenzi" | "vulto") | null;
+            };
+            header?: {
+                authorization?: string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
                 };
+                content: {
+                    "application/json": components["schemas"]["Faturamento"];
+                };
+            };
+            /** @description Sem login válido */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Só o Admin */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Unidade não encontrada */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Fim antes do início */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
@@ -11315,7 +11495,10 @@ export interface operations {
     };
     passivo_fidelidade_passivo_get: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description AAAA-MM-DD (fim do dia) ou AAAA-MM-DDTHH:MM, no horário de Brasília. Ex.: 2026-09-30 para a posição em 01/10. Padrão: agora */
+                em?: string | null;
+            };
             header?: {
                 authorization?: string;
             };
