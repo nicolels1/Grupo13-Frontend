@@ -1,13 +1,13 @@
 import { useState, type ReactNode } from 'react'
 import { ArrowLeftRight, Plus, ShoppingBag } from 'lucide-react'
-import { Link } from 'react-router'
+import { Link, useSearchParams } from 'react-router'
 import { cn } from 'cn'
 
 import { useAuth } from '@/auth/contexto'
 import { ehAdmin, temPermissao, type CodigoPermissao } from '@/auth/areas'
 import { Aviso, Carregando } from '@/components/Estados'
 import { NomeDaLoja } from '@/components/Logo'
-import { Cabecalho } from '@/components/Navegacao'
+import { Abas, Cabecalho } from '@/components/Navegacao'
 import { buttonVariants } from '@/components/ui/button'
 import { useUnidadeEscolhida } from '@/layouts/unidadeEscolhida'
 import { api, type Esquema, type OpcoesApi } from '@/lib/api'
@@ -17,6 +17,7 @@ import { nomeUnidade } from '@/lib/listas'
 import { useCarregar } from '@/lib/useCarregar'
 import { GraficoChamados, GraficoMaisVendidas, GraficoVendas } from './componentes/GraficosVisaoGeral'
 import { faixasDoPassivo, passivoPorLoja } from './componentes/passivo'
+import { TresNumeros } from './numeros/TresNumeros'
 
 type Perfil = Esquema<'Perfil'>
 type Resumo = Esquema<'Resumo'>
@@ -103,7 +104,39 @@ function usePendencias(perfil: Perfil | null, unidade: string) {
 
 // início da plataforma interna: pendências, números e gráficos só das áreas da conta, na unidade
 // do topo (sem unidade: a rede). O resumo (GET /visao-geral/resumo) já vem cortado pelo perfil.
+// O Admin tem uma segunda aba, "Os 3 números da Vulto" (Etapa 9), com a aba no endereço (?aba=numeros)
 export function VisaoGeral() {
+  const { perfil } = useAuth()
+  const [params, setParams] = useSearchParams()
+  if (ehAdmin(perfil) && params.get('aba') === 'numeros') {
+    return (
+      <div className="space-y-12">
+        <Cabecalho
+          titulo="Os 3 números da Vulto"
+          subtitulo="O que a Entrega 3 pede para a diretoria: o número da migração, o da plataforma e a diferença para o sistema da Vulto."
+          abas={<AbasDaVisaoGeral aba="numeros" aoMudar={setParams} />}
+        />
+        <TresNumeros />
+      </div>
+    )
+  }
+  return <Hoje aoMudarAba={setParams} />
+}
+
+// as duas abas, só para o Admin
+function AbasDaVisaoGeral({ aba, aoMudar }: { aba: 'hoje' | 'numeros'; aoMudar: (params: Record<string, string>, opcoes: { replace: boolean }) => void }) {
+  return (
+    <Abas
+      semLinha
+      rotulo="Partes da Visão Geral"
+      valor={aba}
+      aoMudar={(v) => aoMudar(v === 'numeros' ? { aba: v } : {}, { replace: true })}
+      abas={[{ valor: 'hoje', rotulo: 'Hoje' }, { valor: 'numeros', rotulo: 'Os 3 números da Vulto' }]}
+    />
+  )
+}
+
+function Hoje({ aoMudarAba }: { aoMudarAba: (params: Record<string, string>, opcoes: { replace: boolean }) => void }) {
   const { perfil } = useAuth()
   const { unidade, unidades } = useUnidadeEscolhida()
   const pode = (codigo: CodigoPermissao) => temPermissao(perfil, codigo)
@@ -133,6 +166,7 @@ export function VisaoGeral() {
             {pendencias.dados && (abertas ? `${plural(abertas, 'pendência', 'pendências')} para resolver.` : 'Tudo em dia.')}
           </span>
         }
+        abas={admin ? <AbasDaVisaoGeral aba="hoje" aoMudar={aoMudarAba} /> : undefined}
       >
         <Atalhos pode={pode} />
       </Cabecalho>
