@@ -9,12 +9,13 @@ import { Aviso, Carregando } from '@/components/Estados'
 import { NomeDaLoja } from '@/components/Logo'
 import { Abas, Cabecalho } from '@/components/Navegacao'
 import { Button, buttonVariants } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
+import { Input, Select } from '@/components/ui/input'
 import { useUnidadeEscolhida } from '@/layouts/unidadeEscolhida'
 import { api, type Esquema, type OpcoesApi } from '@/lib/api'
 import { lojaFisicaEOnline, variacaoJunta } from './componentes/canais'
 import { BLOCO_ACO } from './componentes/estilos'
-import { dataCurta, dataLonga, hojeIso, moeda, numero, plural } from '@/lib/formato'
+import { dataCurta, dataLonga, hojeIso, MARCAS, moeda, numero, plural } from '@/lib/formato'
+import { lojaDaMarca } from '@/lib/lojaEscolhida'
 import { nomeUnidade } from '@/lib/listas'
 import { useCarregar } from '@/lib/useCarregar'
 import { GraficoChamados, GraficoMaisVendidas, GraficoVendas } from './componentes/GraficosVisaoGeral'
@@ -145,22 +146,31 @@ function Hoje({ aoMudarAba }: { aoMudarAba: (params: Record<string, string>, opc
   const pode = (codigo: CodigoPermissao) => temPermissao(perfil, codigo)
   const admin = ehAdmin(perfil)
   const [dia] = useState(() => new Date().toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'America/Sao_Paulo' }))
-  // o último dia das janelas (?ate=): vazio é hoje; 30/09 mostra o histórico da Vulto, que termina nele.
-  // Só os números do resumo mudam: as pendências são sempre as de agora
+  // filtros do resumo, no endereço: o último dia das janelas (?ate=; vazio é hoje, e 30/09 mostra o
+  // histórico da Vulto, que termina nele) e a marca (?marca=; vazio são as duas). Só os números do
+  // resumo mudam: as pendências são sempre as de agora, da rede toda ou da unidade do topo
   const [params, setParams] = useSearchParams()
   const ate = params.get('ate') ?? ''
-  function verAte(dia: string) {
-    setParams(dia ? { ate: dia } : {}, { replace: true })
+  const marca = params.get('marca') ?? ''
+  function filtrar(chave: 'ate' | 'marca', valor: string) {
+    const novos = new URLSearchParams(params)
+    if (valor) novos.set(chave, valor)
+    else novos.delete(chave)
+    setParams(novos, { replace: true })
   }
+  // a unidade do topo é da outra marca: o resumo viria vazio, e a tela avisa
+  const unidadeDeOutraMarca = Boolean(marca && unidade && unidades.find((u) => String(u.id_unidade) === unidade)?.marca !== marca)
 
   const resumo = useCarregar(
-    () => api<Resumo>('/visao-geral/resumo', { params: { id_unidade: unidade, referencia: ate || undefined } }),
-    [unidade, ate],
+    () => api<Resumo>('/visao-geral/resumo', {
+      params: { id_unidade: unidade, referencia: ate || undefined, marca: (marca || undefined) as Resumo['marca'] },
+    }),
+    [unidade, ate, marca],
   )
   const pendencias = usePendencias(perfil, unidade)
   const r = resumo.dados
 
-  const titulo = unidade ? nomeUnidade(unidades, Number(unidade)) : 'Toda a rede'
+  const titulo = unidade ? nomeUnidade(unidades, Number(unidade)) : marca ? `${MARCAS[marca] ?? marca}, toda a rede` : 'Toda a rede'
   const abertas = (pendencias.dados ?? []).filter((p) => p.total > 0).length
   // as que pedem atenção vêm primeiro, da maior para a menor; as zeradas, na ordem de sempre (o sort é estável)
   const pendenciasEmOrdem = [...(pendencias.dados ?? [])].sort((a, b) => b.total - a.total)
@@ -183,7 +193,10 @@ function Hoje({ aoMudarAba }: { aoMudarAba: (params: Record<string, string>, opc
       >
         <Atalhos pode={pode} />
       </Cabecalho>
-      {teraNumeros && <AteODia valor={ate} aoMudar={verAte} />}
+      {teraNumeros && <Filtros ate={ate} marca={marca} aoMudar={filtrar} />}
+      {teraNumeros && unidadeDeOutraMarca && (
+        <Aviso mensagem={`A unidade escolhida no topo não é da ${MARCAS[marca] ?? marca}. Escolha "Todas as unidades" ou uma unidade dessa marca para ver os números.`} />
+      )}
 
       <div className={cn('grid gap-12', teraNumeros && 'lg:grid-cols-[25rem_1fr]')}>
         {/* linha vertical entre pendências e números, com o mesmo respiro dos dois lados. Embaixo das
@@ -292,19 +305,28 @@ function LinhaPendencia({ pendencia: p }: { pendencia: Pendencia }) {
   )
 }
 
-// até que dia a Visão Geral conta os números: hoje ou um dia passado. O atalho de 30/09 é o fim do
-// histórico da Vulto, para ver as lojas dela com dados (depois da carga, nada da Vulto é de hoje)
-function AteODia({ valor, aoMudar }: { valor: string; aoMudar: (dia: string) => void }) {
+// filtros dos números: a marca e até que dia contar (hoje ou um dia passado). O atalho de 30/09 é o fim
+// do histórico da Vulto, para ver as lojas dela com dados (depois da carga, nada da Vulto é de hoje)
+function Filtros({ ate, marca, aoMudar }: { ate: string; marca: string; aoMudar: (chave: 'ate' | 'marca', valor: string) => void }) {
   return (
-    <div className="-mt-6 flex flex-wrap items-center gap-x-3 gap-y-2 text-sm">
+    <div className="-mt-6 flex flex-wrap items-center gap-x-5 gap-y-2 text-sm">
       <label className="flex items-center gap-2">
-        <span className="text-muted-foreground">Números até</span>
-        <Input type="date" value={valor || hojeIso()} max={hojeIso()} onChange={(e) => aoMudar(e.target.value === hojeIso() ? '' : e.target.value)} className="h-9 w-40" />
+        <span className="text-muted-foreground">Marca</span>
+        <Select value={marca} onChange={(e) => aoMudar('marca', e.target.value)} className="h-9 w-44">
+          <option value="">As duas marcas</option>
+          {Object.entries(MARCAS).map(([valor, rotulo]) => <option key={valor} value={valor}>{rotulo}</option>)}
+        </Select>
       </label>
-      {valor !== FIM_DE_30_09 && (
-        <Button type="button" variant="outline" size="sm" onClick={() => aoMudar(FIM_DE_30_09)}>30/09, fim do histórico da Vulto</Button>
-      )}
-      {valor && <Button type="button" variant="ghost" size="sm" onClick={() => aoMudar('')}>Voltar para hoje</Button>}
+      <span className="flex flex-wrap items-center gap-x-3 gap-y-2">
+        <label className="flex items-center gap-2">
+          <span className="text-muted-foreground">Números até</span>
+          <Input type="date" value={ate || hojeIso()} max={hojeIso()} onChange={(e) => aoMudar('ate', e.target.value === hojeIso() ? '' : e.target.value)} className="h-9 w-40" />
+        </label>
+        {ate !== FIM_DE_30_09 && (
+          <Button type="button" variant="outline" size="sm" onClick={() => aoMudar('ate', FIM_DE_30_09)}>30/09, fim do histórico da Vulto</Button>
+        )}
+        {ate && <Button type="button" variant="ghost" size="sm" onClick={() => aoMudar('ate', '')}>Voltar para hoje</Button>}
+      </span>
     </div>
   )
 }
@@ -443,6 +465,18 @@ function RedeAgora({ rede, unidades }: { rede: Esquema<'RedeAgora'>; unidades: E
           alerta={rede.retiradas_perto_de_vencer > 0}
         />
       </div>
+
+      {rede.por_marca.length > 1 && (
+        <div className="grid gap-6 sm:grid-cols-2">
+          {rede.por_marca.map((m) => (
+            <div key={m.marca} className="space-y-2">
+              <NomeDaLoja loja={lojaDaMarca(m.marca)} className="text-sm" />
+              <Numero rotulo="Vendas em 14 dias" valor={moeda(m.vendas_14_dias.valor)} detalhe={variacao(m.vendas_14_dias.variacao_valor_pct)} />
+              <p className="text-sm text-muted-foreground">Ticket médio em 30 dias: {moeda(m.ticket_medio_30_dias)}</p>
+            </div>
+          ))}
+        </div>
+      )}
 
       <div className="overflow-x-auto overflow-y-hidden">
         <table className="w-full min-w-[52rem] text-sm">
