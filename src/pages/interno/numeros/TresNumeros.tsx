@@ -37,15 +37,18 @@ function Secao({ titulo, subtitulo, children }: { titulo: string; subtitulo: str
 }
 
 // o número grande e, embaixo, se a plataforma confere com a migração
-function Destaque({ rotulo, valor, detalhe }: { rotulo: string; valor: ReactNode; detalhe?: ReactNode }) {
+function Destaque({ rotulo, valor, detalhe, principal }: { rotulo: string; valor: ReactNode; detalhe?: ReactNode; principal?: boolean }) {
   return (
     <div>
-      <p className="text-sm text-muted-foreground">{rotulo}</p>
-      <p className="text-3xl font-medium tabular-nums">{valor}</p>
+      <p className={cn('text-sm', principal ? 'font-medium text-marinho' : 'text-muted-foreground')}>{rotulo}</p>
+      <p className={cn('font-medium tabular-nums', principal ? 'text-4xl text-marinho' : 'text-3xl')}>{valor}</p>
       {detalhe && <p className="text-sm text-muted-foreground">{detalhe}</p>}
     </div>
   )
 }
+
+// os números de cada parte num quadro em destaque: o nosso número, o da plataforma e o do sistema da Vulto
+const PLACAR = 'grid gap-8 border-l-4 border-marinho bg-superficie p-6 sm:grid-cols-3'
 
 function Conferencia({ bate, carregando }: { bate: boolean | null; carregando?: boolean }) {
   if (carregando) return <span className="text-muted-foreground">conferindo com a plataforma...</span>
@@ -87,8 +90,9 @@ function Faturamento() {
 
   return (
     <Secao titulo="Faturamento" subtitulo={`${FATURAMENTO.periodo}: venda paga, sem frete, no mês do pedido pelo horário de Brasília`}>
-      <div className="grid gap-8 sm:grid-cols-3">
+      <div className={PLACAR}>
         <Destaque
+          principal
           rotulo="Nosso número"
           valor={moeda(FATURAMENTO.nosso)}
           detalhe={<Conferencia bate={!total ? null : confere(total, FATURAMENTO.nosso)} carregando={plataforma.carregando && !plataforma.dados} />}
@@ -210,8 +214,9 @@ function Estoque() {
 
   return (
     <Secao titulo="Estoque" subtitulo="Em 01/10/2026 (a posição no fim de 30/09), por unidade, contando as peças em trânsito">
-      <div className="grid gap-8 sm:grid-cols-3">
+      <div className={PLACAR}>
         <Destaque
+          principal
           rotulo="Nosso número"
           valor={`${numero(ESTOQUE.nosso)} peças`}
           detalhe={<Conferencia bate={total === null || total === 0 ? null : confere(total, ESTOQUE.nosso)} carregando={plataforma.carregando && !plataforma.dados} />}
@@ -259,8 +264,9 @@ function Passivo() {
 
   return (
     <Secao titulo="Passivo de pontos do Vulto+" subtitulo="Em 01/10/2026: cada ponto pelo valor da época em que foi ganho">
-      <div className="grid gap-8 sm:grid-cols-3">
+      <div className={PLACAR}>
         <Destaque
+          principal
           rotulo="Nosso número"
           valor={moeda(PASSIVO.nosso.reais)}
           detalhe={<>{numero(PASSIVO.nosso.pontos)} pontos de {numero(PASSIVO.nosso.clientes)} clientes. <Conferencia bate={daVulto ? confere(daVulto.pontos, PASSIVO.nosso.pontos, 0.5) : null} carregando={passivo.carregando && !passivo.dados} /></>}
