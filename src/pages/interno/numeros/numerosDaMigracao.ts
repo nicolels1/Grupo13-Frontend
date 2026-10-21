@@ -58,6 +58,9 @@ export const ESTOQUE = {
     { nome: 'Vulto Savassi', pecas: 2119, base: 'contagem por modelo, distribuída pelas variantes' },
     { nome: 'Vulto Batel', pecas: 1860, base: 'contagem sem data, considerada de 20/09' },
   ],
+  // o saldo do sistema da Vulto (tabela estoque do vulto.db, somada no staging): o CD, o estoque espelhado
+  // do site e do app (lojas 5 e 6) e as 4 lojas, com os saldos negativos dentro
+  sistema: { total: 46302, cd: 28136, wms: 6601, espelhado: 12694, lojas: 5472, negativos: 1156 },
   sistemaDaVulto: 'O sistema da Vulto dizia 28.136 peças só no CD (o WMS tem 6.601) e tinha 1.156 saldos negativos. Ele não entra: as lojas valem pela contagem, o CD pelo WMS, e o estoque espelhado do site e do app não é estoque.',
   margem: [
     { decisao: 'E11', texto: 'Batel: 82 linhas da contagem marcadas "faltou contar provador" ou "recontar"', valor: '222 peças' },

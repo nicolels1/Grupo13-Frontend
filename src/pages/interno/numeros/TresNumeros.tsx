@@ -222,6 +222,11 @@ function Estoque() {
           detalhe={<Conferencia bate={total === null || total === 0 ? null : confere(total, ESTOQUE.nosso)} carregando={plataforma.carregando && !plataforma.dados} />}
         />
         <Destaque rotulo="Na plataforma" valor={total ? `${numero(total)} peças` : '—'} detalhe={total ? `${numero(transito ?? 0)} em trânsito` : undefined} />
+        <Destaque
+          rotulo="No sistema da Vulto"
+          valor={`${numero(ESTOQUE.sistema.total)} peças`}
+          detalhe={`${numero(ESTOQUE.sistema.cd)} só no CD (o WMS tem ${numero(ESTOQUE.sistema.wms)}), ${numero(ESTOQUE.sistema.espelhado)} espelhadas no site e no app e ${numero(ESTOQUE.sistema.negativos)} saldos negativos`}
+        />
       </div>
       {plataforma.erro && <Aviso mensagem={plataforma.erro} />}
 

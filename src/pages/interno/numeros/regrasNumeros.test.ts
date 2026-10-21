@@ -16,6 +16,11 @@ describe('números da migração', () => {
     expect(ESTOQUE.porUnidade.reduce((t, u) => t + u.pecas, 0) + ESTOQUE.emTransito).toBe(ESTOQUE.nosso)
   })
 
+  it('as partes do estoque do sistema da Vulto somam o total dele', () => {
+    const s = ESTOQUE.sistema
+    expect(s.cd + s.espelhado + s.lojas).toBe(s.total)
+  })
+
   it('as parcelas do passivo somam o total, em pontos e em reais', () => {
     expect(PASSIVO.porValor.reduce((t, p) => t + p.pontos, 0)).toBe(PASSIVO.nosso.pontos)
     expect(PASSIVO.porValor.reduce((t, p) => t + p.reais, 0)).toBeCloseTo(PASSIVO.nosso.reais, 2)
