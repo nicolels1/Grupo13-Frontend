@@ -10,7 +10,7 @@ import { BLOCO_ACO } from '../componentes/estilos'
 import { ESTOQUE, FATURAMENTO, FIM_DE_30_09, INICIO_FATURAMENTO, PASSIVO } from './numerosDaMigracao'
 import { agruparFaturamento, confere, pecasPorUnidade } from './regrasNumeros'
 
-// aba "Os 3 números da Vulto" da Visão Geral (Etapa 9): faturamento jan/2025–set/2026, estoque e passivo
+// aba "Migração da Vulto" da Gestão, o relatório da migração (Etapa 9): faturamento jan/2025–set/2026, estoque e passivo
 // de pontos em 01/10/2026. Cada número tem o que a plataforma soma (depois da carga), o que a migração
 // calculou e de onde vem a diferença para o sistema da Vulto, com a decisão de cada passo
 
