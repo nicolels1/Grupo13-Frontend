@@ -56,7 +56,6 @@ export function filtroDoCliente(tipo: TipoCliente, id: string): { id_cliente: st
   return tipo === 'conta' ? { id_cliente: id } : { id_cliente_sem_conta: Number(id) }
 }
 
-// cliente com conta como GET /vendas/clientes/{id_usuario} vai devolver: o resumo e, se a pessoa veio da
-// Vulto, o cadastro sem conta ligado a ela (para a origem). A rota ainda não está no backend; quando
-// estiver, este tipo sai dos tipos gerados da API
-export type ClienteComConta = Esquema<'ClienteResumo'> & { id_cliente_sem_conta: number | null }
+// cliente com conta (GET /vendas/clientes/{id_usuario}): o resumo e, se a pessoa veio da Vulto, o
+// cadastro sem conta ligado a ela (para a origem)
+export type ClienteComConta = Esquema<'ClienteComConta'>
