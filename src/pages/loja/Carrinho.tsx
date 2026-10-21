@@ -1,28 +1,32 @@
 import { Link } from 'react-router'
 
 import { Aviso, Carregando } from '@/components/Estados'
+import { NomeDaLoja } from '@/components/Logo'
 import { buttonVariants } from '@/components/ui/button'
 import { moeda, plural } from '@/lib/formato'
 import { useCarrinho } from './carrinho/contexto'
 import { FinalizarCompra } from './carrinho/FinalizarCompra'
 import { BarraFreteGratis, ItensCarrinho } from './carrinho/ItensCarrinho'
+import { AvisoOutraLoja } from './carrinho/OutraLoja'
 import { useResumo } from './carrinho/useResumo'
 
 // página do carrinho: as peças com mais espaço e o resumo com frete e total antes de finalizar
 export function CarrinhoLoja() {
-  const { itens, quantidadeTotal } = useCarrinho()
+  const { loja, itens, quantidadeTotal } = useCarrinho()
   const { dados: resumo, erro, carregando } = useResumo()
 
   return (
     <>
       <div className="bg-ardosia text-white">
         <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6">
+          <NomeDaLoja loja={loja} className="text-sm text-white/85" />
           <h1 className="font-titulo text-4xl sm:text-5xl">Carrinho</h1>
           {quantidadeTotal > 0 && <p className="mt-2 text-sm text-white/85">{plural(quantidadeTotal, 'peça', 'peças')}</p>}
         </div>
       </div>
 
       <div className="mx-auto max-w-7xl px-4 pt-8 sm:px-6">
+        <div className="mb-6"><AvisoOutraLoja /></div>
         {itens.length === 0 ? (
           <div className="space-y-4 py-10">
             <p className="text-muted-foreground">Seu carrinho está vazio.</p>

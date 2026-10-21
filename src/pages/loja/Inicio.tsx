@@ -7,6 +7,7 @@ import { Aviso, Carregando } from '@/components/Estados'
 import { Carousel, CarouselContent, CarouselItem, type CarouselApi } from '@/components/ui/carousel'
 import { api, type Esquema } from '@/lib/api'
 import { useCategorias } from '@/lib/listas'
+import { useLojaEscolhida } from '@/lib/lojaEscolhida'
 import { useCarregar, useIntervalo } from '@/lib/useCarregar'
 import { CartaoProduto } from './componentes/CartaoProduto'
 
@@ -20,10 +21,12 @@ const VANTAGENS = [
 const TROCA_A_CADA_MS = 6000
 
 export function InicioLoja() {
-  const { dados: categorias } = useCategorias()
+  // novidades e categorias da loja escolhida na aba do topo; o carrossel é o mesmo nas duas lojas
+  const loja = useLojaEscolhida()
+  const { dados: categorias } = useCategorias(loja)
   const novidades = useCarregar(
-    () => api<Esquema<'PaginaProdutos'>>('/produtos', { params: { limit: 8, ordem: 'novidades' } }),
-    [],
+    () => api<Esquema<'PaginaProdutos'>>('/produtos', { params: { limit: 8, ordem: 'novidades', marca: loja } }),
+    [loja],
   )
   const ativas = (categorias ?? []).filter((c) => c.ativo)
 

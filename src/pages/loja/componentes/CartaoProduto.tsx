@@ -3,14 +3,16 @@ import { Link } from 'react-router'
 import type { Esquema } from '@/lib/api'
 import { coresDoProduto, corDaPeca, faixaDePreco } from '@/lib/cores'
 import { MARCAS, moeda, plural } from '@/lib/formato'
+import { lojaDaMarca, useLojaEscolhida } from '@/lib/lojaEscolhida'
 import { fotosDaCor } from './fotos'
 
 // cartão da vitrine: primeira foto da primeira cor (sem foto, um bloco na cor da peça), nome, preço e cores.
-// A peça da Vulto leva o nome da marca em cima do nome (P11); a da Lorenzi, a casa, não leva
+// A peça da outra loja (sugestão da busca que não achou nada na loja aberta, P11) leva o nome da marca dela
 export function CartaoProduto({ produto }: { produto: Esquema<'ProdutoSaida'> }) {
   const cores = coresDoProduto(produto)
   const preco = faixaDePreco(produto)
   const foto = fotosDaCor(produto.imagens ?? [], cores[0] ?? null)[0]
+  const outraLoja = lojaDaMarca(produto.marca) !== useLojaEscolhida()
   const esgotado = produto.variantes.length > 0 && produto.variantes.every((v) => v.disponivel === false)
 
   return (
@@ -32,7 +34,7 @@ export function CartaoProduto({ produto }: { produto: Esquema<'ProdutoSaida'> })
         )}
       </div>
       <div className="space-y-0.5 px-0.5">
-        {produto.marca === 'vulto' && <p className="text-xs tracking-wide text-muted-foreground uppercase">{MARCAS.vulto}</p>}
+        {outraLoja && <p className="text-xs tracking-wide text-muted-foreground uppercase">{MARCAS[produto.marca] ?? produto.marca}</p>}
         <h3 className="text-sm group-hover:underline">{produto.nome}</h3>
         {preco && (
           <p className="text-sm font-medium tabular-nums">

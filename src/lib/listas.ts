@@ -6,14 +6,15 @@ type Categoria = Esquema<'CategoriaSaida'>
 type ItemEstoque = Esquema<'EstoqueItem'>
 
 // listas curtas e públicas (unidades, categorias) buscadas uma vez por sessão do navegador.
-// `limparListas` descarta o cache depois de uma alteração na Gestão ou no Catálogo.
+// `limparListas` descarta o cache depois de uma alteração na Gestão ou no Catálogo; as categorias
+// de cada loja (categorias:vulto) saem junto com as categorias
 type ChaveLista = 'unidades' | 'categorias'
-const cache = new Map<ChaveLista, Promise<unknown>>()
+const cache = new Map<string, Promise<unknown>>()
 
-function buscarUmaVez<T>(chave: ChaveLista, caminho: string): Promise<T[]> {
+function buscarUmaVez<T>(chave: string, caminho: string, params?: Record<string, string>): Promise<T[]> {
   const guardada = cache.get(chave)
   if (guardada) return guardada as Promise<T[]>
-  const promessa = api<{ items: T[] }>(caminho)
+  const promessa = api<{ items: T[] }>(caminho, { params })
     .then((r) => r.items)
     .catch((erro: unknown) => {
       cache.delete(chave)
@@ -24,15 +25,21 @@ function buscarUmaVez<T>(chave: ChaveLista, caminho: string): Promise<T[]> {
 }
 
 export function limparListas(...chaves: ChaveLista[]) {
-  for (const chave of chaves) cache.delete(chave)
+  for (const guardada of [...cache.keys()]) {
+    if (chaves.some((chave) => guardada === chave || guardada.startsWith(`${chave}:`))) cache.delete(guardada)
+  }
 }
 
 export function useUnidades() {
   return useCarregar(() => buscarUmaVez<Unidade>('unidades', '/unidades'), [])
 }
 
-export function useCategorias() {
-  return useCarregar(() => buscarUmaVez<Categoria>('categorias', '/categorias'), [])
+// sem marca, todas as categorias; com a marca, só as que têm peça à venda nessa loja (o menu da vitrine)
+export function useCategorias(marca?: string) {
+  return useCarregar(
+    () => (marca ? buscarUmaVez<Categoria>(`categorias:${marca}`, '/categorias', { marca }) : buscarUmaVez<Categoria>('categorias', '/categorias')),
+    [marca],
+  )
 }
 
 // nome da unidade pelo id, a partir da lista já carregada

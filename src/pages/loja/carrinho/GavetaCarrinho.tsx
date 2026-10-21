@@ -3,15 +3,16 @@ import { Link } from 'react-router'
 import { Aviso, Carregando } from '@/components/Estados'
 import { buttonVariants } from '@/components/ui/button'
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet'
-import { moeda, plural } from '@/lib/formato'
+import { MARCAS, moeda, plural } from '@/lib/formato'
 import { useCarrinho } from './contexto'
 import { FinalizarCompra } from './FinalizarCompra'
 import { BarraFreteGratis, ItensCarrinho } from './ItensCarrinho'
+import { AvisoOutraLoja } from './OutraLoja'
 import { useResumo } from './useResumo'
 
 // gaveta lateral: abre sozinha ao adicionar uma peça (é a confirmação) e pelo ícone do topo
 export function GavetaCarrinho() {
-  const { itens, quantidadeTotal, gavetaAberta, fecharGaveta, abrirGaveta } = useCarrinho()
+  const { loja, itens, quantidadeTotal, gavetaAberta, fecharGaveta, abrirGaveta } = useCarrinho()
   const { dados: resumo, erro, carregando } = useResumo()
 
   return (
@@ -19,8 +20,11 @@ export function GavetaCarrinho() {
       <SheetContent className="w-full gap-0 motion-reduce:transition-none sm:max-w-md">
         <SheetHeader className="border-b px-5 py-4">
           <SheetTitle className="font-titulo text-2xl font-normal">Carrinho</SheetTitle>
-          <SheetDescription>{quantidadeTotal === 0 ? 'Vazio' : plural(quantidadeTotal, 'peça', 'peças')}</SheetDescription>
+          <SheetDescription>
+            {MARCAS[loja]}: {quantidadeTotal === 0 ? 'vazio' : plural(quantidadeTotal, 'peça', 'peças')}
+          </SheetDescription>
         </SheetHeader>
+        <AvisoOutraLoja />
 
         {itens.length === 0 ? (
           <div className="space-y-4 p-5">
