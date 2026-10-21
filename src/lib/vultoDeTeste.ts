@@ -100,7 +100,7 @@ export const PONTOS_DE_TESTE: Esquema<'PontosDoCliente'> = {
     marca: 'vulto',
     saldo: 4820,
     valor_em_reais: '295.10',
-    categoria: 'Prata',
+    categoria: 'prata',
     categoria_desde: '2025-06-14',
     ganhos_no_ano: 2310,
     proximo_vencimento: '2027-10-01',
