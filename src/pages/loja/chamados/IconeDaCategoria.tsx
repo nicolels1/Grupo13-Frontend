@@ -1,4 +1,4 @@
-import { CircleHelp, MessageCircle, ReceiptText, RefreshCw, Truck, type LucideIcon } from 'lucide-react'
+import { CircleHelp, CreditCard, MessageCircle, ReceiptText, RefreshCw, Truck, type LucideIcon } from 'lucide-react'
 
 import type { Esquema } from '@/lib/api'
 
@@ -8,6 +8,7 @@ const ICONE_DA_CATEGORIA: Record<string, LucideIcon> = {
   troca_devolucao: RefreshCw,
   estorno: ReceiptText,
   duvida: CircleHelp,
+  pagamento: CreditCard,
   outros: MessageCircle,
 } satisfies Record<Esquema<'ChamadoSaida'>['categoria'], LucideIcon>
 

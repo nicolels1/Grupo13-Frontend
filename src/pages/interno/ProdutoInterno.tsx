@@ -5,11 +5,12 @@ import { cn } from 'cn'
 
 import { Aviso, Carregando, Sucesso } from '@/components/Estados'
 import { Cabecalho } from '@/components/Navegacao'
+import { OrigemMigracao } from '@/components/OrigemMigracao'
 import { Button, buttonVariants } from '@/components/ui/button'
 import { Campo, Input, Select, Textarea } from '@/components/ui/input'
 import { api, type Esquema } from '@/lib/api'
 import { coresDoProduto } from '@/lib/cores'
-import { plural } from '@/lib/formato'
+import { MARCAS, plural } from '@/lib/formato'
 import { useCarregar, useEnviar } from '@/lib/useCarregar'
 import { EditorVariante, NovaVariante, TabelaVariantes } from './produto/Variantes'
 import { novaLinha, varianteParaApi } from './produto/regrasVariante'
@@ -128,7 +129,7 @@ function FormularioProduto({ produto, recarregar }: { produto: Produto | null; r
       </Link>
       <Cabecalho
         titulo={produto ? produto.nome : 'Novo produto'}
-        subtitulo={produto ? `${plural(produto.variantes.length, 'variação', 'variações')}, ${produto.ativo ? 'à venda' : 'fora de venda'}.` : undefined}
+        subtitulo={produto ? `${MARCAS[produto.marca] ?? produto.marca}: ${plural(produto.variantes.length, 'variação', 'variações')}, ${produto.ativo ? 'à venda' : 'fora de venda'}.` : undefined}
       >
         {produto?.ativo && (
           <Link to={`/loja/produtos/${produto.id_produto}`} target="_blank" className={cn(buttonVariants({ variant: 'aco', size: 'lg' }), 'h-11 px-4')}>
@@ -228,6 +229,12 @@ function FormularioProduto({ produto, recarregar }: { produto: Produto | null; r
             </SecaoTitulo>
             <TabelaVariantes produto={produto} aoMudar={recarregar} />
           </section>
+          {produto.marca === 'vulto' && (
+            <section className="mt-14">
+              <SecaoTitulo>Origem na Vulto</SecaoTitulo>
+              <OrigemMigracao tabela="produto" idRegistro={produto.id_produto} />
+            </section>
+          )}
           <section className="mt-14">
             <SecaoTitulo extra={<span className="text-sm text-muted-foreground">{plural(produto.imagens?.length ?? 0, 'foto')}</span>}>
               Fotos

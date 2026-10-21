@@ -1379,6 +1379,43 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/vendas/clientes-sem-conta": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Listar Clientes Sem Conta
+         * @description Clientes da Vulto que ainda não criaram conta. Os pedidos e chamados de cada um saem em /vendas/pedidos e /atendimento/chamados com ?id_cliente_sem_conta=
+         */
+        get: operations["listar_clientes_sem_conta_vendas_clientes_sem_conta_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/vendas/clientes-sem-conta/{id_cliente_sem_conta}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Cliente Sem Conta */
+        get: operations["cliente_sem_conta_vendas_clientes_sem_conta__id_cliente_sem_conta__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/vendas/clientes/{id_usuario}": {
         parameters: {
             query?: never;
@@ -1688,6 +1725,190 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/migracao/origem": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Origem Do Registro
+         * @description De onde veio um registro migrado da Vulto e o que a migração mudou nele, com a decisão do registro de decisões. Lista vazia: o registro não veio da migração (P4).
+         */
+        get: operations["origem_do_registro_migracao_origem_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/fidelidade/regras": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Listar Regras
+         * @description Regras de cada marca, da mais nova para a mais antiga; `vigente` marca a que vale hoje.
+         */
+        get: operations["listar_regras_fidelidade_regras_get"];
+        put?: never;
+        /**
+         * Criar Regra
+         * @description Cria a regra de uma marca a partir de uma data futura. Vale dali em diante e nunca muda um ponto já ganho; uma regra que ainda não começou se corrige com outra para a mesma data.
+         */
+        post: operations["criar_regra_fidelidade_regras_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/fidelidade/resgate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Simular Resgate
+         * @description Quanto valem os pontos do cliente logado num resgate na marca, antes do checkout (`pontos_resgate`).
+         */
+        get: operations["simular_resgate_fidelidade_resgate_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/fidelidade/resgate/caixa": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Simular Resgate No Caixa
+         * @description No caixa: quanto valem os pontos do cliente do CPF (com conta ou da Vulto sem conta) antes da venda.
+         */
+        get: operations["simular_resgate_no_caixa_fidelidade_resgate_caixa_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/fidelidade/meus-pontos": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Meus Pontos
+         * @description Saldo do cliente logado em cada marca, com a categoria e o próximo vencimento.
+         */
+        get: operations["meus_pontos_fidelidade_meus_pontos_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/fidelidade/meus-pontos/extrato": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Meu Extrato
+         * @description Extrato do cliente logado, do mais novo para o mais antigo, com o histórico anterior à conta.
+         */
+        get: operations["meu_extrato_fidelidade_meus_pontos_extrato_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/fidelidade/clientes/pontos": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Pontos De Um Cliente
+         * @description Saldo de um cliente com conta (`id_cliente`) ou da Vulto sem conta (`id_cliente_sem_conta`).
+         */
+        get: operations["pontos_de_um_cliente_fidelidade_clientes_pontos_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/fidelidade/clientes/pontos/extrato": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Extrato De Um Cliente
+         * @description Extrato de um cliente, como o cliente vê.
+         */
+        get: operations["extrato_de_um_cliente_fidelidade_clientes_pontos_extrato_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/fidelidade/passivo": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Passivo
+         * @description Quanto cada marca deve em pontos, separado pelo valor do ponto na época em que foi ganho.
+         */
+        get: operations["passivo_fidelidade_passivo_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -1938,7 +2159,7 @@ export interface components {
              * Categoria
              * @enum {string}
              */
-            categoria: "entrega" | "troca_devolucao" | "estorno" | "duvida" | "outros";
+            categoria: "entrega" | "troca_devolucao" | "estorno" | "duvida" | "pagamento" | "outros";
             /** Assunto */
             assunto: string;
             /** Descricao */
@@ -1965,7 +2186,7 @@ export interface components {
              * Categoria
              * @enum {string}
              */
-            categoria: "entrega" | "troca_devolucao" | "estorno" | "duvida" | "outros";
+            categoria: "entrega" | "troca_devolucao" | "estorno" | "duvida" | "pagamento" | "outros";
             /** Assunto */
             assunto: string;
             /** Descricao */
@@ -1979,11 +2200,13 @@ export interface components {
             prioridade: ("baixa" | "media" | "alta") | null;
             /** Motivo Encerramento */
             motivo_encerramento: ("resolvido" | "desistencia" | "sem_resposta") | null;
+            /** Id Cliente */
+            id_cliente: string | null;
             /**
-             * Id Cliente
-             * Format: uuid
+             * Id Cliente Sem Conta
+             * @description Cliente do atendimento migrado que ainda não criou conta
              */
-            id_cliente: string;
+            id_cliente_sem_conta: number | null;
             /** Cliente */
             cliente: string;
             /** Id Responsavel */
@@ -2014,6 +2237,16 @@ export interface components {
             assumido_em: string | null;
             /** Concluido Em */
             concluido_em: string | null;
+            /**
+             * Canal Externo
+             * @description Atendimento migrado da Vulto: whatsapp, instagram ou email
+             */
+            canal_externo: string | null;
+            /**
+             * Contato Externo
+             * @description Atendimento migrado da Vulto: telefone, e-mail ou @ de quem escreveu
+             */
+            contato_externo: string | null;
             /**
              * Mensagens Nao Lidas
              * @description Mensagens do outro lado (cliente ou equipe) ainda não lidas
@@ -2062,6 +2295,11 @@ export interface components {
              * @description Obrigatório na retirada
              */
             id_unidade_retirada?: number | null;
+            /**
+             * Pontos Resgate
+             * @description Pontos usados como desconto (GET /fidelidade/resgate mostra quanto valem)
+             */
+            pontos_resgate?: number | null;
         };
         /** ClienteCorrigido */
         ClienteCorrigido: {
@@ -2111,6 +2349,36 @@ export interface components {
             cpf: string | null;
             /** Status Conta */
             status_conta: string;
+        };
+        /** ClienteSemContaSaida */
+        ClienteSemContaSaida: {
+            /** Id Cliente Sem Conta */
+            id_cliente_sem_conta: number;
+            /** Nome */
+            nome: string | null;
+            /** Cpf */
+            cpf: string | null;
+            /** Email */
+            email: string | null;
+            /** Telefone */
+            telefone: string | null;
+            /**
+             * Aceita Mensagem
+             * @description Aceita receber mensagens; vazio = não informado
+             */
+            aceita_mensagem: boolean | null;
+            /** Origem */
+            origem: string;
+            /**
+             * Id Usuario
+             * @description Conta que recebeu o histórico quando a pessoa se cadastrou; vazio = ainda sem conta
+             */
+            id_usuario: string | null;
+            /**
+             * Criado Em
+             * Format: date-time
+             */
+            criado_em: string;
         };
         /** CobrancaCriar */
         CobrancaCriar: {
@@ -2510,7 +2778,7 @@ export interface components {
              * Codigo
              * @enum {string}
              */
-            codigo: "gerenciar_contas" | "gerenciar_modelos_acesso" | "gerenciar_catalogo" | "gerenciar_unidades" | "movimentar_estoque" | "definir_estoque_minimo" | "solicitar_transferencia" | "enviar_transferencia" | "receber_transferencia" | "registrar_venda_fisica" | "registrar_troca_devolucao" | "preparar_entregar_pedido" | "cancelar_pedido_equipe" | "corrigir_cadastro_cliente" | "atender_chamado" | "moderar_avaliacoes";
+            codigo: "gerenciar_contas" | "gerenciar_modelos_acesso" | "gerenciar_catalogo" | "gerenciar_unidades" | "movimentar_estoque" | "definir_estoque_minimo" | "solicitar_transferencia" | "enviar_transferencia" | "receber_transferencia" | "registrar_venda_fisica" | "registrar_troca_devolucao" | "preparar_entregar_pedido" | "cancelar_pedido_equipe" | "corrigir_cadastro_cliente" | "atender_chamado" | "moderar_avaliacoes" | "gerenciar_fidelidade";
             /**
              * Efeito
              * @enum {string}
@@ -2779,6 +3047,16 @@ export interface components {
             /** Items */
             items: components["schemas"]["ModeloSaida"][];
         };
+        /** Lista[OrigemSaida] */
+        Lista_OrigemSaida_: {
+            /** Items */
+            items: components["schemas"]["OrigemSaida"][];
+        };
+        /** Lista[PassivoSaida] */
+        Lista_PassivoSaida_: {
+            /** Items */
+            items: components["schemas"]["PassivoSaida"][];
+        };
         /** Lista[PedidoSaida] */
         Lista_PedidoSaida_: {
             /** Items */
@@ -2793,6 +3071,11 @@ export interface components {
         Lista_PessoaDaEquipe_: {
             /** Items */
             items: components["schemas"]["PessoaDaEquipe"][];
+        };
+        /** Lista[RegraSaida] */
+        Lista_RegraSaida_: {
+            /** Items */
+            items: components["schemas"]["RegraSaida"][];
         };
         /** Lista[UnidadeSaida] */
         Lista_UnidadeSaida_: {
@@ -2868,10 +3151,13 @@ export interface components {
             id_chamado: number;
             /**
              * Id Autor
-             * Format: uuid
+             * @description Vazio: fala do cliente no atendimento migrado da Vulto
              */
-            id_autor: string;
-            /** Autor */
+            id_autor: string | null;
+            /**
+             * Autor
+             * @description Nome de quem falou; no atendimento migrado, o nome original
+             */
             autor: string;
             /** Da Equipe */
             da_equipe: boolean;
@@ -2938,7 +3224,7 @@ export interface components {
             /** Pessoas */
             pessoas: number;
             /** Permissoes */
-            permissoes: ("gerenciar_contas" | "gerenciar_modelos_acesso" | "gerenciar_catalogo" | "gerenciar_unidades" | "movimentar_estoque" | "definir_estoque_minimo" | "solicitar_transferencia" | "enviar_transferencia" | "receber_transferencia" | "registrar_venda_fisica" | "registrar_troca_devolucao" | "preparar_entregar_pedido" | "cancelar_pedido_equipe" | "corrigir_cadastro_cliente" | "atender_chamado" | "moderar_avaliacoes")[];
+            permissoes: ("gerenciar_contas" | "gerenciar_modelos_acesso" | "gerenciar_catalogo" | "gerenciar_unidades" | "movimentar_estoque" | "definir_estoque_minimo" | "solicitar_transferencia" | "enviar_transferencia" | "receber_transferencia" | "registrar_venda_fisica" | "registrar_troca_devolucao" | "preparar_entregar_pedido" | "cancelar_pedido_equipe" | "corrigir_cadastro_cliente" | "atender_chamado" | "moderar_avaliacoes" | "gerenciar_fidelidade")[];
         };
         /** MovimentacaoItem */
         MovimentacaoItem: {
@@ -3014,6 +3300,56 @@ export interface components {
              */
             criado_em: string;
         };
+        /** MovimentoPontosSaida */
+        MovimentoPontosSaida: {
+            /** Id Movimento */
+            id_movimento: number;
+            /** Marca */
+            marca: string;
+            /**
+             * Tipo
+             * @description saldo_inicial, credito, resgate, estorno, ajuste ou vencimento
+             */
+            tipo: string;
+            /**
+             * Pontos
+             * @description Positivo entra, negativo sai
+             */
+            pontos: number;
+            /**
+             * Origem
+             * @description migracao (histórico da Vulto) ou plataforma
+             */
+            origem: string;
+            /** Id Pedido */
+            id_pedido: number | null;
+            /** Codigo Venda */
+            codigo_venda: string | null;
+            /** Id Movimento Original */
+            id_movimento_original: number | null;
+            /** Motivo */
+            motivo: string | null;
+            /**
+             * Criado Em
+             * Format: date-time
+             */
+            criado_em: string;
+            /**
+             * Ganho Em
+             * @description Crédito de uma compra de antes do cadastro: a data da compra
+             */
+            ganho_em: string | null;
+            /**
+             * Restante
+             * @description Entradas: quantos pontos dela ainda sobram
+             */
+            restante: number | null;
+            /**
+             * Vence Em
+             * @description Entradas: quando o que sobra vence
+             */
+            vence_em: string | null;
+        };
         /** NovaMovimentacao */
         NovaMovimentacao: {
             /** Id Variante */
@@ -3078,6 +3414,34 @@ export interface components {
             /** Motivo */
             motivo: string;
         };
+        /** OrigemSaida */
+        OrigemSaida: {
+            /**
+             * Fonte
+             * @description Arquivo da Vulto: vulto.db ou o nome da planilha
+             */
+            fonte: string;
+            /**
+             * Linha Origem
+             * @description Linha na fonte, como no staging: vendas#272, Clientes!15
+             */
+            linha_origem: string;
+            /**
+             * Campo
+             * @description Vazio: a linha só diz de onde o registro veio
+             */
+            campo: string | null;
+            /**
+             * Valor Original
+             * @description Valor do campo na Vulto, antes da migração mudar
+             */
+            valor_original: string | null;
+            /**
+             * Decisao
+             * @description Número no registro de decisões da migração (ex.: K2)
+             */
+            decisao: string | null;
+        };
         /** PagamentoFisico */
         PagamentoFisico: {
             /**
@@ -3100,7 +3464,7 @@ export interface components {
             id_chamado: number | null;
             /**
              * Origem
-             * @description Estorno: cancelamento, atendimento ou balcao
+             * @description Estorno: cancelamento, atendimento ou balcao; pagamento e estorno migrados da Vulto: migracao
              */
             origem: string | null;
             /**
@@ -3165,6 +3529,17 @@ export interface components {
             /** Offset */
             offset: number;
         };
+        /** Pagina[ClienteSemContaSaida] */
+        Pagina_ClienteSemContaSaida_: {
+            /** Items */
+            items: components["schemas"]["ClienteSemContaSaida"][];
+            /** Total */
+            total: number;
+            /** Limit */
+            limit: number;
+            /** Offset */
+            offset: number;
+        };
         /** Pagina[DenunciaSaida] */
         Pagina_DenunciaSaida_: {
             /** Items */
@@ -3209,6 +3584,17 @@ export interface components {
             /** Offset */
             offset: number;
         };
+        /** Pagina[MovimentoPontosSaida] */
+        Pagina_MovimentoPontosSaida_: {
+            /** Items */
+            items: components["schemas"]["MovimentoPontosSaida"][];
+            /** Total */
+            total: number;
+            /** Limit */
+            limit: number;
+            /** Offset */
+            offset: number;
+        };
         /** Pagina[PedidoSaida] */
         Pagina_PedidoSaida_: {
             /** Items */
@@ -3242,6 +3628,29 @@ export interface components {
             /** Offset */
             offset: number;
         };
+        /** PassivoPorValor */
+        PassivoPorValor: {
+            /** Valor Ponto */
+            valor_ponto: string;
+            /** Pontos */
+            pontos: number;
+            /** Reais */
+            reais: string;
+        };
+        /** PassivoSaida */
+        PassivoSaida: {
+            /** Marca */
+            marca: string;
+            /** Pontos */
+            pontos: number;
+            /**
+             * Reais
+             * @description Cada ponto pelo valor da época em que foi ganho (K3)
+             */
+            reais: string;
+            /** Por Valor */
+            por_valor: components["schemas"]["PassivoPorValor"][];
+        };
         /** PedidoSaida */
         PedidoSaida: {
             /** Id Pedido */
@@ -3250,6 +3659,11 @@ export interface components {
             codigo_venda: string;
             /** Id Cliente */
             id_cliente: string | null;
+            /**
+             * Id Cliente Sem Conta
+             * @description Comprador migrado que ainda não criou conta
+             */
+            id_cliente_sem_conta: number | null;
             /** Cliente */
             cliente: string | null;
             /** Id Unidade */
@@ -3263,8 +3677,16 @@ export interface components {
              * @description CPF informado na venda física
              */
             cpf_nota: string | null;
-            /** Canal */
+            /**
+             * Canal
+             * @description Canal do estoque: loja_fisica ou online
+             */
             canal: string;
+            /**
+             * Canal Venda
+             * @description Onde a venda foi feita: loja, site ou app (app só no histórico da Vulto)
+             */
+            canal_venda: string;
             /** Modalidade */
             modalidade: string | null;
             /**
@@ -3284,6 +3706,11 @@ export interface components {
             valor_itens: string;
             /** Valor Frete */
             valor_frete: string;
+            /**
+             * Valor Desconto
+             * @description Desconto já tirado do total; só em pedido migrado da Vulto
+             */
+            valor_desconto: string;
             /** Valor Total */
             valor_total: string;
             /**
@@ -3333,7 +3760,7 @@ export interface components {
             id_unidade: number | null;
             modelo_acesso: components["schemas"]["ModeloAcessoSaida"] | null;
             /** Permissoes */
-            permissoes: ("gerenciar_contas" | "gerenciar_modelos_acesso" | "gerenciar_catalogo" | "gerenciar_unidades" | "movimentar_estoque" | "definir_estoque_minimo" | "solicitar_transferencia" | "enviar_transferencia" | "receber_transferencia" | "registrar_venda_fisica" | "registrar_troca_devolucao" | "preparar_entregar_pedido" | "cancelar_pedido_equipe" | "corrigir_cadastro_cliente" | "atender_chamado" | "moderar_avaliacoes")[];
+            permissoes: ("gerenciar_contas" | "gerenciar_modelos_acesso" | "gerenciar_catalogo" | "gerenciar_unidades" | "movimentar_estoque" | "definir_estoque_minimo" | "solicitar_transferencia" | "enviar_transferencia" | "receber_transferencia" | "registrar_venda_fisica" | "registrar_troca_devolucao" | "preparar_entregar_pedido" | "cancelar_pedido_equipe" | "corrigir_cadastro_cliente" | "atender_chamado" | "moderar_avaliacoes" | "gerenciar_fidelidade")[];
         };
         /** PermissaoSaida */
         PermissaoSaida: {
@@ -3341,7 +3768,7 @@ export interface components {
              * Codigo
              * @enum {string}
              */
-            codigo: "gerenciar_contas" | "gerenciar_modelos_acesso" | "gerenciar_catalogo" | "gerenciar_unidades" | "movimentar_estoque" | "definir_estoque_minimo" | "solicitar_transferencia" | "enviar_transferencia" | "receber_transferencia" | "registrar_venda_fisica" | "registrar_troca_devolucao" | "preparar_entregar_pedido" | "cancelar_pedido_equipe" | "corrigir_cadastro_cliente" | "atender_chamado" | "moderar_avaliacoes";
+            codigo: "gerenciar_contas" | "gerenciar_modelos_acesso" | "gerenciar_catalogo" | "gerenciar_unidades" | "movimentar_estoque" | "definir_estoque_minimo" | "solicitar_transferencia" | "enviar_transferencia" | "receber_transferencia" | "registrar_venda_fisica" | "registrar_troca_devolucao" | "preparar_entregar_pedido" | "cancelar_pedido_equipe" | "corrigir_cadastro_cliente" | "atender_chamado" | "moderar_avaliacoes" | "gerenciar_fidelidade";
             /** Descricao */
             descricao: string;
             /** So Admin */
@@ -3371,6 +3798,11 @@ export interface components {
             /** Online */
             online: number;
         };
+        /** PontosDoCliente */
+        PontosDoCliente: {
+            /** Saldos */
+            saldos: components["schemas"]["SaldoPontosSaida"][];
+        };
         /** ProdutoAlterar */
         ProdutoAlterar: {
             /** Id Categoria */
@@ -3381,6 +3813,11 @@ export interface components {
             descricao_tecnica?: string | null;
             /** Descricao Cliente */
             descricao_cliente?: string | null;
+            /**
+             * Marca
+             * @description Só antes da primeira venda
+             */
+            marca?: ("lorenzi" | "vulto") | null;
             /** Ativo */
             ativo?: boolean | null;
         };
@@ -3394,6 +3831,12 @@ export interface components {
             descricao_tecnica: string;
             /** Descricao Cliente */
             descricao_cliente: string;
+            /**
+             * Marca
+             * @default lorenzi
+             * @enum {string}
+             */
+            marca: "lorenzi" | "vulto";
             /** Variantes */
             variantes?: components["schemas"]["VarianteCriar"][];
         };
@@ -3412,6 +3855,11 @@ export interface components {
             descricao_tecnica: string | null;
             /** Descricao Cliente */
             descricao_cliente: string;
+            /**
+             * Marca
+             * @enum {string}
+             */
+            marca: "lorenzi" | "vulto";
             /** Ativo */
             ativo: boolean;
             /** Variantes */
@@ -3447,10 +3895,122 @@ export interface components {
              */
             retiradas_perto_de_vencer: number;
         };
+        /** RegraCriar */
+        RegraCriar: {
+            /**
+             * Marca
+             * @enum {string}
+             */
+            marca: "lorenzi" | "vulto";
+            /**
+             * Valida Desde
+             * Format: date
+             * @description A partir de amanhã; na mesma data, vale a regra criada por último
+             */
+            valida_desde: string;
+            /**
+             * Valor Ponto
+             * @description Em R$ (0,05 = 5 centavos)
+             */
+            valor_ponto: number | string;
+            /** Pontos Por Real */
+            pontos_por_real: number | string;
+            /**
+             * Multiplicador Online
+             * @description Site e app; 2 = dobro
+             */
+            multiplicador_online: number | string;
+            /**
+             * Bonus Ouro
+             * @description 0,5 = +50% no crédito do Ouro
+             */
+            bonus_ouro: number | string;
+            /**
+             * Validade Meses
+             * @description Vazio: o ponto não vence
+             */
+            validade_meses?: number | null;
+            /** Validade Meses Ouro */
+            validade_meses_ouro?: number | null;
+            /**
+             * Limite Prata
+             * @description Pontos ganhos no ano para subir para Prata
+             */
+            limite_prata: number;
+            /**
+             * Limite Ouro
+             * @description Pontos ganhos no ano para subir para Ouro
+             */
+            limite_ouro: number;
+            /** Resgate Minimo */
+            resgate_minimo: number;
+        };
+        /** RegraSaida */
+        RegraSaida: {
+            /** Id Regra */
+            id_regra: number;
+            /** Marca */
+            marca: string;
+            /**
+             * Valida Desde
+             * Format: date
+             */
+            valida_desde: string;
+            /** Valor Ponto */
+            valor_ponto: string;
+            /** Pontos Por Real */
+            pontos_por_real: string;
+            /** Multiplicador Online */
+            multiplicador_online: string;
+            /** Bonus Ouro */
+            bonus_ouro: string;
+            /** Validade Meses */
+            validade_meses: number | null;
+            /** Validade Meses Ouro */
+            validade_meses_ouro: number | null;
+            /** Limite Prata */
+            limite_prata: number;
+            /** Limite Ouro */
+            limite_ouro: number;
+            /** Resgate Minimo */
+            resgate_minimo: number;
+            /**
+             * Id Criado Por
+             * @description Vazio nas regras trazidas pela migração
+             */
+            id_criado_por: string | null;
+            /**
+             * Criado Em
+             * Format: date-time
+             */
+            criado_em: string;
+            /**
+             * Vigente
+             * @description É a regra que vale hoje para a marca
+             */
+            vigente: boolean;
+        };
         /** Reivindicacao */
         Reivindicacao: {
             /** Codigo Venda */
             codigo_venda: string;
+        };
+        /** ResgateSimulado */
+        ResgateSimulado: {
+            /** Pontos */
+            pontos: number;
+            /**
+             * Desconto
+             * @description Em R$: os pontos mais antigos primeiro, cada um pelo valor da época
+             */
+            desconto: string;
+            /**
+             * Saldo
+             * @description Saldo de pontos do cliente na marca
+             */
+            saldo: number;
+            /** Resgate Minimo */
+            resgate_minimo: number;
         };
         /** RespostaGateway */
         RespostaGateway: {
@@ -3525,6 +4085,37 @@ export interface components {
              * @description Lojas com todos os itens no estoque online
              */
             lojas_retirada: components["schemas"]["LojaRetirada"][];
+        };
+        /** SaldoPontosSaida */
+        SaldoPontosSaida: {
+            /** Marca */
+            marca: string;
+            /** Saldo */
+            saldo: number;
+            /**
+             * Valor Em Reais
+             * @description O que os pontos valem, cada um pelo valor da época em que foi ganho
+             */
+            valor_em_reais: string;
+            /**
+             * Categoria
+             * @description bronze, prata ou ouro
+             */
+            categoria: string;
+            /**
+             * Categoria Desde
+             * Format: date-time
+             */
+            categoria_desde: string;
+            /**
+             * Ganhos No Ano
+             * @description Pontos ganhos no ano: decidem a categoria
+             */
+            ganhos_no_ano: number;
+            /** Proximo Vencimento */
+            proximo_vencimento: string | null;
+            /** Pontos No Proximo Vencimento */
+            pontos_no_proximo_vencimento: number;
         };
         /** Sessao */
         Sessao: {
@@ -3629,6 +4220,11 @@ export interface components {
         UnidadeAlterar: {
             /** Nome */
             nome?: string | null;
+            /**
+             * Marca
+             * @description Só antes da primeira movimentação ou venda
+             */
+            marca?: ("lorenzi" | "vulto") | null;
             /** Despacha Online */
             despacha_online?: boolean | null;
             /** Rua */
@@ -3657,6 +4253,12 @@ export interface components {
              * @enum {string}
              */
             tipo: "loja" | "cd";
+            /**
+             * Marca
+             * @default lorenzi
+             * @enum {string}
+             */
+            marca: "lorenzi" | "vulto";
             /**
              * Despacha Online
              * @default false
@@ -3688,6 +4290,11 @@ export interface components {
             nome: string;
             /** Tipo */
             tipo: string;
+            /**
+             * Marca
+             * @enum {string}
+             */
+            marca: "lorenzi" | "vulto";
             /** Despacha Online */
             despacha_online: boolean;
             /** Rua */
@@ -3754,7 +4361,7 @@ export interface components {
              * Permissoes
              * @description Permissões efetivas: modelo + acrescentadas - retiradas
              */
-            permissoes: ("gerenciar_contas" | "gerenciar_modelos_acesso" | "gerenciar_catalogo" | "gerenciar_unidades" | "movimentar_estoque" | "definir_estoque_minimo" | "solicitar_transferencia" | "enviar_transferencia" | "receber_transferencia" | "registrar_venda_fisica" | "registrar_troca_devolucao" | "preparar_entregar_pedido" | "cancelar_pedido_equipe" | "corrigir_cadastro_cliente" | "atender_chamado" | "moderar_avaliacoes")[];
+            permissoes: ("gerenciar_contas" | "gerenciar_modelos_acesso" | "gerenciar_catalogo" | "gerenciar_unidades" | "movimentar_estoque" | "definir_estoque_minimo" | "solicitar_transferencia" | "enviar_transferencia" | "receber_transferencia" | "registrar_venda_fisica" | "registrar_troca_devolucao" | "preparar_entregar_pedido" | "cancelar_pedido_equipe" | "corrigir_cadastro_cliente" | "atender_chamado" | "moderar_avaliacoes" | "gerenciar_fidelidade")[];
             /**
              * Convite Pendente
              * @description O login ainda não foi confirmado (convite não aceito)
@@ -3813,6 +4420,8 @@ export interface components {
         VarianteAlterar: {
             /** Sku */
             sku?: string | null;
+            /** Ean */
+            ean?: string | null;
             /** Preco */
             preco?: number | string | null;
             /** Ativo */
@@ -3822,6 +4431,11 @@ export interface components {
         VarianteCriar: {
             /** Sku */
             sku: string;
+            /**
+             * Ean
+             * @description Vazio: o banco gera um código interno (começa com 20)
+             */
+            ean?: string | null;
             /**
              * Cor
              * @default Única
@@ -3845,6 +4459,8 @@ export interface components {
             id_produto: number;
             /** Sku */
             sku: string;
+            /** Ean */
+            ean: string;
             /** Cor */
             cor: string;
             /** Tamanho */
@@ -3872,6 +4488,11 @@ export interface components {
             cpf_nota?: string | null;
             /** Pagamentos */
             pagamentos: components["schemas"]["PagamentoFisico"][];
+            /**
+             * Pontos Resgate
+             * @description Pontos do cliente do CPF usados como desconto; os pagamentos fecham com o total menos o desconto
+             */
+            pontos_resgate?: number | null;
         };
         /** VendasDoDia */
         VendasDoDia: {
@@ -4077,7 +4698,7 @@ export interface operations {
                 id_unidade?: number | null;
                 id_variante?: number | null;
                 canal?: ("loja_fisica" | "online") | null;
-                /** @description Parte do SKU ou do nome do produto */
+                /** @description Parte do SKU ou do nome do produto, ou o código de barras (EAN) inteiro */
                 busca?: string | null;
                 /** @description Só as linhas abaixo (true) ou não abaixo (false) do mínimo */
                 abaixo_minimo?: boolean | null;
@@ -4555,6 +5176,8 @@ export interface operations {
         parameters: {
             query?: {
                 ativo?: boolean | null;
+                /** @description Só as categorias com algum produto ativo dessa rede (o menu da vitrine da marca) */
+                marca?: ("lorenzi" | "vulto") | null;
             };
             header?: never;
             path?: never;
@@ -4790,6 +5413,8 @@ export interface operations {
                 tamanho?: string[] | null;
                 /** @description true: só produtos com peça para vender online (nos tamanhos, se informados) */
                 disponivel?: boolean | null;
+                /** @description Só os produtos dessa rede. Quando a busca não acha nada, as sugestões (busca_alternativa) vêm das duas redes */
+                marca?: ("lorenzi" | "vulto") | null;
                 /** @description relevancia (padrão com busca), nome (padrão sem busca), novidades, menor_preco ou maior_preco (pela variante mais barata) */
                 ordem?: ("relevancia" | "nome" | "novidades" | "menor_preco" | "maior_preco") | null;
                 limit?: number;
@@ -4876,6 +5501,8 @@ export interface operations {
                 id_categoria?: number | null;
                 /** @description Parte do nome do produto */
                 busca?: string | null;
+                /** @description Só os tamanhos à venda nessa rede */
+                marca?: ("lorenzi" | "vulto") | null;
             };
             header?: never;
             path?: never;
@@ -6562,9 +7189,11 @@ export interface operations {
                 meus?: boolean;
                 /** @description Com mensagem do cliente ainda não lida */
                 com_mensagem_nova?: boolean | null;
-                categoria?: ("entrega" | "troca_devolucao" | "estorno" | "duvida" | "outros") | null;
+                categoria?: ("entrega" | "troca_devolucao" | "estorno" | "duvida" | "pagamento" | "outros") | null;
                 prioridade?: ("baixa" | "media" | "alta") | null;
                 id_unidade?: number | null;
+                /** @description Chamados de um cliente da Vulto sem conta */
+                id_cliente_sem_conta?: number | null;
                 limit?: number;
                 offset?: number;
             };
@@ -8570,6 +9199,8 @@ export interface operations {
                 modalidade?: ("entrega" | "retirada") | null;
                 id_unidade?: number | null;
                 codigo_venda?: string | null;
+                /** @description Pedidos de um cliente da Vulto sem conta */
+                id_cliente_sem_conta?: number | null;
                 /** @description Retiradas prontas há mais de N dias (risco de vencer) */
                 pronto_ha_mais_de_dias?: number | null;
                 /** @description Criados a partir de AAAA-MM-DD (começo do dia) ou AAAA-MM-DDTHH:MM */
@@ -9018,6 +9649,127 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ClienteResumo"];
+                };
+            };
+            /** @description Sem login válido */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Sem permissão */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Pedido, unidade, cliente ou variante não encontrado */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description E-mail ou CPF já cadastrado */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Dados inválidos ou etapa errada do pedido */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    listar_clientes_sem_conta_vendas_clientes_sem_conta_get: {
+        parameters: {
+            query?: {
+                /** @description Só números (com ou sem máscara): CPF ou telefone exatos. Texto: parte do nome ou do e-mail */
+                busca?: string | null;
+                limit?: number;
+                offset?: number;
+            };
+            header?: {
+                authorization?: string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Pagina_ClienteSemContaSaida_"];
+                };
+            };
+            /** @description Sem login válido */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Sem permissão */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Pedido, unidade, cliente ou variante não encontrado */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description E-mail ou CPF já cadastrado */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Dados inválidos ou etapa errada do pedido */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    cliente_sem_conta_vendas_clientes_sem_conta__id_cliente_sem_conta__get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string;
+            };
+            path: {
+                id_cliente_sem_conta: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClienteSemContaSaida"];
                 };
             };
             /** @description Sem login válido */
@@ -9946,7 +10698,7 @@ export interface operations {
     consultar_peca_balcao_estoque_get: {
         parameters: {
             query?: {
-                /** @description Parte do SKU ou do nome do produto */
+                /** @description Parte do SKU ou do nome do produto, ou o código de barras (EAN) inteiro */
                 busca?: string | null;
                 id_variante?: number | null;
                 id_unidade?: number | null;
@@ -10044,6 +10796,361 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    origem_do_registro_migracao_origem_get: {
+        parameters: {
+            query: {
+                /** @description Tabela da plataforma, ex.: pedido */
+                tabela: string;
+                /** @description Id do registro (número ou UUID) */
+                id_registro: string;
+            };
+            header?: {
+                authorization?: string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Lista_OrigemSaida_"];
+                };
+            };
+            /** @description Sem login válido */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Sem permissão */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    listar_regras_fidelidade_regras_get: {
+        parameters: {
+            query?: {
+                marca?: ("lorenzi" | "vulto") | null;
+            };
+            header?: {
+                authorization?: string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Lista_RegraSaida_"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    criar_regra_fidelidade_regras_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RegraCriar"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RegraSaida"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    simular_resgate_fidelidade_resgate_get: {
+        parameters: {
+            query: {
+                marca: "lorenzi" | "vulto";
+                pontos: number;
+            };
+            header?: {
+                authorization?: string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResgateSimulado"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    simular_resgate_no_caixa_fidelidade_resgate_caixa_get: {
+        parameters: {
+            query: {
+                cpf: string;
+                marca: "lorenzi" | "vulto";
+                pontos: number;
+            };
+            header?: {
+                authorization?: string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResgateSimulado"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    meus_pontos_fidelidade_meus_pontos_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PontosDoCliente"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    meu_extrato_fidelidade_meus_pontos_extrato_get: {
+        parameters: {
+            query?: {
+                marca?: ("lorenzi" | "vulto") | null;
+                limit?: number;
+                offset?: number;
+            };
+            header?: {
+                authorization?: string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Pagina_MovimentoPontosSaida_"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    pontos_de_um_cliente_fidelidade_clientes_pontos_get: {
+        parameters: {
+            query?: {
+                id_cliente?: string | null;
+                id_cliente_sem_conta?: number | null;
+            };
+            header?: {
+                authorization?: string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PontosDoCliente"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    extrato_de_um_cliente_fidelidade_clientes_pontos_extrato_get: {
+        parameters: {
+            query?: {
+                id_cliente?: string | null;
+                id_cliente_sem_conta?: number | null;
+                marca?: ("lorenzi" | "vulto") | null;
+                limit?: number;
+                offset?: number;
+            };
+            header?: {
+                authorization?: string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Pagina_MovimentoPontosSaida_"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    passivo_fidelidade_passivo_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Lista_PassivoSaida_"];
+                };
             };
             /** @description Validation Error */
             422: {

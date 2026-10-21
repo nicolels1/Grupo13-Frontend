@@ -3,6 +3,7 @@ import { Plus, Trash2 } from 'lucide-react'
 import { cn } from 'cn'
 
 import { Aviso, Carregando, Sucesso } from '@/components/Estados'
+import { OrigemMigracao } from '@/components/OrigemMigracao'
 import { Etiqueta } from '@/components/Peca'
 import { Button } from '@/components/ui/button'
 import { Campo, Input, Select } from '@/components/ui/input'
@@ -120,13 +121,18 @@ export function NovaVariante({ idProduto, aoCriar }: { idProduto: number; aoCria
 
 export function TabelaVariantes({ produto, aoMudar }: { produto: Produto; aoMudar: () => void }) {
   const [editando, setEditando] = useState<VarianteEditada | null>(null)
-  const [historico, setHistorico] = useState<number | null>(null)
+  // o painel aberto embaixo de uma variação: o histórico de preço ou, na peça da Vulto, a origem
+  const [painel, setPainel] = useState<{ id: number; tipo: 'historico' | 'origem' } | null>(null)
+  const daVulto = produto.marca === 'vulto'
   const { enviar, enviando, erro } = useEnviar()
   const ordenadas = [...produto.variantes].sort((a, b) => {
     if (a.cor !== b.cor) return a.cor.localeCompare(b.cor, 'pt-BR')
     const ordem = ordenarTamanhos([a.tamanho, b.tamanho])
     return ordem[0] === a.tamanho ? -1 : 1
   })
+
+  const aberto = (id: number, tipo: 'historico' | 'origem') => painel?.id === id && painel.tipo === tipo
+  const alternar = (id: number, tipo: 'historico' | 'origem') => setPainel(aberto(id, tipo) ? null : { id, tipo })
 
   async function salvar(evento: FormEvent) {
     evento.preventDefault()
@@ -148,12 +154,13 @@ export function TabelaVariantes({ produto, aoMudar }: { produto: Produto; aoMuda
   return (
     <form onSubmit={salvar} className="overflow-x-auto">
       {erro && <div className="mb-3"><Aviso mensagem={erro} /></div>}
-      <table className="w-full min-w-[44rem] text-sm">
+      <table className="w-full min-w-[52rem] text-sm">
         <thead className="text-left text-xs text-muted-foreground">
           <tr className="border-b">
             <th className="py-2 pl-2 font-medium">Cor</th>
             <th className="font-medium">Tamanho</th>
             <th className="font-medium">Etiqueta</th>
+            <th className="font-medium">Código de barras</th>
             <th className="text-right font-medium">Preço</th>
             <th className="pl-6 font-medium">Situação</th>
             <th />
@@ -179,6 +186,7 @@ export function TabelaVariantes({ produto, aoMudar }: { produto: Produto; aoMuda
                       <Etiqueta>{v.sku}</Etiqueta>
                     )}
                   </td>
+                  <td className="tabular-nums text-muted-foreground">{v.ean}</td>
                   <td className="text-right">
                     {emEdicao ? (
                       <Input aria-label="Preço" type="number" min={0} step="0.01" value={editando.preco} onChange={(e) => setEditando({ ...editando, preco: e.target.value })} className="ml-auto h-8 w-28 text-right" required />
@@ -203,7 +211,12 @@ export function TabelaVariantes({ produto, aoMudar }: { produto: Produto; aoMuda
                       </>
                     ) : (
                       <>
-                        <Button type="button" variant="ghost" size="sm" onClick={() => setHistorico(historico === v.id_variante ? null : v.id_variante)}>
+                        {daVulto && (
+                          <Button type="button" variant="ghost" size="sm" aria-expanded={aberto(v.id_variante, 'origem')} onClick={() => alternar(v.id_variante, 'origem')}>
+                            Origem
+                          </Button>
+                        )}
+                        <Button type="button" variant="ghost" size="sm" aria-expanded={aberto(v.id_variante, 'historico')} onClick={() => alternar(v.id_variante, 'historico')}>
                           Histórico de preço
                         </Button>
                         <Button type="button" variant="ghost" size="sm" onClick={() => setEditando({ id_variante: v.id_variante, sku: v.sku, preco: v.preco, ativo: v.ativo })}>
@@ -213,9 +226,13 @@ export function TabelaVariantes({ produto, aoMudar }: { produto: Produto; aoMuda
                     )}
                   </td>
                 </tr>
-                {historico === v.id_variante && (
+                {painel?.id === v.id_variante && (
                   <tr className="border-b bg-superficie">
-                    <td colSpan={6} className="px-4 py-3"><HistoricoPreco idVariante={v.id_variante} /></td>
+                    <td colSpan={7} className="px-4 py-3">
+                      {painel.tipo === 'historico'
+                        ? <HistoricoPreco idVariante={v.id_variante} />
+                        : <OrigemMigracao tabela="variante" idRegistro={v.id_variante} />}
+                    </td>
                   </tr>
                 )}
               </Fragment>
@@ -223,7 +240,10 @@ export function TabelaVariantes({ produto, aoMudar }: { produto: Produto; aoMuda
           })}
         </tbody>
       </table>
-      <p className="pt-3 text-xs text-muted-foreground">Cor e tamanho não mudam depois de criados: o estoque e os pedidos ficam presos à variação.</p>
+      <p className="pt-3 text-xs text-muted-foreground">
+        Cor e tamanho não mudam depois de criados: o estoque e os pedidos ficam presos à variação. O código de barras que começa
+        com 20 é o interno da loja, para a peça que veio sem o de fábrica.
+      </p>
     </form>
   )
 }

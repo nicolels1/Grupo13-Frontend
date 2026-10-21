@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Select } from '@/components/ui/input'
 import { api, type Esquema } from '@/lib/api'
-import { plural } from '@/lib/formato'
+import { MARCAS, plural } from '@/lib/formato'
 import { useCategorias } from '@/lib/listas'
 import { useCarregar } from '@/lib/useCarregar'
 import { CartaoProduto } from './componentes/CartaoProduto'
@@ -34,6 +34,8 @@ export function ProdutosLoja() {
   const escolhidos = params.getAll('tamanho')
   const chaveTamanhos = escolhidos.join(',')
   const soDisponiveis = params.get('disponivel') === 'true'
+  // as duas redes na mesma vitrine (P11): sem marca, aparecem as duas
+  const marca = params.get('marca') ?? ''
   // com busca, os mais parecidos primeiro; sem busca, as novidades
   const ordem = params.get('ordem') ?? (busca ? 'relevancia' : 'novidades')
   const quantos = Number(params.get('quantos')) || POR_PAGINA
@@ -44,24 +46,24 @@ export function ProdutosLoja() {
     () =>
       api<Esquema<'PaginaProdutos'>>('/produtos', {
         params: {
-          id_categoria: idCategoria, busca, tamanho: escolhidos, disponivel: soDisponiveis || undefined, ordem,
+          id_categoria: idCategoria, busca, tamanho: escolhidos, disponivel: soDisponiveis || undefined, ordem, marca,
           limit: quantos,
         },
       }),
     // eslint-disable-next-line react-hooks/exhaustive-deps -- a lista muda de identidade a cada render; a chave não
-    [idCategoria, busca, chaveTamanhos, soDisponiveis, ordem, quantos],
+    [idCategoria, busca, chaveTamanhos, soDisponiveis, ordem, marca, quantos],
   )
   // só os tamanhos que existem na categoria ou na busca, já na ordem da grade
   const { dados: tamanhosAVenda } = useCarregar(
-    () => api<Esquema<'Lista_str_'>>('/produtos/tamanhos', { params: { id_categoria: idCategoria, busca } }),
-    [idCategoria, busca],
+    () => api<Esquema<'Lista_str_'>>('/produtos/tamanhos', { params: { id_categoria: idCategoria, busca, marca } }),
+    [idCategoria, busca, marca],
   )
   const tamanhos = tamanhosAVenda?.items ?? []
 
   // a busca não achou nada e a API trouxe outra coisa: o título diz o que está na tela de verdade
   const alternativa = dados?.busca_alternativa ?? null
   const titulo = !busca
-    ? (categoria?.nome ?? 'Todos os produtos')
+    ? (categoria?.nome ?? (marca ? (MARCAS[marca] ?? 'Todos os produtos') : 'Todos os produtos'))
     : alternativa === 'parecidas'
       ? `Parecidas com “${busca}”`
       : alternativa === 'novidades'
@@ -148,6 +150,13 @@ export function ProdutosLoja() {
           )}
 
           <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
+            <label className="flex items-center gap-2 text-sm">
+              <span className="font-medium">Marca</span>
+              <Select value={marca} onChange={(e) => mudar('marca', e.target.value || null)} className="w-40">
+                <option value="">Todas as marcas</option>
+                {Object.entries(MARCAS).map(([valor, rotulo]) => <option key={valor} value={valor}>{rotulo}</option>)}
+              </Select>
+            </label>
             <label className="flex items-center gap-2 text-sm">
               <Checkbox
                 checked={soDisponiveis}

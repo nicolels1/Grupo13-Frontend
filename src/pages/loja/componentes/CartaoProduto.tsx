@@ -2,10 +2,11 @@ import { Link } from 'react-router'
 
 import type { Esquema } from '@/lib/api'
 import { coresDoProduto, corDaPeca, faixaDePreco } from '@/lib/cores'
-import { moeda, plural } from '@/lib/formato'
+import { MARCAS, moeda, plural } from '@/lib/formato'
 import { fotosDaCor } from './fotos'
 
-// cartão da vitrine: primeira foto da primeira cor (sem foto, um bloco na cor da peça), nome, preço e cores
+// cartão da vitrine: primeira foto da primeira cor (sem foto, um bloco na cor da peça), nome, preço e cores.
+// A peça da Vulto leva o nome da marca em cima do nome (P11); a da Lorenzi, a casa, não leva
 export function CartaoProduto({ produto }: { produto: Esquema<'ProdutoSaida'> }) {
   const cores = coresDoProduto(produto)
   const preco = faixaDePreco(produto)
@@ -31,6 +32,7 @@ export function CartaoProduto({ produto }: { produto: Esquema<'ProdutoSaida'> })
         )}
       </div>
       <div className="space-y-0.5 px-0.5">
+        {produto.marca === 'vulto' && <p className="text-xs tracking-wide text-muted-foreground uppercase">{MARCAS.vulto}</p>}
         <h3 className="text-sm group-hover:underline">{produto.nome}</h3>
         {preco && (
           <p className="text-sm font-medium tabular-nums">
