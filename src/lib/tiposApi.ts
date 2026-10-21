@@ -1379,6 +1379,47 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/vendas/clientes-com-conta": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Listar Clientes Com Conta
+         * @description Clientes com conta. Os pedidos e chamados de cada um saem em /vendas/pedidos e /atendimento/chamados com ?id_cliente=
+         */
+        get: operations["listar_clientes_com_conta_vendas_clientes_com_conta_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/vendas/clientes/{id_usuario}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Cliente Com Conta */
+        get: operations["cliente_com_conta_vendas_clientes__id_usuario__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Corrigir Cliente
+         * @description Corrige e-mail ou CPF com documento. Se o CPF certo já tem conta, os pedidos passam para ela e esta conta é desativada. As compras da loja com o CPF certo na nota vão para a conta.
+         */
+        patch: operations["corrigir_cliente_vendas_clientes__id_usuario__patch"];
+        trace?: never;
+    };
     "/vendas/clientes-sem-conta": {
         parameters: {
             query?: never;
@@ -1414,26 +1455,6 @@ export interface paths {
         options?: never;
         head?: never;
         patch?: never;
-        trace?: never;
-    };
-    "/vendas/clientes/{id_usuario}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        /**
-         * Corrigir Cliente
-         * @description Corrige e-mail ou CPF com documento. Se o CPF certo já tem conta, os pedidos passam para ela e esta conta é desativada. As compras da loja com o CPF certo na nota vão para a conta.
-         */
-        patch: operations["corrigir_cliente_vendas_clientes__id_usuario__patch"];
         trace?: never;
     };
     "/produtos/{id_produto}/avaliacoes": {
@@ -2303,6 +2324,27 @@ export interface components {
              * @description Pontos usados como desconto (GET /fidelidade/resgate mostra quanto valem)
              */
             pontos_resgate?: number | null;
+        };
+        /** ClienteComConta */
+        ClienteComConta: {
+            /**
+             * Id Usuario
+             * Format: uuid
+             */
+            id_usuario: string;
+            /** Nome */
+            nome: string;
+            /** Email */
+            email: string;
+            /** Cpf */
+            cpf: string | null;
+            /** Status Conta */
+            status_conta: string;
+            /**
+             * Id Cliente Sem Conta
+             * @description Cadastro da Vulto que passou para esta conta (a origem); vazio = não veio da migração
+             */
+            id_cliente_sem_conta: number | null;
         };
         /** ClienteCorrigido */
         ClienteCorrigido: {
@@ -3525,6 +3567,17 @@ export interface components {
         Pagina_ChamadoSaida_: {
             /** Items */
             items: components["schemas"]["ChamadoSaida"][];
+            /** Total */
+            total: number;
+            /** Limit */
+            limit: number;
+            /** Offset */
+            offset: number;
+        };
+        /** Pagina[ClienteComConta] */
+        Pagina_ClienteComConta_: {
+            /** Items */
+            items: components["schemas"]["ClienteComConta"][];
             /** Total */
             total: number;
             /** Limit */
@@ -7195,6 +7248,8 @@ export interface operations {
                 categoria?: ("entrega" | "troca_devolucao" | "estorno" | "duvida" | "pagamento" | "outros") | null;
                 prioridade?: ("baixa" | "media" | "alta") | null;
                 id_unidade?: number | null;
+                /** @description Chamados de um cliente com conta */
+                id_cliente?: string | null;
                 /** @description Chamados de um cliente da Vulto sem conta */
                 id_cliente_sem_conta?: number | null;
                 limit?: number;
@@ -9202,6 +9257,8 @@ export interface operations {
                 modalidade?: ("entrega" | "retirada") | null;
                 id_unidade?: number | null;
                 codigo_venda?: string | null;
+                /** @description Pedidos de um cliente com conta */
+                id_cliente?: string | null;
                 /** @description Pedidos de um cliente da Vulto sem conta */
                 id_cliente_sem_conta?: number | null;
                 /** @description Retiradas prontas há mais de N dias (risco de vencer) */
@@ -9691,6 +9748,190 @@ export interface operations {
             };
         };
     };
+    listar_clientes_com_conta_vendas_clientes_com_conta_get: {
+        parameters: {
+            query?: {
+                /** @description Só números (com ou sem máscara): CPF exato. Texto: parte do nome ou do e-mail */
+                busca?: string | null;
+                limit?: number;
+                offset?: number;
+            };
+            header?: {
+                authorization?: string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Pagina_ClienteComConta_"];
+                };
+            };
+            /** @description Sem login válido */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Sem permissão */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Pedido, unidade, cliente ou variante não encontrado */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description E-mail ou CPF já cadastrado */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Dados inválidos ou etapa errada do pedido */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    cliente_com_conta_vendas_clientes__id_usuario__get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string;
+            };
+            path: {
+                id_usuario: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClienteComConta"];
+                };
+            };
+            /** @description Sem login válido */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Sem permissão */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Pedido, unidade, cliente ou variante não encontrado */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description E-mail ou CPF já cadastrado */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Dados inválidos ou etapa errada do pedido */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    corrigir_cliente_vendas_clientes__id_usuario__patch: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string;
+            };
+            path: {
+                id_usuario: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ClienteCorrigir"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClienteCorrigido"];
+                };
+            };
+            /** @description Sem login válido */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Sem permissão */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Pedido, unidade, cliente ou variante não encontrado */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description E-mail ou CPF já cadastrado */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Dados inválidos ou etapa errada do pedido */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     listar_clientes_sem_conta_vendas_clientes_sem_conta_get: {
         parameters: {
             query?: {
@@ -9773,69 +10014,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ClienteSemContaSaida"];
-                };
-            };
-            /** @description Sem login válido */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Sem permissão */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Pedido, unidade, cliente ou variante não encontrado */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description E-mail ou CPF já cadastrado */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Dados inválidos ou etapa errada do pedido */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    corrigir_cliente_vendas_clientes__id_usuario__patch: {
-        parameters: {
-            query?: never;
-            header?: {
-                authorization?: string;
-            };
-            path: {
-                id_usuario: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["ClienteCorrigir"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ClienteCorrigido"];
                 };
             };
             /** @description Sem login válido */
