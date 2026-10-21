@@ -6,6 +6,7 @@ import { cn } from 'cn'
 import { useAuth } from '@/auth/contexto'
 import { ehAdmin, temPermissao, type CodigoPermissao } from '@/auth/areas'
 import { Aviso, Carregando } from '@/components/Estados'
+import { NomeDaLoja } from '@/components/Logo'
 import { Cabecalho } from '@/components/Navegacao'
 import { buttonVariants } from '@/components/ui/button'
 import { useUnidadeEscolhida } from '@/layouts/unidadeEscolhida'
@@ -15,6 +16,7 @@ import { moeda, numero, plural } from '@/lib/formato'
 import { nomeUnidade } from '@/lib/listas'
 import { useCarregar } from '@/lib/useCarregar'
 import { GraficoChamados, GraficoMaisVendidas, GraficoVendas } from './componentes/GraficosVisaoGeral'
+import { faixasDoPassivo, passivoPorLoja } from './componentes/passivo'
 
 type Perfil = Esquema<'Perfil'>
 type Resumo = Esquema<'Resumo'>
@@ -118,7 +120,8 @@ export function VisaoGeral() {
   const pendenciasEmOrdem = [...(pendencias.dados ?? [])].sort((a, b) => b.total - a.total)
   // as duas colunas já existem antes do resumo chegar, pelo perfil: assim os números carregam ao
   // lado das pendências, e não aparecem embaixo delas para depois pular de lugar
-  const teraNumeros = admin || VENDAS.some(pode) || pode('atender_chamado')
+  const verPontos = pode('gerenciar_fidelidade')
+  const teraNumeros = admin || VENDAS.some(pode) || pode('atender_chamado') || verPontos
 
   return (
     <div className="space-y-12">
@@ -171,6 +174,7 @@ export function VisaoGeral() {
                 <GraficoChamados dias={r.chamados.por_dia} />
               </section>
             )}
+            {verPontos && <PassivoDePontos />}
           </div>
         )}
       </div>
@@ -234,6 +238,48 @@ function LinhaPendencia({ pendencia: p }: { pendencia: Pendencia }) {
         </span>
       </Link>
     </li>
+  )
+}
+
+// o que as duas marcas devem em pontos aos clientes, hoje e na rede inteira (o passivo não é por loja);
+// fica fora do resumo porque vem da fidelidade, só para quem gerencia o programa
+function PassivoDePontos() {
+  const passivo = useCarregar(() => api<Esquema<'Lista_PassivoSaida_'>>('/fidelidade/passivo'), [])
+  return (
+    <section aria-labelledby="titulo-pontos" className="space-y-6">
+      <div className="flex flex-wrap items-baseline justify-between gap-3 border-b border-foreground pb-3">
+        <h2 id="titulo-pontos" className="text-lg font-medium">Pontos a resgatar</h2>
+        <span className="text-xs text-muted-foreground">toda a rede, pelo valor do ponto na época em que foi ganho</span>
+      </div>
+      {passivo.erro && <Aviso mensagem={passivo.erro} />}
+      {passivo.carregando && !passivo.dados && <Carregando texto="Somando os pontos..." />}
+      {passivo.dados && (
+        <div className="grid gap-6 sm:grid-cols-2">
+          {passivoPorLoja(passivo.dados.items).map(({ loja, passivo: p }) => (
+            <div key={loja} className="space-y-3">
+              <NomeDaLoja loja={loja} className="text-sm" />
+              {!p ? (
+                <p className="text-sm text-muted-foreground">Nenhum ponto em aberto.</p>
+              ) : (
+                <>
+                  <Numero rotulo="Em reais" valor={moeda(p.reais)} detalhe={`${numero(p.pontos)} pontos`} />
+                  {faixasDoPassivo(p).length > 1 && (
+                    <ul className="space-y-1 text-sm text-muted-foreground">
+                      {faixasDoPassivo(p).map((f) => (
+                        <li key={f.valor_ponto} className="flex justify-between gap-3 tabular-nums">
+                          <span>{numero(f.pontos)} pts a {moeda(f.valor_ponto)}</span>
+                          <span>{moeda(f.reais)}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+    </section>
   )
 }
 
