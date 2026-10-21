@@ -55,7 +55,8 @@ function Conferencia({ bate, carregando }: { bate: boolean | null; carregando?: 
     : <span className="font-medium text-ferrugem">a plataforma tem outro número: conferir a carga</span>
 }
 
-function Margem({ linhas }: { linhas: { decisao: string | null; texto: string; valor: string }[] }) {
+// cada motivo da margem e, embaixo, em negrito, a margem do número inteiro (a soma deles)
+function Margem({ linhas, total }: { linhas: { decisao: string | null; texto: string; valor: string }[]; total: string }) {
   return (
     <div className="space-y-2">
       <h3 className="text-sm font-medium">Margem de erro</h3>
@@ -67,6 +68,7 @@ function Margem({ linhas }: { linhas: { decisao: string | null; texto: string; v
           </li>
         ))}
       </ul>
+      <p className="border-t pt-2 text-sm font-semibold">Margem de erro total: {total}</p>
     </div>
   )
 }
@@ -149,7 +151,7 @@ function Faturamento() {
         </div>
       </div>
       {grupos && grupos.meses.length > 0 && <FaturamentoPorMes meses={grupos.meses} />}
-      <Margem linhas={FATURAMENTO.margem} />
+      <Margem linhas={FATURAMENTO.margem} total={FATURAMENTO.margemTotal} />
     </Secao>
   )
 }
@@ -245,7 +247,7 @@ function Estoque() {
         </tbody>
       </table>
       <p className="text-sm text-muted-foreground">{ESTOQUE.sistemaDaVulto}</p>
-      <Margem linhas={ESTOQUE.margem} />
+      <Margem linhas={ESTOQUE.margem} total={ESTOQUE.margemTotal} />
     </Secao>
   )
 }
@@ -281,7 +283,7 @@ function Passivo() {
           ))}
         </tbody>
       </table>
-      <Margem linhas={PASSIVO.margem} />
+      <Margem linhas={PASSIVO.margem} total={PASSIVO.margemTotal} />
     </Secao>
   )
 }

@@ -43,6 +43,9 @@ export const FATURAMENTO = {
     { decisao: 'V6', texto: 'Trocas que podem ter tido diferença de preço', valor: 'menos de R$ 1 mil' },
     { decisao: 'V7', texto: 'O frete fica fora; se for receita, soma-se a ele', valor: 'R$ 55.248,70' },
   ],
+  // soma das linhas acima, sem o frete (é uma escolha da diretoria, não um erro): V3 só aumenta
+  // (+R$ 2.942,53) e V6 vai para os dois lados (até R$ 1 mil)
+  margemTotal: 'de −R$ 1.000,00 a +R$ 3.942,53, menos de 0,1% do faturamento (o frete não entra: é uma escolha, não um erro)',
 }
 
 export const ESTOQUE = {
@@ -62,6 +65,8 @@ export const ESTOQUE = {
     { decisao: 'E5', texto: 'Data da contagem (Eldorado, Batel, Savassi)', valor: '−39 a +53 peças' },
     { decisao: null, texto: 'Peças vendidas depois da contagem que a contagem não viu', valor: '25 peças' },
   ],
+  // soma das linhas acima, pelo maior lado de cada uma: 222 + 53 + 53 + 25
+  margemTotal: 'até 353 peças, para mais ou para menos: 2,3% do estoque',
 }
 
 export const PASSIVO = {
@@ -77,4 +82,6 @@ export const PASSIVO = {
     { decisao: 'K7a', texto: 'Resgates da planilha sem cliente identificado', valor: '−1.500 pts (−R$ 75,00)' },
     { decisao: 'K5b', texto: 'Saldos abreviados ("2,7k") da planilha', valor: '±4.800 pts (±R$ 480,00)' },
   ],
+  // soma das linhas acima: para cima, +165 e +4.800; para baixo, −1.500 e −4.800
+  margemTotal: 'de −6.300 a +4.965 pontos (−R$ 555,00 a +R$ 496,50), menos de 0,1% do passivo',
 }
