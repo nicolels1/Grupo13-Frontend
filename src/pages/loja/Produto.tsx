@@ -11,6 +11,7 @@ import { api, type Esquema } from '@/lib/api'
 import { coresDoProduto, corDaPeca, ordenarTamanhos } from '@/lib/cores'
 import { moeda } from '@/lib/formato'
 import { useCategorias } from '@/lib/listas'
+import { escolherLoja, lojaDaMarca, useLojaEscolhida } from '@/lib/lojaEscolhida'
 import { useCarregar } from '@/lib/useCarregar'
 import { useCarrinho } from './carrinho/contexto'
 import { AvaliacoesDoProduto } from './componentes/Avaliacoes'
@@ -36,6 +37,17 @@ export function ProdutoLoja() {
       </div>
     )
   }
+  return <ProdutoNaLojaDele produto={produto} />
+}
+
+// a peça da outra rede (uma sugestão da busca, um link compartilhado) abre na loja dela: a aba do topo
+// troca sozinha
+function ProdutoNaLojaDele({ produto }: { produto: Produto }) {
+  const loja = useLojaEscolhida()
+  const dele = lojaDaMarca(produto.marca)
+  useEffect(() => {
+    if (dele !== loja) escolherLoja(dele)
+  }, [dele, loja])
   // a chave reinicia a escolha de cor e tamanho ao trocar de produto
   return <DetalheProduto key={produto.id_produto} produto={produto} />
 }
