@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import { Link } from 'react-router'
 import { cn } from 'cn'
 
 import { Aviso, Carregando } from '@/components/Estados'
@@ -211,6 +212,11 @@ function Estoque() {
   const [porUnidade, transito] = plataforma.dados ?? [null, null]
   const total = porUnidade && transito !== null ? porUnidade.reduce((t, u) => t + u.pecas, 0) + transito : null
   const naPlataforma = (nome: string) => porUnidade?.find((u) => u.unidade === nome)?.pecas ?? null
+  // o estoque de cada peça naquele momento fica no Histórico do estoque, aberto já no fim de 30/09
+  const historico = (nome?: string) => {
+    const id = nome ? daVulto.find((u) => u.nome === nome)?.id_unidade : undefined
+    return `/interno/estoque/historico?data=${FIM_DE_30_09}&hora=23:59${id ? `&unidade=${id}` : ''}`
+  }
 
   return (
     <Secao titulo="Estoque" subtitulo="Em 01/10/2026 (a posição no fim de 30/09), por unidade, contando as peças em trânsito">
@@ -242,7 +248,11 @@ function Estoque() {
         <tbody>
           {ESTOQUE.porUnidade.map((u) => (
             <tr key={u.nome} className="border-b align-baseline">
-              <td className="py-2 pr-3">{u.nome}</td>
+              <td className="py-2 pr-3">
+                {daVulto.some((d) => d.nome === u.nome)
+                  ? <Link to={historico(u.nome)} className="hover:underline">{u.nome}</Link>
+                  : u.nome}
+              </td>
               <td className="pr-3 text-muted-foreground">{u.base}</td>
               <td className="text-right tabular-nums">{numero(u.pecas)}</td>
               <td className="text-right tabular-nums">{naPlataforma(u.nome) === null ? '—' : numero(naPlataforma(u.nome)!)}</td>
@@ -256,6 +266,10 @@ function Estoque() {
           </tr>
         </tbody>
       </table>
+      <p className="text-sm">
+        <Link to={historico()} className="underline underline-offset-4 hover:text-aco">Ver o estoque de cada peça em 01/10/2026</Link>
+        <span className="text-muted-foreground"> (o Histórico do estoque no fim de 30/09; o nome de cada unidade abre só ela)</span>
+      </p>
       <p className="text-sm text-muted-foreground">{ESTOQUE.sistemaDaVulto}</p>
       <Margem linhas={ESTOQUE.margem} total={ESTOQUE.margemTotal} />
     </Secao>

@@ -1,5 +1,6 @@
-import { Fragment, useState } from 'react'
+import { Fragment, useEffect, useState } from 'react'
 import { ChevronDown, ChevronRight, Search } from 'lucide-react'
+import { useSearchParams } from 'react-router'
 import { cn } from 'cn'
 
 import { Aviso, Carregando, Vazio } from '@/components/Estados'
@@ -48,11 +49,23 @@ function comparar(naquele: ItemHistorico[], agora: ItemEstoque[]): Linha[] {
     || a.unidade.localeCompare(b.unidade, 'pt-BR'))
 }
 
-// Histórico do estoque: como estava numa data e hora, comparado com agora (design, seção Estoque)
+const DATA = /^\d{4}-\d{2}-\d{2}$/
+const HORA = /^\d{2}:\d{2}$/
+
+// Histórico do estoque: como estava numa data e hora, comparado com agora (design, seção Estoque).
+// Um link pode abrir já num momento e numa unidade (?data=2026-09-30&hora=23:59&unidade=5): é assim que
+// o relatório da migração mostra o estoque de cada peça em 01/10/2026
 export function HistoricoEstoque() {
   const { unidade, setUnidade, unidades } = useUnidadeEscolhida()
-  const [data, setData] = useState(() => diasAtras(7))
-  const [horaEscolhida, setHoraEscolhida] = useState('18:00')
+  const [params] = useSearchParams()
+  const [data, setData] = useState(() => (DATA.test(params.get('data') ?? '') ? params.get('data')! : diasAtras(7)))
+  const [horaEscolhida, setHoraEscolhida] = useState(() => (HORA.test(params.get('hora') ?? '') ? params.get('hora')! : '18:00'))
+  // a unidade é a do topo da plataforma; o link troca ela uma vez, ao abrir (vazio: a rede)
+  const unidadeDoLink = params.get('unidade')
+  useEffect(() => {
+    if (unidadeDoLink !== null) setUnidade(unidadeDoLink)
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- só ao abrir pelo link
+  }, [])
   const [busca, setBusca] = useState('')
   const [canal, setCanal] = useState('')
   const [soMudou, setSoMudou] = useState(false)
