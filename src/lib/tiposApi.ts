@@ -2207,8 +2207,11 @@ export interface components {
              * @description Cliente do atendimento migrado que ainda não criou conta
              */
             id_cliente_sem_conta: number | null;
-            /** Cliente */
-            cliente: string;
+            /**
+             * Cliente
+             * @description Vazio: atendimento migrado sem cliente nem contato
+             */
+            cliente: string | null;
             /** Id Responsavel */
             id_responsavel: string | null;
             /** Responsavel */
