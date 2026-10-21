@@ -1,23 +1,27 @@
 import { useState, type ReactNode } from 'react'
 import { ArrowLeftRight, Plus, ShoppingBag } from 'lucide-react'
-import { Link } from 'react-router'
+import { Link, useSearchParams } from 'react-router'
 import { cn } from 'cn'
 
 import { useAuth } from '@/auth/contexto'
 import { ehAdmin, temPermissao, type CodigoPermissao } from '@/auth/areas'
 import { Aviso, Carregando } from '@/components/Estados'
 import { NomeDaLoja } from '@/components/Logo'
-import { Cabecalho } from '@/components/Navegacao'
-import { buttonVariants } from '@/components/ui/button'
+import { Abas, Cabecalho } from '@/components/Navegacao'
+import { Button, buttonVariants } from '@/components/ui/button'
+import { Input, Select } from '@/components/ui/input'
 import { useUnidadeEscolhida } from '@/layouts/unidadeEscolhida'
 import { api, type Esquema, type OpcoesApi } from '@/lib/api'
 import { lojaFisicaEOnline, variacaoJunta } from './componentes/canais'
 import { BLOCO_ACO } from './componentes/estilos'
-import { moeda, numero, plural } from '@/lib/formato'
+import { dataCurta, dataLonga, hojeIso, MARCAS, moeda, numero, plural } from '@/lib/formato'
+import { lojaDaMarca } from '@/lib/lojaEscolhida'
 import { nomeUnidade } from '@/lib/listas'
 import { useCarregar } from '@/lib/useCarregar'
 import { GraficoChamados, GraficoMaisVendidas, GraficoVendas } from './componentes/GraficosVisaoGeral'
 import { faixasDoPassivo, passivoPorLoja } from './componentes/passivo'
+import { FIM_DE_30_09 } from './numeros/numerosDaMigracao'
+import { TresNumeros } from './numeros/TresNumeros'
 
 type Perfil = Esquema<'Perfil'>
 type Resumo = Esquema<'Resumo'>
@@ -104,25 +108,76 @@ function usePendencias(perfil: Perfil | null, unidade: string) {
 
 // início da plataforma interna: pendências, números e gráficos só das áreas da conta, na unidade
 // do topo (sem unidade: a rede). O resumo (GET /visao-geral/resumo) já vem cortado pelo perfil.
+// O Admin tem uma segunda aba, "Os 3 números da Vulto" (Etapa 9), com a aba no endereço (?aba=numeros)
 export function VisaoGeral() {
+  const { perfil } = useAuth()
+  const [params, setParams] = useSearchParams()
+  if (ehAdmin(perfil) && params.get('aba') === 'numeros') {
+    return (
+      <div className="space-y-12">
+        <Cabecalho
+          titulo="Os 3 números da Vulto"
+          subtitulo="O que a Entrega 3 pede para a diretoria: o número da migração, o da plataforma e a diferença para o sistema da Vulto."
+          abas={<AbasDaVisaoGeral aba="numeros" aoMudar={setParams} />}
+        />
+        <TresNumeros />
+      </div>
+    )
+  }
+  return <Hoje aoMudarAba={setParams} />
+}
+
+// as duas abas, só para o Admin
+function AbasDaVisaoGeral({ aba, aoMudar }: { aba: 'hoje' | 'numeros'; aoMudar: (params: Record<string, string>, opcoes: { replace: boolean }) => void }) {
+  return (
+    <Abas
+      semLinha
+      rotulo="Partes da Visão Geral"
+      valor={aba}
+      aoMudar={(v) => aoMudar(v === 'numeros' ? { aba: v } : {}, { replace: true })}
+      abas={[{ valor: 'hoje', rotulo: 'Hoje' }, { valor: 'numeros', rotulo: 'Os 3 números da Vulto' }]}
+    />
+  )
+}
+
+function Hoje({ aoMudarAba }: { aoMudarAba: (params: Record<string, string>, opcoes: { replace: boolean }) => void }) {
   const { perfil } = useAuth()
   const { unidade, unidades } = useUnidadeEscolhida()
   const pode = (codigo: CodigoPermissao) => temPermissao(perfil, codigo)
   const admin = ehAdmin(perfil)
   const [dia] = useState(() => new Date().toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'America/Sao_Paulo' }))
+  // filtros do resumo, no endereço: o último dia das janelas (?ate=; vazio é hoje, e 30/09 mostra o
+  // histórico da Vulto, que termina nele) e a marca (?marca=; vazio são as duas). Só os números do
+  // resumo mudam: as pendências são sempre as de agora, da rede toda ou da unidade do topo
+  const [params, setParams] = useSearchParams()
+  const ate = params.get('ate') ?? ''
+  const marca = params.get('marca') ?? ''
+  function filtrar(chave: 'ate' | 'marca', valor: string) {
+    const novos = new URLSearchParams(params)
+    if (valor) novos.set(chave, valor)
+    else novos.delete(chave)
+    setParams(novos, { replace: true })
+  }
+  // a unidade do topo é da outra marca: o resumo viria vazio, e a tela avisa
+  const unidadeDeOutraMarca = Boolean(marca && unidade && unidades.find((u) => String(u.id_unidade) === unidade)?.marca !== marca)
 
-  const resumo = useCarregar(() => api<Resumo>('/visao-geral/resumo', { params: { id_unidade: unidade } }), [unidade])
+  const resumo = useCarregar(
+    () => api<Resumo>('/visao-geral/resumo', {
+      params: { id_unidade: unidade, referencia: ate || undefined, marca: (marca || undefined) as Resumo['marca'] },
+    }),
+    [unidade, ate, marca],
+  )
   const pendencias = usePendencias(perfil, unidade)
   const r = resumo.dados
 
-  const titulo = unidade ? nomeUnidade(unidades, Number(unidade)) : 'Toda a rede'
+  const titulo = unidade ? nomeUnidade(unidades, Number(unidade)) : marca ? `${MARCAS[marca] ?? marca}, toda a rede` : 'Toda a rede'
   const abertas = (pendencias.dados ?? []).filter((p) => p.total > 0).length
   // as que pedem atenção vêm primeiro, da maior para a menor; as zeradas, na ordem de sempre (o sort é estável)
   const pendenciasEmOrdem = [...(pendencias.dados ?? [])].sort((a, b) => b.total - a.total)
   // as duas colunas já existem antes do resumo chegar, pelo perfil: assim os números carregam ao
   // lado das pendências, e não aparecem embaixo delas para depois pular de lugar
   const verPontos = pode('gerenciar_fidelidade')
-  const teraNumeros = admin || VENDAS.some(pode) || pode('atender_chamado') || verPontos
+  const teraNumeros = admin || VENDAS.some(pode) || pode('atender_chamado')
 
   return (
     <div className="space-y-12">
@@ -130,25 +185,34 @@ export function VisaoGeral() {
         titulo={titulo}
         subtitulo={
           <span className="block first-letter:uppercase">
-            {dia}.{' '}
+            {ate ? `Números até ${dataLonga(ate)}; pendências de agora.` : `${dia}.`}{' '}
             {pendencias.dados && (abertas ? `${plural(abertas, 'pendência', 'pendências')} para resolver.` : 'Tudo em dia.')}
           </span>
         }
+        abas={admin ? <AbasDaVisaoGeral aba="hoje" aoMudar={aoMudarAba} /> : undefined}
       >
         <Atalhos pode={pode} />
       </Cabecalho>
+      {teraNumeros && <Filtros ate={ate} marca={marca} aoMudar={filtrar} />}
+      {teraNumeros && unidadeDeOutraMarca && (
+        <Aviso mensagem={`A unidade escolhida no topo não é da ${MARCAS[marca] ?? marca}. Escolha "Todas as unidades" ou uma unidade dessa marca para ver os números.`} />
+      )}
 
       <div className={cn('grid gap-12', teraNumeros && 'lg:grid-cols-[25rem_1fr]')}>
-        {/* linha vertical entre pendências e números, com o mesmo respiro dos dois lados */}
-        <section aria-labelledby="titulo-pendencias" className={cn(teraNumeros ? 'lg:border-r lg:pr-12' : 'max-w-md')}>
-          <h2 id="titulo-pendencias" className="border-b border-foreground pb-3 text-lg font-medium">Pendências</h2>
-          {pendencias.erro && <div className="mt-4"><Aviso mensagem={pendencias.erro} /></div>}
-          {pendencias.carregando && !pendencias.dados && <Carregando texto="Conferindo as pendências..." />}
-          {pendencias.dados?.length === 0 && <p className="py-6 text-sm text-muted-foreground">Sua conta não tem pendências para acompanhar aqui.</p>}
-          <ul>
-            {pendenciasEmOrdem.map((p) => <LinhaPendencia key={p.chave} pendencia={p} />)}
-          </ul>
-        </section>
+        {/* linha vertical entre pendências e números, com o mesmo respiro dos dois lados. Embaixo das
+            pendências, os pontos: são da rede inteira, então ficam fora da coluna da unidade escolhida */}
+        <div className={cn('space-y-12', teraNumeros ? 'lg:border-r lg:pr-12' : 'max-w-md')}>
+          <section aria-labelledby="titulo-pendencias">
+            <h2 id="titulo-pendencias" className="border-b border-foreground pb-3 text-lg font-medium">Pendências</h2>
+            {pendencias.erro && <div className="mt-4"><Aviso mensagem={pendencias.erro} /></div>}
+            {pendencias.carregando && !pendencias.dados && <Carregando texto="Conferindo as pendências..." />}
+            {pendencias.dados?.length === 0 && <p className="py-6 text-sm text-muted-foreground">Sua conta não tem pendências para acompanhar aqui.</p>}
+            <ul>
+              {pendenciasEmOrdem.map((p) => <LinhaPendencia key={p.chave} pendencia={p} />)}
+            </ul>
+          </section>
+          {verPontos && <PassivoDePontos />}
+        </div>
 
         {teraNumeros && (
           <div className="min-w-0 space-y-12">
@@ -159,7 +223,7 @@ export function VisaoGeral() {
                 <h2 id="titulo-vendas" className="border-b border-foreground pb-3 text-lg font-medium">Vendas</h2>
                 <NumerosVendas dias={r.vendas_por_dia} />
                 <div className="grid gap-10 xl:grid-cols-[1fr_22rem]">
-                  <GraficoVendas dias={r.vendas_por_dia} />
+                  <GraficoVendas dias={r.vendas_por_dia} titulo={ate ? `Vendas dos 14 dias até ${dataCurta(ate)}` : undefined} />
                   <GraficoMaisVendidas pecas={r.mais_vendidas ?? []} />
                 </div>
               </section>
@@ -175,7 +239,6 @@ export function VisaoGeral() {
                 <GraficoChamados dias={r.chamados.por_dia} />
               </section>
             )}
-            {verPontos && <PassivoDePontos />}
           </div>
         )}
       </div>
@@ -242,6 +305,32 @@ function LinhaPendencia({ pendencia: p }: { pendencia: Pendencia }) {
   )
 }
 
+// filtros dos números: a marca e até que dia contar (hoje ou um dia passado). O atalho de 30/09 é o fim
+// do histórico da Vulto, para ver as lojas dela com dados (depois da carga, nada da Vulto é de hoje)
+function Filtros({ ate, marca, aoMudar }: { ate: string; marca: string; aoMudar: (chave: 'ate' | 'marca', valor: string) => void }) {
+  return (
+    <div className="-mt-6 flex flex-wrap items-center gap-x-5 gap-y-2 text-sm">
+      <label className="flex items-center gap-2">
+        <span className="text-muted-foreground">Marca</span>
+        <Select value={marca} onChange={(e) => aoMudar('marca', e.target.value)} className="h-9 w-44">
+          <option value="">As duas marcas</option>
+          {Object.entries(MARCAS).map(([valor, rotulo]) => <option key={valor} value={valor}>{rotulo}</option>)}
+        </Select>
+      </label>
+      <span className="flex flex-wrap items-center gap-x-3 gap-y-2">
+        <label className="flex items-center gap-2">
+          <span className="text-muted-foreground">Números até</span>
+          <Input type="date" value={ate || hojeIso()} max={hojeIso()} onChange={(e) => aoMudar('ate', e.target.value === hojeIso() ? '' : e.target.value)} className="h-9 w-40" />
+        </label>
+        {ate !== FIM_DE_30_09 && (
+          <Button type="button" variant="outline" size="sm" onClick={() => aoMudar('ate', FIM_DE_30_09)}>30/09, fim do histórico da Vulto</Button>
+        )}
+        {ate && <Button type="button" variant="ghost" size="sm" onClick={() => aoMudar('ate', '')}>Voltar para hoje</Button>}
+      </span>
+    </div>
+  )
+}
+
 // o que as duas marcas devem em pontos aos clientes, hoje e na rede inteira (o passivo não é por loja);
 // fica fora do resumo porque vem da fidelidade, só para quem gerencia o programa
 function PassivoDePontos() {
@@ -250,12 +339,13 @@ function PassivoDePontos() {
     <section aria-labelledby="titulo-pontos" className="space-y-6">
       <div className="flex flex-wrap items-baseline justify-between gap-3 border-b border-foreground pb-3">
         <h2 id="titulo-pontos" className="text-lg font-medium">Pontos a resgatar</h2>
-        <span className="text-xs text-muted-foreground">toda a rede, pelo valor do ponto na época em que foi ganho</span>
+        <span className="text-xs text-muted-foreground">toda a rede</span>
       </div>
+      <p className="text-xs text-muted-foreground">Cada ponto pelo valor da época em que foi ganho.</p>
       {passivo.erro && <Aviso mensagem={passivo.erro} />}
       {passivo.carregando && !passivo.dados && <Carregando texto="Somando os pontos..." />}
       {passivo.dados && (
-        <div className="grid gap-6 sm:grid-cols-2">
+        <div className="space-y-8">
           {passivoPorLoja(passivo.dados.items).map(({ loja, passivo: p }) => (
             <div key={loja} className="space-y-3">
               <NomeDaLoja loja={loja} className="text-sm" />
@@ -375,6 +465,18 @@ function RedeAgora({ rede, unidades }: { rede: Esquema<'RedeAgora'>; unidades: E
           alerta={rede.retiradas_perto_de_vencer > 0}
         />
       </div>
+
+      {rede.por_marca.length > 1 && (
+        <div className="grid gap-6 sm:grid-cols-2">
+          {rede.por_marca.map((m) => (
+            <div key={m.marca} className="space-y-2">
+              <NomeDaLoja loja={lojaDaMarca(m.marca)} className="text-sm" />
+              <Numero rotulo="Vendas em 14 dias" valor={moeda(m.vendas_14_dias.valor)} detalhe={variacao(m.vendas_14_dias.variacao_valor_pct)} />
+              <p className="text-sm text-muted-foreground">Ticket médio em 30 dias: {moeda(m.ticket_medio_30_dias)}</p>
+            </div>
+          ))}
+        </div>
+      )}
 
       <div className="overflow-x-auto overflow-y-hidden">
         <table className="w-full min-w-[52rem] text-sm">
