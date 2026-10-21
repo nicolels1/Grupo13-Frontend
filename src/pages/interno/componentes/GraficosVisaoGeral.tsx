@@ -3,6 +3,7 @@ import { cn } from 'cn'
 
 import { ChartContainer, ChartLegend, ChartLegendContent, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart'
 import type { Esquema } from '@/lib/api'
+import { lojaFisicaEOnline } from './canais'
 import { BLOCO_ACO } from './estilos'
 import { moeda, moedaCurta } from '@/lib/formato'
 
@@ -27,15 +28,12 @@ const CONFIG_VENDAS = {
   loja_fisica: { label: 'Loja física', color: 'var(--aco)' },
 }
 
-// vendas dos últimos 14 dias, online × loja física, em reais
+// vendas dos últimos 14 dias, online (site e app) × loja física, em reais
 export function GraficoVendas({ dias }: { dias: VendasDoDia[] }) {
-  const dados = dias.map((d) => ({
-    dia: diaCurto(d.dia),
-    online: Number(d.online.valor),
-    loja_fisica: Number(d.loja_fisica.valor),
-    pedidos_online: d.online.pedidos,
-    pedidos_loja: d.loja_fisica.pedidos,
-  }))
+  const dados = dias.map((d) => {
+    const { loja_fisica, online } = lojaFisicaEOnline(d)
+    return { dia: diaCurto(d.dia), online: online.valor, loja_fisica: loja_fisica.valor, pedidos_online: online.pedidos, pedidos_loja: loja_fisica.pedidos }
+  })
   return (
     <figure className="space-y-4">
       <figcaption className="text-sm font-medium">Vendas dos últimos 14 dias</figcaption>
