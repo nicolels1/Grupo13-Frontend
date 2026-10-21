@@ -102,6 +102,9 @@ export const STATUS_TRANSFERENCIA: Record<string, string> = {
   cancelada: 'Cancelada',
 }
 
+// as duas redes do grupo (P1): cada produto e cada unidade é de uma
+export const MARCAS: Record<string, string> = { lorenzi: 'Casa Lorenzi', vulto: 'Vulto' }
+
 export const CATEGORIAS_CHAMADO: Record<string, string> = {
   entrega: 'Entrega',
   troca_devolucao: 'Troca e devolução',

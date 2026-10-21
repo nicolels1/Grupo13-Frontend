@@ -5,12 +5,12 @@ import { cn } from 'cn'
 
 import { Aviso, Carregando, Sucesso, Vazio } from '@/components/Estados'
 import { Abas, Cabecalho, Paginacao } from '@/components/Navegacao'
-import { Miniatura } from '@/components/Peca'
+import { Etiqueta, Miniatura } from '@/components/Peca'
 import { Button, buttonVariants } from '@/components/ui/button'
 import { Input, Label, Select } from '@/components/ui/input'
 import { api, type Esquema } from '@/lib/api'
 import { coresDoProduto, faixaDePreco } from '@/lib/cores'
-import { moeda, plural } from '@/lib/formato'
+import { MARCAS, moeda, plural } from '@/lib/formato'
 import { limparListas } from '@/lib/listas'
 import { type Carga, useCarregar, useEnviar } from '@/lib/useCarregar'
 import { Destaques } from './catalogo/Destaques'
@@ -60,12 +60,13 @@ function Produtos() {
   const [busca, setBusca] = useState('')
   const [idCategoria, setIdCategoria] = useState('')
   const [situacao, setSituacao] = useState('')
+  const [marca, setMarca] = useState('')
   const [offset, setOffset] = useState(0)
   // o painel de categorias usa a lista completa (com as desativadas), sem o cache da vitrine
   const categorias = useCarregar(() => api<ListaCategorias>('/categorias'), [])
   const lista = useCarregar(
-    () => api<Esquema<'PaginaProdutos'>>('/produtos', { params: { busca: busca.trim(), id_categoria: idCategoria, ativo: situacao, limit: POR_PAGINA, offset } }),
-    [busca, idCategoria, situacao, offset],
+    () => api<Esquema<'PaginaProdutos'>>('/produtos', { params: { busca: busca.trim(), id_categoria: idCategoria, ativo: situacao, marca, limit: POR_PAGINA, offset } }),
+    [busca, idCategoria, situacao, marca, offset],
   )
   const nomeCategoria = (id: number) => categorias.dados?.items.find((c) => c.id_categoria === id)?.nome ?? '—'
   const filtro = (setter: (valor: string) => void) => (e: ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
@@ -90,6 +91,11 @@ function Produtos() {
             <option value="">À venda e fora</option>
             <option value="true">À venda</option>
             <option value="false">Fora de venda</option>
+          </Select>
+          {/* as peças da Vulto entraram no mesmo catálogo (P1): a rede separa uma da outra */}
+          <Select aria-label="Rede" value={marca} onChange={filtro(setMarca)} className="w-auto">
+            <option value="">As duas redes</option>
+            {Object.entries(MARCAS).map(([valor, rotulo]) => <option key={valor} value={valor}>{rotulo}</option>)}
           </Select>
         </div>
 
@@ -118,6 +124,7 @@ function Produtos() {
                         <Link to={`/interno/catalogo/${p.id_produto}`} className="flex items-center gap-3 hover:underline">
                           <Miniatura cor={cores[0]} foto={[...(p.imagens ?? [])].sort((a, b) => a.ordem - b.ordem)[0]?.url} />
                           {p.nome}
+                          {p.marca === 'vulto' && <Etiqueta>{MARCAS.vulto}</Etiqueta>}
                         </Link>
                       </td>
                       <td>{nomeCategoria(p.id_categoria)}</td>
