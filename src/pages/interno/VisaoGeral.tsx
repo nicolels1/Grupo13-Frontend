@@ -1,5 +1,5 @@
 import { useState, type ReactNode } from 'react'
-import { ArrowLeftRight, Plus, ShoppingBag } from 'lucide-react'
+import { ArrowLeftRight, LoaderCircle, Plus, ShoppingBag } from 'lucide-react'
 import { Link, useSearchParams } from 'react-router'
 import { cn } from 'cn'
 
@@ -163,6 +163,8 @@ function Hoje({ aoMudarAba }: { aoMudarAba: (params: Record<string, string>, opc
   )
   const pendencias = usePendencias(perfil, unidade)
   const r = resumo.dados
+  // trocou a marca (ou a unidade) e os números novos ainda não chegaram: os antigos ficam apagados
+  const atualizando = resumo.carregando && Boolean(r)
 
   const titulo = unidade ? nomeUnidade(unidades, Number(unidade)) : marca ? `${MARCAS[marca] ?? marca}, toda a rede` : 'Toda a rede'
   const abertas = (pendencias.dados ?? []).filter((p) => p.total > 0).length
@@ -187,7 +189,7 @@ function Hoje({ aoMudarAba }: { aoMudarAba: (params: Record<string, string>, opc
       >
         <Atalhos pode={pode} />
       </Cabecalho>
-      {teraNumeros && <FiltroDeMarca marca={marca} aoMudar={filtrarMarca} />}
+      {teraNumeros && <FiltroDeMarca marca={marca} aoMudar={filtrarMarca} atualizando={atualizando} />}
       {teraNumeros && unidadeDeOutraMarca && (
         <Aviso mensagem={`A unidade escolhida no topo não é da ${MARCAS[marca] ?? marca}. Escolha "Todas as unidades" ou uma unidade dessa marca para ver os números.`} />
       )}
@@ -209,7 +211,7 @@ function Hoje({ aoMudarAba }: { aoMudarAba: (params: Record<string, string>, opc
         </div>
 
         {teraNumeros && (
-          <div className="min-w-0 space-y-12">
+          <div aria-busy={atualizando} className={cn('min-w-0 space-y-12 transition-opacity', atualizando && 'opacity-40')}>
             {resumo.carregando && !r && <Carregando texto="Carregando os números..." />}
             {resumo.erro && <Aviso mensagem={resumo.erro}>Recarregue a página para tentar de novo.</Aviso>}
             {r?.vendas_por_dia && (
@@ -237,7 +239,11 @@ function Hoje({ aoMudarAba }: { aoMudarAba: (params: Record<string, string>, opc
         )}
       </div>
 
-      {admin && r?.rede_agora && <RedeAgora rede={r.rede_agora} unidades={r.por_unidade ?? []} />}
+      {admin && r?.rede_agora && (
+        <div aria-busy={atualizando} className={cn('transition-opacity', atualizando && 'opacity-40')}>
+          <RedeAgora rede={r.rede_agora} unidades={r.por_unidade ?? []} />
+        </div>
+      )}
     </div>
   )
 }
@@ -300,15 +306,23 @@ function LinhaPendencia({ pendencia: p }: { pendencia: Pendencia }) {
 }
 
 // de qual marca são os números: as duas somadas, a Casa Lorenzi ou a Vulto
-function FiltroDeMarca({ marca, aoMudar }: { marca: string; aoMudar: (valor: string) => void }) {
+// enquanto os números da marca nova não chegam, o aviso fica ao lado do seletor
+function FiltroDeMarca({ marca, aoMudar, atualizando }: { marca: string; aoMudar: (valor: string) => void; atualizando: boolean }) {
   return (
-    <label className="-mt-6 flex items-center gap-2 text-sm">
-      <span className="text-muted-foreground">Números da marca</span>
-      <Select value={marca} onChange={(e) => aoMudar(e.target.value)} className="h-9 w-44">
-        <option value="">As duas marcas</option>
-        {Object.entries(MARCAS).map(([valor, rotulo]) => <option key={valor} value={valor}>{rotulo}</option>)}
-      </Select>
-    </label>
+    <div className="-mt-6 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
+      <label className="flex items-center gap-2">
+        <span className="text-muted-foreground">Números da marca</span>
+        <Select value={marca} onChange={(e) => aoMudar(e.target.value)} className="h-9 w-44">
+          <option value="">As duas marcas</option>
+          {Object.entries(MARCAS).map(([valor, rotulo]) => <option key={valor} value={valor}>{rotulo}</option>)}
+        </Select>
+      </label>
+      {atualizando && (
+        <span role="status" className="flex items-center gap-1.5 text-muted-foreground">
+          <LoaderCircle className="size-4 animate-spin" aria-hidden="true" /> Atualizando os números...
+        </span>
+      )}
+    </div>
   )
 }
 
