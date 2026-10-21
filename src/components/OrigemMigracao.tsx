@@ -14,19 +14,22 @@ function Decisao({ codigo }: { codigo: string | null }) {
 }
 
 // de onde veio um registro migrado da Vulto e o que a migração mudou nele (P4). Peça, pedido, cliente e
-// chamado usam o mesmo quadro; o registro que não veio da migração mostra só uma frase
-export function OrigemMigracao({ tabela, idRegistro }: { tabela: string; idRegistro: string | number }) {
+// chamado usam o mesmo quadro; o registro que não veio da migração mostra só uma frase. Com `titulo`, o
+// quadro se apresenta sozinho e some quando o registro não veio da migração (ex.: no pedido, que pode
+// ser da Lorenzi ou da Vulto)
+export function OrigemMigracao({ tabela, idRegistro, titulo }: { tabela: string; idRegistro: string | number; titulo?: string }) {
   const { dados, erro, carregando } = useCarregar(
     () => api<Esquema<'Lista_OrigemSaida_'>>('/migracao/origem', { params: { tabela, id_registro: String(idRegistro) } }),
     [tabela, idRegistro],
   )
-  if (carregando && !dados) return <Carregando />
+  if (carregando && !dados) return titulo ? null : <Carregando />
   if (erro) return <Aviso mensagem={erro} />
   const linhas = agruparOrigem(dados?.items ?? [])
-  if (linhas.length === 0) return <p className="text-sm text-muted-foreground">Não veio da migração da Vulto.</p>
+  if (linhas.length === 0) return titulo ? null : <p className="text-sm text-muted-foreground">Não veio da migração da Vulto.</p>
 
   return (
     <div className="space-y-3 text-sm">
+      {titulo && <h3 className="text-base font-medium">{titulo}</h3>}
       <p className="text-muted-foreground">Veio da Vulto. Embaixo de cada origem, o campo como estava lá e a decisão que o mudou.</p>
       <ul className="space-y-3">
         {linhas.map((l) => (

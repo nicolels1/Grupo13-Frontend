@@ -11,7 +11,7 @@ import { Cabecalho } from '@/components/Navegacao'
 import { OrigemMigracao } from '@/components/OrigemMigracao'
 import { Status } from '@/components/Status'
 import { api, type Esquema } from '@/lib/api'
-import { CATEGORIAS_CHAMADO, dataCurta, dataLonga, mascaraCpf, moeda, numero, plural, STATUS_CONTA } from '@/lib/formato'
+import { CANAIS_VENDA, CATEGORIAS_CHAMADO, dataCurta, dataLonga, mascaraCpf, moeda, numero, plural, STATUS_CONTA } from '@/lib/formato'
 import { lojaDaMarca } from '@/lib/lojaEscolhida'
 import { useCarregar } from '@/lib/useCarregar'
 import { nomeDaCategoria, saldosPorLoja } from '@/pages/loja/conta/pontosDaConta'
@@ -34,7 +34,6 @@ type Ficha = {
 
 // quem pode ver os pontos de um cliente (o mesmo do GET /fidelidade/clientes/pontos)
 const VER_PONTOS: CodigoPermissao[] = ['atender_chamado', 'registrar_venda_fisica', 'gerenciar_fidelidade']
-const CANAIS_VENDA: Record<string, string> = { loja: 'Loja', site: 'Site', app: 'App' }
 // a ficha mostra os mais recentes; o resto fica nas áreas Pedidos e Atendimento
 const ULTIMOS = 20
 

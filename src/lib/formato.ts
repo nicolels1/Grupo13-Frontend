@@ -136,6 +136,15 @@ export const METODOS_PAGAMENTO: Record<string, string> = {
   dinheiro: 'Dinheiro',
 } satisfies Record<MetodoPagamento, string>
 
+// nome do método em qualquer pagamento. O pagamento migrado da Vulto, que nunca guardou o método (P7),
+// vem como nao_informado, que não é opção do caixa (por isso fora da lista acima)
+export function nomeDoMetodo(metodo: string) {
+  return METODOS_PAGAMENTO[metodo] ?? (metodo === 'nao_informado' ? 'Método não informado' : metodo)
+}
+
+// onde a venda foi feita (P3): separa o faturamento por canal; o canal do estoque é outro (CANAIS)
+export const CANAIS_VENDA: Record<string, string> = { loja: 'Loja', site: 'Site', app: 'App' }
+
 export const STATUS_PAGAMENTO: Record<string, string> = { pendente: 'Pendente', aprovado: 'Aprovado', recusado: 'Recusado' }
 export const PRIORIDADES: Record<string, string> = {
   baixa: 'Baixa',
