@@ -107,6 +107,7 @@ export const CATEGORIAS_CHAMADO: Record<string, string> = {
   troca_devolucao: 'Troca e devolução',
   estorno: 'Estorno',
   duvida: 'Dúvida',
+  pagamento: 'Pagamento',
   outros: 'Outros',
 } satisfies Record<Chamado['categoria'], string>
 
