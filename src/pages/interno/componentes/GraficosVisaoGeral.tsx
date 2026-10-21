@@ -29,15 +29,14 @@ const CONFIG_VENDAS = {
 }
 
 // vendas dos últimos 14 dias, online (site e app) × loja física, em reais
-// `titulo` muda quando a Visão Geral olha um dia passado ("Vendas dos 14 dias até 30/09")
-export function GraficoVendas({ dias, titulo = 'Vendas dos últimos 14 dias' }: { dias: VendasDoDia[]; titulo?: string }) {
+export function GraficoVendas({ dias }: { dias: VendasDoDia[] }) {
   const dados = dias.map((d) => {
     const { loja_fisica, online } = lojaFisicaEOnline(d)
     return { dia: diaCurto(d.dia), online: online.valor, loja_fisica: loja_fisica.valor, pedidos_online: online.pedidos, pedidos_loja: loja_fisica.pedidos }
   })
   return (
     <figure className="space-y-4">
-      <figcaption className="text-sm font-medium">{titulo}</figcaption>
+      <figcaption className="text-sm font-medium">Vendas dos últimos 14 dias</figcaption>
       <ChartContainer config={CONFIG_VENDAS} className="aspect-auto h-60 w-full">
         {/* margem no alto: o rótulo do topo do eixo não encosta no título */}
         <BarChart data={dados} barGap={2} margin={{ top: 8 }} accessibilityLayer>

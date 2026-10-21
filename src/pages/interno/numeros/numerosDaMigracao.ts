@@ -43,25 +43,33 @@ export const FATURAMENTO = {
     { decisao: 'V6', texto: 'Trocas que podem ter tido diferença de preço', valor: 'menos de R$ 1 mil' },
     { decisao: 'V7', texto: 'O frete fica fora; se for receita, soma-se a ele', valor: 'R$ 55.248,70' },
   ],
+  // soma das linhas acima, sem o frete (é uma escolha da diretoria, não um erro): V3 só aumenta
+  // (+R$ 2.942,53) e V6 vai para os dois lados (até R$ 1 mil)
+  margemTotal: 'de −R$ 1.000,00 a +R$ 3.942,53, menos de 0,1% do faturamento (o frete não entra: é uma escolha, não um erro)',
 }
 
 export const ESTOQUE = {
   nosso: 15233,
   emTransito: 33,
   porUnidade: [
-    { nome: 'CD Cajamar', pecas: 6552, base: 'WMS de 28/09 (E1, E8), menos as saídas de 29 e 30/09' },
-    { nome: 'Vulto Pinheiros', pecas: 2387, base: 'contagem de 20/09; 87 no online, pelo ship from store (E7)' },
-    { nome: 'Vulto Shopping Eldorado', pecas: 2282, base: 'contagem sem data, considerada de 20/09 (E5)' },
-    { nome: 'Vulto Savassi', pecas: 2119, base: 'contagem por modelo, distribuída pelas variantes (E6)' },
-    { nome: 'Vulto Batel', pecas: 1860, base: 'contagem sem data, considerada de 20/09 (E5)' },
+    { nome: 'CD Cajamar', pecas: 6552, base: 'WMS de 28/09, menos as saídas de 29 e 30/09' },
+    { nome: 'Vulto Pinheiros', pecas: 2387, base: 'contagem de 20/09; 87 no online, pelo ship from store' },
+    { nome: 'Vulto Shopping Eldorado', pecas: 2282, base: 'contagem sem data, considerada de 20/09' },
+    { nome: 'Vulto Savassi', pecas: 2119, base: 'contagem por modelo, distribuída pelas variantes' },
+    { nome: 'Vulto Batel', pecas: 1860, base: 'contagem sem data, considerada de 20/09' },
   ],
-  sistemaDaVulto: 'O sistema da Vulto dizia 28.136 peças só no CD (o WMS tem 6.601) e tinha 1.156 saldos negativos. Ele não entra: as lojas valem pela contagem, o CD pelo WMS (E1), e o estoque espelhado do site e do app não é estoque (E3).',
+  // o saldo do sistema da Vulto (tabela estoque do vulto.db, somada no staging): o CD, o estoque espelhado
+  // do site e do app (lojas 5 e 6) e as 4 lojas, com os saldos negativos dentro
+  sistema: { total: 46302, cd: 28136, wms: 6601, espelhado: 12694, lojas: 5472, negativos: 1156 },
+  sistemaDaVulto: 'O sistema da Vulto dizia 28.136 peças só no CD (o WMS tem 6.601) e tinha 1.156 saldos negativos. Ele não entra: as lojas valem pela contagem, o CD pelo WMS, e o estoque espelhado do site e do app não é estoque.',
   margem: [
     { decisao: 'E11', texto: 'Batel: 82 linhas da contagem marcadas "faltou contar provador" ou "recontar"', valor: '222 peças' },
     { decisao: 'E12', texto: 'Eldorado: 29 SKUs com saldo no sistema que não aparecem na contagem', valor: '53 peças' },
     { decisao: 'E5', texto: 'Data da contagem (Eldorado, Batel, Savassi)', valor: '−39 a +53 peças' },
     { decisao: null, texto: 'Peças vendidas depois da contagem que a contagem não viu', valor: '25 peças' },
   ],
+  // soma das linhas acima, pelo maior lado de cada uma: 222 + 53 + 53 + 25
+  margemTotal: 'até 353 peças, para mais ou para menos: 2,3% do estoque',
 }
 
 export const PASSIVO = {
@@ -77,4 +85,6 @@ export const PASSIVO = {
     { decisao: 'K7a', texto: 'Resgates da planilha sem cliente identificado', valor: '−1.500 pts (−R$ 75,00)' },
     { decisao: 'K5b', texto: 'Saldos abreviados ("2,7k") da planilha', valor: '±4.800 pts (±R$ 480,00)' },
   ],
+  // soma das linhas acima: para cima, +165 e +4.800; para baixo, −1.500 e −4.800
+  margemTotal: 'de −6.300 a +4.965 pontos (−R$ 555,00 a +R$ 496,50), menos de 0,1% do passivo',
 }

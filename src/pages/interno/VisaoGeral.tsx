@@ -1,5 +1,5 @@
 import { useState, type ReactNode } from 'react'
-import { ArrowLeftRight, Plus, ShoppingBag } from 'lucide-react'
+import { ArrowLeftRight, LoaderCircle, Plus, ShoppingBag } from 'lucide-react'
 import { Link, useSearchParams } from 'react-router'
 import { cn } from 'cn'
 
@@ -8,19 +8,18 @@ import { ehAdmin, temPermissao, type CodigoPermissao } from '@/auth/areas'
 import { Aviso, Carregando } from '@/components/Estados'
 import { NomeDaLoja } from '@/components/Logo'
 import { Abas, Cabecalho } from '@/components/Navegacao'
-import { Button, buttonVariants } from '@/components/ui/button'
-import { Input, Select } from '@/components/ui/input'
+import { buttonVariants } from '@/components/ui/button'
+import { Select } from '@/components/ui/input'
 import { useUnidadeEscolhida } from '@/layouts/unidadeEscolhida'
 import { api, type Esquema, type OpcoesApi } from '@/lib/api'
 import { lojaFisicaEOnline, variacaoJunta } from './componentes/canais'
 import { BLOCO_ACO } from './componentes/estilos'
-import { dataCurta, dataLonga, hojeIso, MARCAS, moeda, numero, plural } from '@/lib/formato'
+import { MARCAS, moeda, numero, plural } from '@/lib/formato'
 import { lojaDaMarca } from '@/lib/lojaEscolhida'
 import { nomeUnidade } from '@/lib/listas'
 import { useCarregar } from '@/lib/useCarregar'
 import { GraficoChamados, GraficoMaisVendidas, GraficoVendas } from './componentes/GraficosVisaoGeral'
 import { faixasDoPassivo, passivoPorLoja } from './componentes/passivo'
-import { FIM_DE_30_09 } from './numeros/numerosDaMigracao'
 import { TresNumeros } from './numeros/TresNumeros'
 
 type Perfil = Esquema<'Perfil'>
@@ -146,29 +145,26 @@ function Hoje({ aoMudarAba }: { aoMudarAba: (params: Record<string, string>, opc
   const pode = (codigo: CodigoPermissao) => temPermissao(perfil, codigo)
   const admin = ehAdmin(perfil)
   const [dia] = useState(() => new Date().toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'America/Sao_Paulo' }))
-  // filtros do resumo, no endereço: o último dia das janelas (?ate=; vazio é hoje, e 30/09 mostra o
-  // histórico da Vulto, que termina nele) e a marca (?marca=; vazio são as duas). Só os números do
-  // resumo mudam: as pendências são sempre as de agora, da rede toda ou da unidade do topo
+  // a marca dos números, no endereço (?marca=; vazio são as duas). Só os números do resumo mudam: as
+  // pendências são sempre as da rede toda ou da unidade do topo
   const [params, setParams] = useSearchParams()
-  const ate = params.get('ate') ?? ''
   const marca = params.get('marca') ?? ''
-  function filtrar(chave: 'ate' | 'marca', valor: string) {
-    const novos = new URLSearchParams(params)
-    if (valor) novos.set(chave, valor)
-    else novos.delete(chave)
-    setParams(novos, { replace: true })
+  function filtrarMarca(valor: string) {
+    setParams(valor ? { marca: valor } : {}, { replace: true })
   }
   // a unidade do topo é da outra marca: o resumo viria vazio, e a tela avisa
   const unidadeDeOutraMarca = Boolean(marca && unidade && unidades.find((u) => String(u.id_unidade) === unidade)?.marca !== marca)
 
   const resumo = useCarregar(
     () => api<Resumo>('/visao-geral/resumo', {
-      params: { id_unidade: unidade, referencia: ate || undefined, marca: (marca || undefined) as Resumo['marca'] },
+      params: { id_unidade: unidade, marca: (marca || undefined) as Resumo['marca'] },
     }),
-    [unidade, ate, marca],
+    [unidade, marca],
   )
   const pendencias = usePendencias(perfil, unidade)
   const r = resumo.dados
+  // trocou a marca (ou a unidade) e os números novos ainda não chegaram: os antigos ficam apagados
+  const atualizando = resumo.carregando && Boolean(r)
 
   const titulo = unidade ? nomeUnidade(unidades, Number(unidade)) : marca ? `${MARCAS[marca] ?? marca}, toda a rede` : 'Toda a rede'
   const abertas = (pendencias.dados ?? []).filter((p) => p.total > 0).length
@@ -185,7 +181,7 @@ function Hoje({ aoMudarAba }: { aoMudarAba: (params: Record<string, string>, opc
         titulo={titulo}
         subtitulo={
           <span className="block first-letter:uppercase">
-            {ate ? `Números até ${dataLonga(ate)}; pendências de agora.` : `${dia}.`}{' '}
+            {dia}.{' '}
             {pendencias.dados && (abertas ? `${plural(abertas, 'pendência', 'pendências')} para resolver.` : 'Tudo em dia.')}
           </span>
         }
@@ -193,7 +189,7 @@ function Hoje({ aoMudarAba }: { aoMudarAba: (params: Record<string, string>, opc
       >
         <Atalhos pode={pode} />
       </Cabecalho>
-      {teraNumeros && <Filtros ate={ate} marca={marca} aoMudar={filtrar} />}
+      {teraNumeros && <FiltroDeMarca marca={marca} aoMudar={filtrarMarca} atualizando={atualizando} />}
       {teraNumeros && unidadeDeOutraMarca && (
         <Aviso mensagem={`A unidade escolhida no topo não é da ${MARCAS[marca] ?? marca}. Escolha "Todas as unidades" ou uma unidade dessa marca para ver os números.`} />
       )}
@@ -215,7 +211,7 @@ function Hoje({ aoMudarAba }: { aoMudarAba: (params: Record<string, string>, opc
         </div>
 
         {teraNumeros && (
-          <div className="min-w-0 space-y-12">
+          <div aria-busy={atualizando} className={cn('min-w-0 space-y-12 transition-opacity', atualizando && 'opacity-40')}>
             {resumo.carregando && !r && <Carregando texto="Carregando os números..." />}
             {resumo.erro && <Aviso mensagem={resumo.erro}>Recarregue a página para tentar de novo.</Aviso>}
             {r?.vendas_por_dia && (
@@ -223,7 +219,7 @@ function Hoje({ aoMudarAba }: { aoMudarAba: (params: Record<string, string>, opc
                 <h2 id="titulo-vendas" className="border-b border-foreground pb-3 text-lg font-medium">Vendas</h2>
                 <NumerosVendas dias={r.vendas_por_dia} />
                 <div className="grid gap-10 xl:grid-cols-[1fr_22rem]">
-                  <GraficoVendas dias={r.vendas_por_dia} titulo={ate ? `Vendas dos 14 dias até ${dataCurta(ate)}` : undefined} />
+                  <GraficoVendas dias={r.vendas_por_dia} />
                   <GraficoMaisVendidas pecas={r.mais_vendidas ?? []} />
                 </div>
               </section>
@@ -243,7 +239,11 @@ function Hoje({ aoMudarAba }: { aoMudarAba: (params: Record<string, string>, opc
         )}
       </div>
 
-      {admin && r?.rede_agora && <RedeAgora rede={r.rede_agora} unidades={r.por_unidade ?? []} />}
+      {admin && r?.rede_agora && (
+        <div aria-busy={atualizando} className={cn('transition-opacity', atualizando && 'opacity-40')}>
+          <RedeAgora rede={r.rede_agora} unidades={r.por_unidade ?? []} />
+        </div>
+      )}
     </div>
   )
 }
@@ -305,28 +305,23 @@ function LinhaPendencia({ pendencia: p }: { pendencia: Pendencia }) {
   )
 }
 
-// filtros dos números: a marca e até que dia contar (hoje ou um dia passado). O atalho de 30/09 é o fim
-// do histórico da Vulto, para ver as lojas dela com dados (depois da carga, nada da Vulto é de hoje)
-function Filtros({ ate, marca, aoMudar }: { ate: string; marca: string; aoMudar: (chave: 'ate' | 'marca', valor: string) => void }) {
+// de qual marca são os números: as duas somadas, a Casa Lorenzi ou a Vulto
+// enquanto os números da marca nova não chegam, o aviso fica ao lado do seletor
+function FiltroDeMarca({ marca, aoMudar, atualizando }: { marca: string; aoMudar: (valor: string) => void; atualizando: boolean }) {
   return (
-    <div className="-mt-6 flex flex-wrap items-center gap-x-5 gap-y-2 text-sm">
+    <div className="-mt-6 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
       <label className="flex items-center gap-2">
-        <span className="text-muted-foreground">Marca</span>
-        <Select value={marca} onChange={(e) => aoMudar('marca', e.target.value)} className="h-9 w-44">
+        <span className="text-muted-foreground">Números da marca</span>
+        <Select value={marca} onChange={(e) => aoMudar(e.target.value)} className="h-9 w-44">
           <option value="">As duas marcas</option>
           {Object.entries(MARCAS).map(([valor, rotulo]) => <option key={valor} value={valor}>{rotulo}</option>)}
         </Select>
       </label>
-      <span className="flex flex-wrap items-center gap-x-3 gap-y-2">
-        <label className="flex items-center gap-2">
-          <span className="text-muted-foreground">Números até</span>
-          <Input type="date" value={ate || hojeIso()} max={hojeIso()} onChange={(e) => aoMudar('ate', e.target.value === hojeIso() ? '' : e.target.value)} className="h-9 w-40" />
-        </label>
-        {ate !== FIM_DE_30_09 && (
-          <Button type="button" variant="outline" size="sm" onClick={() => aoMudar('ate', FIM_DE_30_09)}>30/09, fim do histórico da Vulto</Button>
-        )}
-        {ate && <Button type="button" variant="ghost" size="sm" onClick={() => aoMudar('ate', '')}>Voltar para hoje</Button>}
-      </span>
+      {atualizando && (
+        <span role="status" className="flex items-center gap-1.5 text-muted-foreground">
+          <LoaderCircle className="size-4 animate-spin" aria-hidden="true" /> Atualizando os números...
+        </span>
+      )}
     </div>
   )
 }
