@@ -7,8 +7,8 @@ import { api, todasAsPaginas, type Esquema } from '@/lib/api'
 import { moeda, numero } from '@/lib/formato'
 import { useCarregar } from '@/lib/useCarregar'
 import { BLOCO_ACO } from '../componentes/estilos'
-import { ESTOQUE, FATURAMENTO, FIM_DE_30_09, PASSIVO } from './numerosDaMigracao'
-import { confere, pecasPorUnidade } from './regrasNumeros'
+import { ESTOQUE, FATURAMENTO, FIM_DE_30_09, INICIO_FATURAMENTO, PASSIVO } from './numerosDaMigracao'
+import { agruparFaturamento, confere, pecasPorUnidade } from './regrasNumeros'
 
 // aba "Os 3 números da Vulto" da Visão Geral (Etapa 9): faturamento jan/2025–set/2026, estoque e passivo
 // de pontos em 01/10/2026. Cada número tem o que a plataforma soma (depois da carga), o que a migração
@@ -79,31 +79,57 @@ function Margem({ linhas }: { linhas: { decisao: string | null; texto: string; v
 function Faturamento() {
   const relatorio = FATURAMENTO.ponte[0]!
   const loja = FATURAMENTO.porLoja.filter((l) => l.canal === 'Loja física').reduce((t, l) => t + l.valor, 0)
+  // a mesma regra do numeros.py, calculada pela plataforma com os pedidos da Vulto carregados
+  const plataforma = useCarregar(
+    () => api<Esquema<'Faturamento'>>('/visao-geral/faturamento', { params: { de: INICIO_FATURAMENTO, ate: FIM_DE_30_09, marca: 'vulto' } }),
+    [],
+  )
+  const total = plataforma.dados ? Number(plataforma.dados.valor) : null
+  const grupos = plataforma.dados ? agruparFaturamento(plataforma.dados.items) : null
+  const naPlataforma = (chave: string) => grupos?.porColuna.get(chave) ?? null
+
   return (
     <Secao titulo="Faturamento" subtitulo={`${FATURAMENTO.periodo}: venda paga, sem frete, no mês do pedido pelo horário de Brasília`}>
       <div className="grid gap-8 sm:grid-cols-3">
-        <Destaque rotulo="Nosso número" valor={moeda(FATURAMENTO.nosso)} detalhe={`frete à parte: ${moeda(FATURAMENTO.frete)}`} />
+        <Destaque
+          rotulo="Nosso número"
+          valor={moeda(FATURAMENTO.nosso)}
+          detalhe={<Conferencia bate={!total ? null : confere(total, FATURAMENTO.nosso)} carregando={plataforma.carregando && !plataforma.dados} />}
+        />
+        <Destaque rotulo="Na plataforma" valor={total ? moeda(total) : '—'} detalhe={total ? `frete à parte: ${moeda(plataforma.dados?.frete)}` : undefined} />
         <Destaque rotulo="Relatório do sistema da Vulto" valor={moeda(relatorio.valor)} detalhe="soma tudo, de qualquer status, com o app em centavos" />
-        <Destaque rotulo="Loja física" valor={moeda(loja)} detalhe={`online (site e app, CD Cajamar): ${moeda(FATURAMENTO.nosso - loja)}`} />
       </div>
-      <p className="text-sm text-muted-foreground">A consulta da plataforma, por mês, loja e canal, entra aqui quando o backend tiver a rota do faturamento.</p>
+      <p className="text-sm text-muted-foreground">
+        Loja física {moeda(loja)}; online (site e app, que saem do CD Cajamar) {moeda(FATURAMENTO.nosso - loja)}. Frete à parte: {moeda(FATURAMENTO.frete)}.
+      </p>
+      {plataforma.erro && <Aviso mensagem={plataforma.erro} />}
 
       <div className="grid gap-10 xl:grid-cols-2">
         <div className="space-y-2">
           <h3 className="text-sm font-medium">Por loja e canal</h3>
           <table className="w-full text-sm">
+            <thead className="text-left text-xs text-muted-foreground">
+              <tr className="border-b">
+                <th className="py-2 font-medium">Loja</th>
+                <th className="font-medium">Canal</th>
+                <th className="text-right font-medium">Migração</th>
+                <th className="text-right font-medium">Plataforma</th>
+              </tr>
+            </thead>
             <tbody>
               {FATURAMENTO.porLoja.map((l) => (
-                <tr key={l.nome} className="border-b">
+                <tr key={l.chave} className="border-b">
                   <td className="py-2">{l.nome}</td>
                   <td className="text-muted-foreground">{l.canal}</td>
                   <td className="text-right tabular-nums">{moeda(l.valor)}</td>
+                  <td className="text-right tabular-nums">{naPlataforma(l.chave) === null ? '—' : moeda(naPlataforma(l.chave))}</td>
                 </tr>
               ))}
               <tr className="font-medium">
                 <td className="py-2">Total</td>
                 <td />
                 <td className="text-right tabular-nums">{moeda(FATURAMENTO.nosso)}</td>
+                <td className="text-right tabular-nums">{total ? moeda(total) : '—'}</td>
               </tr>
             </tbody>
           </table>
@@ -127,8 +153,40 @@ function Faturamento() {
           </table>
         </div>
       </div>
+      {grupos && grupos.meses.length > 0 && <FaturamentoPorMes meses={grupos.meses} />}
       <Margem linhas={FATURAMENTO.margem} />
     </Secao>
+  )
+}
+
+// mês a mês, da plataforma: uma coluna por loja física e uma para o site e o app
+function FaturamentoPorMes({ meses }: { meses: ReturnType<typeof agruparFaturamento>['meses'] }) {
+  const colunas = FATURAMENTO.porLoja
+  const mes = (iso: string) => `${iso.slice(5, 7)}/${iso.slice(0, 4)}`
+  return (
+    <details className="text-sm">
+      <summary className="cursor-pointer text-muted-foreground hover:text-foreground">Ver o faturamento da plataforma mês a mês</summary>
+      <div className="mt-3 overflow-x-auto">
+        <table className="w-full min-w-[52rem] tabular-nums">
+          <thead className="text-xs text-muted-foreground">
+            <tr className="border-b">
+              <th className="py-2 text-left font-medium">Mês</th>
+              {colunas.map((c) => <th key={c.chave} className="text-right font-medium">{c.nome.replace(' (CD Cajamar)', '').replace('Vulto ', '')}</th>)}
+              <th className="text-right font-medium">Total</th>
+            </tr>
+          </thead>
+          <tbody>
+            {meses.map((m) => (
+              <tr key={m.mes} className="border-b">
+                <td className="py-1.5">{mes(m.mes)}</td>
+                {colunas.map((c) => <td key={c.chave} className="text-right">{moeda(m.colunas.get(c.chave) ?? 0)}</td>)}
+                <td className="text-right font-medium">{moeda([...m.colunas.values()].reduce((t, v) => t + v, 0))}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </details>
   )
 }
 
@@ -198,7 +256,8 @@ function Estoque() {
 }
 
 function Passivo() {
-  const passivo = useCarregar(() => api<Esquema<'Lista_PassivoSaida_'>>('/fidelidade/passivo'), [])
+  // o passivo no fim de 30/09: confere mesmo depois de alguém ganhar ou resgatar ponto na plataforma
+  const passivo = useCarregar(() => api<Esquema<'Lista_PassivoSaida_'>>('/fidelidade/passivo', { params: { em: FIM_DE_30_09 } }), [])
   const daVulto = passivo.dados?.items.find((p) => p.marca === 'vulto') ?? null
 
   return (
@@ -209,7 +268,7 @@ function Passivo() {
           valor={moeda(PASSIVO.nosso.reais)}
           detalhe={<>{numero(PASSIVO.nosso.pontos)} pontos de {numero(PASSIVO.nosso.clientes)} clientes. <Conferencia bate={daVulto ? confere(daVulto.pontos, PASSIVO.nosso.pontos, 0.5) : null} carregando={passivo.carregando && !passivo.dados} /></>}
         />
-        <Destaque rotulo="Na plataforma hoje" valor={daVulto ? moeda(daVulto.reais) : '—'} detalhe={daVulto ? `${numero(daVulto.pontos)} pontos` : undefined} />
+        <Destaque rotulo="Na plataforma em 01/10" valor={daVulto ? moeda(daVulto.reais) : '—'} detalhe={daVulto ? `${numero(daVulto.pontos)} pontos` : undefined} />
         <Destaque rotulo="No sistema da Vulto" valor={moeda(PASSIVO.sistemaDaVulto)} detalhe="todo ponto a R$ 0,10, sem a mudança de mar/2025" />
       </div>
       {passivo.erro && <Aviso mensagem={passivo.erro} />}
@@ -227,9 +286,6 @@ function Passivo() {
           ))}
         </tbody>
       </table>
-      <p className="text-sm text-muted-foreground">
-        O passivo da plataforma é o de hoje: depois da carga, é o de 01/10 enquanto ninguém ganhar nem resgatar ponto.
-      </p>
       <Margem linhas={PASSIVO.margem} />
     </Secao>
   )

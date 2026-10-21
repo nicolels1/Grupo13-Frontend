@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
 import { ESTOQUE, FATURAMENTO, PASSIVO } from './numerosDaMigracao'
-import { confere, fechaAPonte, pecasPorUnidade } from './regrasNumeros'
+import { agruparFaturamento, confere, fechaAPonte, pecasPorUnidade } from './regrasNumeros'
 
 describe('números da migração', () => {
   it('a ponte do relatório da Vulto fecha no nosso faturamento', () => {
@@ -33,6 +33,21 @@ describe('pecasPorUnidade', () => {
       { id_unidade: 1, unidade: 'Vulto Pinheiros', pecas: 5 },
       { id_unidade: 5, unidade: 'CD Cajamar', pecas: 7 },
     ])
+  })
+})
+
+describe('agruparFaturamento', () => {
+  it('soma a loja física pela unidade e o online pelo canal, no período e por mês', () => {
+    const linhas = [
+      { mes: '2025-02-01', unidade: 'Vulto Pinheiros', canal_venda: 'loja', valor: '100.00' },
+      { mes: '2025-01-01', unidade: 'Vulto Pinheiros', canal_venda: 'loja', valor: '50.50' },
+      { mes: '2025-01-01', unidade: 'CD Cajamar', canal_venda: 'site', valor: '30.00' },
+      { mes: '2025-01-01', unidade: 'CD Cajamar', canal_venda: 'app', valor: '-10.00' },
+    ]
+    const { porColuna, meses } = agruparFaturamento(linhas)
+    expect(Object.fromEntries(porColuna)).toEqual({ 'Vulto Pinheiros': 150.5, site: 30, app: -10 })
+    expect(meses.map((m) => m.mes)).toEqual(['2025-01-01', '2025-02-01'])
+    expect(meses[0]?.colunas.get('Vulto Pinheiros')).toBe(50.5)
   })
 })
 

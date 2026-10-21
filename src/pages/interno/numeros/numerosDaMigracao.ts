@@ -4,6 +4,8 @@
 // Se o numeros.md mudar, estes valores mudam junto
 
 export const DATA_BASE = '2026-10-01'
+// o período do faturamento
+export const INICIO_FATURAMENTO = '2025-01-01'
 // fim de 30/09: a posição em 01/10/2026, no horário de Brasília
 export const FIM_DE_30_09 = '2026-09-30'
 
@@ -14,12 +16,13 @@ export const FATURAMENTO = {
   nosso: 6438443.35,
   frete: 55248.7,
   porLoja: [
-    { nome: 'Vulto Pinheiros', canal: 'Loja física', valor: 1200055.12 },
-    { nome: 'Vulto Shopping Eldorado', canal: 'Loja física', valor: 1091226.9 },
-    { nome: 'Vulto Savassi', canal: 'Loja física', valor: 840306.71 },
-    { nome: 'Vulto Batel', canal: 'Loja física', valor: 759693.78 },
-    { nome: 'Site (CD Cajamar)', canal: 'Online', valor: 1557280.78 },
-    { nome: 'App (CD Cajamar)', canal: 'Online', valor: 989880.06 },
+    // chave: o nome da unidade na loja física; no online, o canal da venda (site e app saem do CD Cajamar)
+    { chave: 'Vulto Pinheiros', nome: 'Vulto Pinheiros', canal: 'Loja física', valor: 1200055.12 },
+    { chave: 'Vulto Shopping Eldorado', nome: 'Vulto Shopping Eldorado', canal: 'Loja física', valor: 1091226.9 },
+    { chave: 'Vulto Savassi', nome: 'Vulto Savassi', canal: 'Loja física', valor: 840306.71 },
+    { chave: 'Vulto Batel', nome: 'Vulto Batel', canal: 'Loja física', valor: 759693.78 },
+    { chave: 'site', nome: 'Site (CD Cajamar)', canal: 'Online', valor: 1557280.78 },
+    { chave: 'app', nome: 'App (CD Cajamar)', canal: 'Online', valor: 989880.06 },
   ],
   // do relatório do sistema da Vulto (/relatorio/faturamento) ao nosso número, cada passo com a decisão
   ponte: [
