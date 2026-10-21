@@ -11,6 +11,7 @@ import { Abas, Cabecalho } from '@/components/Navegacao'
 import { buttonVariants } from '@/components/ui/button'
 import { useUnidadeEscolhida } from '@/layouts/unidadeEscolhida'
 import { api, type Esquema, type OpcoesApi } from '@/lib/api'
+import { lojaFisicaEOnline, variacaoJunta } from './componentes/canais'
 import { BLOCO_ACO } from './componentes/estilos'
 import { moeda, numero, plural } from '@/lib/formato'
 import { nomeUnidade } from '@/lib/listas'
@@ -321,8 +322,10 @@ function PassivoDePontos() {
   )
 }
 
+// o resumo separa loja, site e app (P3); aqui, loja física × online (site e app juntos)
 function NumerosVendas({ dias }: { dias: Esquema<'VendasDoDia'>[] }) {
-  const soma = (canal: 'online' | 'loja_fisica', campo: 'valor' | 'pedidos') => dias.reduce((t, d) => t + Number(d[canal][campo]), 0)
+  const porDia = dias.map(lojaFisicaEOnline)
+  const soma = (canal: 'online' | 'loja_fisica', campo: 'valor' | 'pedidos') => porDia.reduce((t, d) => t + d[canal][campo], 0)
   return (
     <div className="grid grid-cols-2 gap-6">
       <Numero rotulo="Online em 14 dias" valor={moeda(soma('online', 'valor'))} detalhe={plural(soma('online', 'pedidos'), 'pedido')} />
@@ -366,15 +369,20 @@ function horas(h: number | null | undefined) {
 function RedeAgora({ rede, unidades }: { rede: Esquema<'RedeAgora'>; unidades: Esquema<'LinhaDaUnidade'>[] }) {
   const v = rede.vendas_14_dias
   const t = rede.ticket_medio_30_dias
+  // online = site + app; o app só aparece no período com venda pelo app (histórico da Vulto)
+  const online = Number(v.site.valor) + Number(v.app?.valor ?? 0)
+  const variacaoOnline = variacaoJunta([v.site, v.app])
+  // o ticket do online só se junta sem o app: sem o número de pedidos de cada um, a média não soma
+  const ticketOnline = t.app !== null && t.app !== undefined ? `site ${moeda(t.site)}, app ${moeda(t.app)}` : `online ${moeda(t.site)}`
   const a = rede.avaliacoes
   return (
     <section aria-labelledby="titulo-rede" className={cn('space-y-8', BLOCO_ACO)}>
       <h2 id="titulo-rede" className="border-b border-foreground pb-3 text-lg font-medium">A rede agora</h2>
       <div className="grid grid-cols-2 gap-x-6 gap-y-8 md:grid-cols-4">
         <Numero rotulo="Vendas em 14 dias" valor={moeda(v.total.valor)} detalhe={variacao(v.total.variacao_valor_pct)} />
-        <Numero rotulo="Online em 14 dias" valor={moeda(v.online.valor)} detalhe={variacao(v.online.variacao_valor_pct)} />
-        <Numero rotulo="Loja física em 14 dias" valor={moeda(v.loja_fisica.valor)} detalhe={variacao(v.loja_fisica.variacao_valor_pct)} />
-        <Numero rotulo="Ticket médio em 30 dias" valor={moeda(t.total)} detalhe={`online ${moeda(t.online)}, loja ${moeda(t.loja_fisica)}`} />
+        <Numero rotulo="Online em 14 dias" valor={moeda(online)} detalhe={variacao(variacaoOnline)} />
+        <Numero rotulo="Loja física em 14 dias" valor={moeda(v.loja.valor)} detalhe={variacao(v.loja.variacao_valor_pct)} />
+        <Numero rotulo="Ticket médio em 30 dias" valor={moeda(t.total)} detalhe={`${ticketOnline}, loja ${moeda(t.loja)}`} />
         <Numero
           rotulo="Cobertura de estoque"
           valor={rede.cobertura_dias === null ? '—' : `${umaCasa(rede.cobertura_dias)} dias`}
