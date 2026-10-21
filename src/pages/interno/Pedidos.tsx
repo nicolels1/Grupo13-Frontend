@@ -1,12 +1,13 @@
 import { useState, type FormEvent, type ReactNode } from 'react'
 import { Check, PackageCheck, Truck, UserPen, X } from 'lucide-react'
-import { useSearchParams } from 'react-router'
+import { Link, useSearchParams } from 'react-router'
 import { cn } from 'cn'
 
 import { useAuth } from '@/auth/contexto'
-import { temPermissao } from '@/auth/areas'
+import { AREAS, podeVerArea, temPermissao } from '@/auth/areas'
 import { Aviso, Carregando, Sucesso, Vazio } from '@/components/Estados'
 import { Abas, Cabecalho, Paginacao } from '@/components/Navegacao'
+import { OrigemMigracao } from '@/components/OrigemMigracao'
 import { Etiqueta, NomePeca } from '@/components/Peca'
 import { Status } from '@/components/Status'
 import { Button } from '@/components/ui/button'
@@ -15,8 +16,9 @@ import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '
 import { useUnidadeEscolhida } from '@/layouts/unidadeEscolhida'
 import { api, ErroApi, type Esquema } from '@/lib/api'
 import { BLOCO_ACO } from './componentes/estilos'
-import { dataCurta, dataHora, haQuanto, hora, mascaraCpf, METODOS_PAGAMENTO, moeda, plural } from '@/lib/formato'
+import { CANAIS_VENDA, dataCurta, dataHora, haQuanto, hora, mascaraCpf, moeda, nomeDoMetodo, plural } from '@/lib/formato'
 import { useCarregar, useEnviar } from '@/lib/useCarregar'
+import { caminhoDaFicha } from './clientes/regrasCliente'
 
 type Pedido = Esquema<'PedidoSaida'>
 type PaginaPedidos = Esquema<'Pagina_PedidoSaida_'>
@@ -51,6 +53,12 @@ function comoRecebe(p: Pedido) {
 const pecas = (p: Pedido) => p.itens.reduce((t, i) => t + i.quantidade, 0)
 const diasDesde = (iso: string | null) => (iso ? Math.floor((Date.now() - new Date(iso).getTime()) / 86400000) : 0)
 const nomeDoCliente = (p: Pedido) => p.cliente ?? (p.cpf_nota ? `CPF ${mascaraCpf(p.cpf_nota)}` : 'Cliente sem cadastro')
+// a ficha do cliente do pedido, com conta ou da Vulto sem conta; sem cliente, não há ficha
+const fichaDoCliente = (p: Pedido) => (p.id_cliente ? caminhoDaFicha('conta', p.id_cliente)
+  : p.id_cliente_sem_conta ? caminhoDaFicha('sem-conta', p.id_cliente_sem_conta) : null)
+const AREA_CLIENTES = AREAS.find((a) => a.caminho === 'clientes')
+// o pedido do app e do site diz por onde veio; o da loja já diz em qual loja (comoRecebe)
+const pelo = (p: Pedido) => (p.canal_venda === 'loja' ? '' : `, pelo ${(CANAIS_VENDA[p.canal_venda] ?? p.canal_venda).toLowerCase()}`)
 
 export function Pedidos() {
   const { perfil } = useAuth()
@@ -197,6 +205,7 @@ function DetalhePedido({ pedido: p, aoMudar }: { pedido: Pedido; aoMudar: () => 
   const { perfil } = useAuth()
   const [feito, setFeito] = useState<string | null>(null)
   const podeCancelar = temPermissao(perfil, 'cancelar_pedido_equipe') && ['aguardando_pagamento', 'pago', 'pronto_para_retirada'].includes(p.status)
+  const ficha = AREA_CLIENTES && podeVerArea(perfil, AREA_CLIENTES) ? fichaDoCliente(p) : null
   const pagamentos = p.pagamentos.filter((x) => x.tipo === 'pagamento')
   const estornos = p.pagamentos.filter((x) => x.tipo === 'estorno' && x.status !== 'recusado')
 
@@ -213,9 +222,11 @@ function DetalhePedido({ pedido: p, aoMudar }: { pedido: Pedido; aoMudar: () => 
           <Status tipo="pedido" valor={p.status} />
           {p.devolucao !== 'nenhuma' && <Etiqueta>Devolução {p.devolucao}</Etiqueta>}
         </div>
-        <h2 className="text-2xl font-medium">{nomeDoCliente(p)}</h2>
+        <h2 className="text-2xl font-medium">
+          {ficha ? <Link to={ficha} className="hover:underline">{nomeDoCliente(p)}</Link> : nomeDoCliente(p)}
+        </h2>
         <p className="text-sm text-muted-foreground">
-          Pedido {p.id_pedido}, {comoRecebe(p).toLowerCase()}, feito em {dataCurta(p.criado_em)} às {hora(p.criado_em)}
+          Pedido {p.id_pedido}, {comoRecebe(p).toLowerCase()}{pelo(p)}, feito em {dataCurta(p.criado_em)} às {hora(p.criado_em)}
         </p>
       </div>
 
@@ -246,6 +257,9 @@ function DetalhePedido({ pedido: p, aoMudar }: { pedido: Pedido; aoMudar: () => 
         </ul>
         <dl className="ml-auto max-w-xs space-y-1 pt-2 text-sm">
           <div className="flex justify-between"><dt className="text-muted-foreground">Peças</dt><dd className="tabular-nums">{moeda(p.valor_itens)}</dd></div>
+          {Number(p.valor_desconto) > 0 && (
+            <div className="flex justify-between"><dt className="text-muted-foreground">Desconto</dt><dd className="tabular-nums">−{moeda(p.valor_desconto)}</dd></div>
+          )}
           <div className="flex justify-between"><dt className="text-muted-foreground">Frete</dt><dd className="tabular-nums">{Number(p.valor_frete) ? moeda(p.valor_frete) : 'grátis'}</dd></div>
           <div className="flex justify-between font-medium"><dt>Total</dt><dd className="tabular-nums">{moeda(p.valor_total)}</dd></div>
         </dl>
@@ -258,13 +272,15 @@ function DetalhePedido({ pedido: p, aoMudar }: { pedido: Pedido; aoMudar: () => 
           <ul className="space-y-1">
             {pagamentos.map((x) => (
               <li key={x.id_pagamento} className="flex items-center justify-between gap-3">
-                <span>{METODOS_PAGAMENTO[x.metodo] ?? x.metodo}, {moeda(x.valor)}</span>
+                <span>{nomeDoMetodo(x.metodo)}, {moeda(x.valor)}</span>
                 <Status tipo="pagamento" valor={x.status} />
               </li>
             ))}
             {estornos.map((x) => (
               <li key={x.id_pagamento} className="flex justify-between gap-3 text-muted-foreground">
-                <span>Estorno no {(METODOS_PAGAMENTO[x.metodo] ?? x.metodo).toLowerCase()}, {dataCurta(x.criado_em)}</span>
+                <span>
+                  {x.metodo === 'nao_informado' ? 'Estorno' : `Estorno no ${nomeDoMetodo(x.metodo).toLowerCase()}`}, {dataCurta(x.criado_em)}
+                </span>
                 <span className="tabular-nums">−{moeda(x.valor)}</span>
               </li>
             ))}
@@ -290,6 +306,8 @@ function DetalhePedido({ pedido: p, aoMudar }: { pedido: Pedido; aoMudar: () => 
           )}
         </section>
       </div>
+
+      <OrigemMigracao tabela="pedido" idRegistro={p.id_pedido} titulo="Origem na Vulto" />
 
       {p.status === 'cancelado' && (
         <p className="bg-superficie p-4 text-sm">

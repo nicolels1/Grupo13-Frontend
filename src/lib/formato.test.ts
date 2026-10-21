@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
-import { dataCurta, dataHora, diasAtras, mascaraCpf, moeda, moedaCurta, numero, plural, soDigitos, tamanhoArquivo } from './formato'
+import { dataCurta, dataHora, diasAtras, mascaraCpf, moeda, moedaCurta, nomeDoMetodo, numero, plural, soDigitos, tamanhoArquivo } from './formato'
 
 describe('moeda', () => {
   it('mostra o valor da API em reais', () => {
@@ -11,6 +11,14 @@ describe('moeda', () => {
   it('mostra um traço quando não há valor', () => {
     expect(moeda(null)).toBe('—')
     expect(moeda('')).toBe('—')
+  })
+})
+
+describe('nomeDoMetodo', () => {
+  it('dá nome aos métodos do caixa e ao do pagamento migrado sem método', () => {
+    expect(nomeDoMetodo('cartao_credito')).toBe('Cartão de crédito')
+    expect(nomeDoMetodo('nao_informado')).toBe('Método não informado')
+    expect(nomeDoMetodo('boleto')).toBe('boleto')
   })
 })
 

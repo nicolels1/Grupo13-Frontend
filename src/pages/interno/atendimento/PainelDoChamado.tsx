@@ -2,8 +2,10 @@ import { useState, type FormEvent } from 'react'
 import { Link } from 'react-router'
 import { cn } from 'cn'
 
+import { AREAS, podeVerArea } from '@/auth/areas'
 import { useAuth } from '@/auth/contexto'
 import { Aviso, Sucesso } from '@/components/Estados'
+import { OrigemMigracao } from '@/components/OrigemMigracao'
 import { Etiqueta, NomePeca } from '@/components/Peca'
 import { Status } from '@/components/Status'
 import { Button } from '@/components/ui/button'
@@ -11,15 +13,22 @@ import { Campo, Input, Select } from '@/components/ui/input'
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet'
 import { useUnidadeEscolhida } from '@/layouts/unidadeEscolhida'
 import { api, type Esquema } from '@/lib/api'
-import { CATEGORIAS_CHAMADO, dataCurta, dataHora, METODOS_PAGAMENTO, moeda, MOTIVOS_CONCLUSAO, plural, PRIORIDADES, STATUS_CHAMADO } from '@/lib/formato'
+import { CATEGORIAS_CHAMADO, dataCurta, dataHora, moeda, MOTIVOS_CONCLUSAO, nomeDoMetodo, plural, PRIORIDADES, STATUS_CHAMADO } from '@/lib/formato'
 import { nomeUnidade } from '@/lib/listas'
 import { estornaveis, prazoTroca, type ModoTroca, type TrocaFeita } from '../troca/regrasTrocaDevolucao'
 import { type Carga, useCarregar, useEnviar } from '@/lib/useCarregar'
 import { AtenderPedido } from '../troca/TrocaDevolucao'
+import { caminhoDaFicha } from '../clientes/regrasCliente'
+import { nomeDoCanalExterno, quemAbriu, semCadastro } from './regrasChamado'
 
 type Chamado = Esquema<'ChamadoSaida'>
 type Pedido = Esquema<'PedidoSaida'>
 type Historico = Esquema<'Lista_HistoricoSaida_'>
+
+const AREA_CLIENTES = AREAS.find((a) => a.caminho === 'clientes')
+// a ficha do cliente do chamado, com conta ou da Vulto sem conta
+const fichaDoCliente = (c: Chamado) => (c.id_cliente ? caminhoDaFicha('conta', c.id_cliente)
+  : c.id_cliente_sem_conta ? caminhoDaFicha('sem-conta', c.id_cliente_sem_conta) : null)
 
 // painel do chamado aberto: cliente, pedido, prioridade, repasse, troca, devolução, estorno e histórico
 
@@ -43,6 +52,7 @@ export function PainelDoChamado({ chamado: c, historico, aoMudar }: { chamado: C
   const [trocando, setTrocando] = useState<ModoTroca | null>(null)
   const [feito, setFeito] = useState<string | null>(null)
   const { enviar, enviando, erro } = useEnviar()
+  const ficha = AREA_CLIENTES && podeVerArea(perfil, AREA_CLIENTES) ? fichaDoCliente(c) : null
   const souResponsavel = c.id_responsavel === perfil?.id_usuario
   const concluido = c.status === 'concluido'
   const pedido = useCarregar(() => (c.id_pedido ? api<Pedido>(`/vendas/pedidos/${c.id_pedido}`) : null), [c.id_pedido])
@@ -63,7 +73,16 @@ export function PainelDoChamado({ chamado: c, historico, aoMudar }: { chamado: C
       {erro && <Aviso mensagem={erro} />}
 
       <section className="space-y-3">
-        <h3 className="text-lg font-medium">{c.cliente}</h3>
+        <h3 className="text-lg font-medium">
+          {ficha ? <Link to={ficha} className="hover:underline">{quemAbriu(c)}</Link> : quemAbriu(c)}
+        </h3>
+        {c.canal_externo && (
+          <p className="text-sm text-muted-foreground">
+            Pelo {nomeDoCanalExterno(c.canal_externo)}
+            {c.contato_externo && !semCadastro(c) && `, ${c.contato_externo}`}
+            {semCadastro(c) && '. Sem cadastro: nada liga esta conversa a um cliente.'}
+          </p>
+        )}
         {c.id_pedido && <PedidoLigado chamado={c} pedido={pedido} />}
         {c.id_chamado_anterior && (
           <p className="text-sm">
@@ -191,6 +210,13 @@ export function PainelDoChamado({ chamado: c, historico, aoMudar }: { chamado: C
           ))}
         </ul>
       </section>
+
+      {/* só no chamado que veio do atendimento da Vulto: a linha da conversa, a categoria e quem atendeu lá */}
+      {c.canal_externo && (
+        <div className="border-t pt-4">
+          <OrigemMigracao tabela="chamado" idRegistro={c.id_chamado} titulo="Origem na Vulto" />
+        </div>
+      )}
     </aside>
   )
 }
@@ -276,7 +302,7 @@ function EstornoPeloChamado({ aberto, chamado: c, pedido, aoFechar, aoConcluir }
   const escolhida = opcoes.find((o) => o.pagamento.id_pagamento === idPagamento)
   const numero = Number(valor.replace(',', '.'))
   const valorOk = escolhida && numero > 0 && numero <= escolhida.restante && /^\d+([.,]\d{1,2})?$/.test(valor)
-  const metodo = escolhida ? (METODOS_PAGAMENTO[escolhida.pagamento.metodo] ?? escolhida.pagamento.metodo).toLowerCase() : ''
+  const metodo = escolhida ? nomeDoMetodo(escolhida.pagamento.metodo).toLowerCase() : ''
   const jaEstornados = pedido.pagamentos.filter((p) => p.tipo === 'estorno' && p.status !== 'recusado')
 
   function fechar() {
@@ -338,7 +364,7 @@ function EstornoPeloChamado({ aberto, chamado: c, pedido, aoFechar, aoConcluir }
                       className="flex w-full items-center justify-between gap-3 border px-4 py-3 text-left text-sm hover:border-foreground"
                     >
                       <span>
-                        <span className="block font-medium">{METODOS_PAGAMENTO[o.pagamento.metodo] ?? o.pagamento.metodo}</span>
+                        <span className="block font-medium">{nomeDoMetodo(o.pagamento.metodo)}</span>
                         <span className="text-xs text-muted-foreground">pago {moeda(o.pagamento.valor)} em {dataCurta(o.pagamento.criado_em)}</span>
                       </span>
                       <span className="text-right">
@@ -390,7 +416,7 @@ function EstornoPeloChamado({ aberto, chamado: c, pedido, aoFechar, aoConcluir }
                 <div className="flex justify-between gap-3"><dt className="text-muted-foreground">Valor</dt><dd className="font-medium tabular-nums">{moeda(numero)}</dd></div>
                 <div className="flex justify-between gap-3"><dt className="text-muted-foreground">Volta pelo</dt><dd>{metodo}</dd></div>
                 <div className="flex justify-between gap-3"><dt className="text-muted-foreground">Pedido</dt><dd>{pedido.codigo_venda}</dd></div>
-                <div className="flex justify-between gap-3"><dt className="text-muted-foreground">Cliente</dt><dd>{c.cliente}</dd></div>
+                <div className="flex justify-between gap-3"><dt className="text-muted-foreground">Cliente</dt><dd>{quemAbriu(c)}</dd></div>
               </dl>
               <p className="text-xs text-muted-foreground">O estorno não pode ser desfeito.</p>
               {erro && <Aviso mensagem={erro} />}

@@ -4,12 +4,14 @@ import { cn } from 'cn'
 
 import { Aviso, Carregando } from '@/components/Estados'
 import { Abas } from '@/components/Navegacao'
+import { Etiqueta } from '@/components/Peca'
 import { Button } from '@/components/ui/button'
 import { api, ErroApi, type Esquema } from '@/lib/api'
 import { CATEGORIAS_CHAMADO, dataHora, dataLonga, hora, tamanhoArquivo } from '@/lib/formato'
 import { useCarregar, useEnviar, useIntervalo } from '@/lib/useCarregar'
 import { Prioridade } from './Fila'
 import { PainelDoChamado } from './PainelDoChamado'
+import { comoChamar, nomeDoCanalExterno, quemAbriu, respostaNaoChega, semCadastro } from './regrasChamado'
 
 type Chamado = Esquema<'ChamadoSaida'>
 type Mensagem = Esquema<'MensagemSaida'>
@@ -49,8 +51,14 @@ export function ChamadoAberto({ idChamado, aoMudar }: { idChamado: string; aoMud
         <div className="space-y-1">
           <h2 className="text-2xl font-medium">{c.assunto}</h2>
           <p className="text-sm text-muted-foreground">
-            Chamado {c.id_chamado}, aberto por {c.cliente} em {dataLonga(c.criado_em)} às {hora(c.criado_em)}, {CATEGORIAS_CHAMADO[c.categoria]?.toLowerCase()}
+            Chamado {c.id_chamado}, aberto por {quemAbriu(c)} em {dataLonga(c.criado_em)} às {hora(c.criado_em)}, {CATEGORIAS_CHAMADO[c.categoria]?.toLowerCase()}
           </p>
+          {c.canal_externo && (
+            <p className="flex flex-wrap gap-2 pt-1">
+              <Etiqueta>Veio da Vulto pelo {nomeDoCanalExterno(c.canal_externo)}</Etiqueta>
+              {semCadastro(c) && <Etiqueta alerta>Sem cadastro</Etiqueta>}
+            </p>
+          )}
         </div>
         <Prioridade valor={c.prioridade} />
       </div>
@@ -58,7 +66,7 @@ export function ChamadoAberto({ idChamado, aoMudar }: { idChamado: string; aoMud
       <div className="grid gap-8 xl:grid-cols-[minmax(0,1fr)_17rem]">
         <div className="min-w-0 space-y-6">
           <ol aria-label="Mensagens" className="space-y-5">
-            <Mensagem mensagem={{ conteudo: c.descricao, autor: c.cliente, criado_em: c.criado_em }} />
+            <Mensagem mensagem={{ conteudo: c.descricao, autor: quemAbriu(c), criado_em: c.criado_em }} />
             {mensagens.dados?.items.map((m) => <Mensagem key={m.id_mensagem} mensagem={m} />)}
           </ol>
           {mensagens.erro && <Aviso mensagem={mensagens.erro} />}
@@ -129,9 +137,11 @@ const TIPOS_ANEXO = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf']
 
 const ANEXO_MAXIMO = 10 * 1024 * 1024
 
-// campo de resposta: responder ao cliente ou nota interna, com texto e um anexo opcional
+// campo de resposta: responder ao cliente ou nota interna, com texto e um anexo opcional. O cliente sem
+// conta (o chamado migrado da Vulto) não vê resposta por aqui: só a nota interna, com o canal dele
 function Responder({ chamado: c, aoEnviar }: { chamado: Chamado; aoEnviar: () => void }) {
-  const [modo, setModo] = useState<'cliente' | 'interna'>('cliente')
+  const soNota = respostaNaoChega(c)
+  const [modo, setModo] = useState<'cliente' | 'interna'>(soNota ? 'interna' : 'cliente')
   const [texto, setTexto] = useState('')
   const [arquivo, setArquivo] = useState<File | null>(null)
   const [erroArquivo, setErroArquivo] = useState<string | null>(null)
@@ -175,13 +185,24 @@ function Responder({ chamado: c, aoEnviar }: { chamado: Chamado; aoEnviar: () =>
   }
 
   return (
-    <form onSubmit={responder} className={cn('border focus-within:ring-2 focus-within:ring-ring', interna && 'border-ardosia')}>
+    <div className="space-y-2">
+      {soNota && (
+        <p className="bg-superficie px-4 py-3 text-sm">
+          {quemAbriu(c)} não tem conta na plataforma e não vê respostas por aqui.
+          {c.canal_externo && c.contato_externo
+            ? ` Fale pelo ${nomeDoCanalExterno(c.canal_externo)} (${c.contato_externo}) e registre o combinado como nota interna.`
+            : ' Registre o atendimento como nota interna.'}
+        </p>
+      )}
+      <form onSubmit={responder} className={cn('border focus-within:ring-2 focus-within:ring-ring', interna && 'border-ardosia')}>
       <div className="px-3 pt-2">
         <Abas
           rotulo="Tipo de resposta"
           valor={modo}
           aoMudar={setModo}
-          abas={[{ valor: 'cliente', rotulo: `Responder a ${c.cliente.split(' ')[0]}` }, { valor: 'interna', rotulo: 'Nota interna' }]}
+          abas={soNota
+            ? [{ valor: 'interna', rotulo: 'Nota interna' }]
+            : [{ valor: 'cliente', rotulo: `Responder a ${comoChamar(c)}` }, { valor: 'interna', rotulo: 'Nota interna' }]}
         />
       </div>
       <label htmlFor="resposta" className="sr-only">{interna ? 'Nota interna' : 'Mensagem'}</label>
@@ -191,7 +212,7 @@ function Responder({ chamado: c, aoEnviar }: { chamado: Chamado; aoEnviar: () =>
         value={texto}
         onChange={(e) => setTexto(e.target.value)}
         maxLength={5000}
-        placeholder={interna ? 'Só a equipe vê esta nota' : `Escreva para ${c.cliente.split(' ')[0]}`}
+        placeholder={interna ? 'Só a equipe vê esta nota' : `Escreva para ${comoChamar(c)}`}
         className={cn('block w-full resize-y px-4 py-3 text-sm outline-none', interna && 'bg-ardosia-clara')}
       />
       {arquivo && (
@@ -214,6 +235,7 @@ function Responder({ chamado: c, aoEnviar }: { chamado: Chamado; aoEnviar: () =>
         </Button>
       </div>
       {(erroArquivo || erro) && <div className="border-t p-3"><Aviso mensagem={erroArquivo || erro} /></div>}
-    </form>
+      </form>
+    </div>
   )
 }

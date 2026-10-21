@@ -31,6 +31,18 @@ describe('OrigemMigracao', () => {
     expect(within(atemporais!).getByText('só o SKU em vermelho')).toBeTruthy()
   })
 
+  it('com título, aparece só quando o registro veio da migração', async () => {
+    api.mockResolvedValue({ items: [] })
+    const { container } = render(<OrigemMigracao tabela="pedido" idRegistro={12} titulo="Origem na Vulto" />)
+    await vi.waitFor(() => expect(api).toHaveBeenCalled())
+    expect(container.textContent).toBe('')
+
+    cleanup()
+    api.mockResolvedValue({ items: ORIGEM_VARIANTE_DE_TESTE })
+    render(<OrigemMigracao tabela="pedido" idRegistro={5012} titulo="Origem na Vulto" />)
+    expect(await screen.findByRole('heading', { name: 'Origem na Vulto' })).toBeTruthy()
+  })
+
   it('diz quando o registro não veio da migração', async () => {
     api.mockResolvedValue({ items: [] })
     render(<OrigemMigracao tabela="variante" idRegistro={12} />)

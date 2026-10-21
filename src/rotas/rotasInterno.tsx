@@ -24,7 +24,14 @@ const TELAS: Record<string, { tela: ReactElement; filhas?: RouteObject[] }> = {
   transferencias: { tela: tela(<Transferencias />) },
   caixa: { tela: tela(<Caixa />) },
   pedidos: { tela: tela(<Pedidos />) },
-  clientes: { tela: tela(<Clientes />), filhas: [{ path: ':idCliente', element: tela(<FichaCliente />) }] },
+  // a ficha do cliente com conta e a do cliente da Vulto sem conta (P2)
+  clientes: {
+    tela: tela(<Clientes />),
+    filhas: [
+      { path: 'conta/:idCliente', element: tela(<FichaCliente tipo="conta" />) },
+      { path: 'sem-conta/:idCliente', element: tela(<FichaCliente tipo="sem-conta" />) },
+    ],
+  },
   avaliacoes: { tela: tela(<Moderacao />) },
   // o chamado aberto é a mesma caixa de entrada com a terceira coluna preenchida
   atendimento: { tela: tela(<Atendimento />), filhas: [{ path: ':idChamado', element: tela(<Atendimento />) }] },

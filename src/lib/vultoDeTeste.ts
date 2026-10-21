@@ -251,7 +251,8 @@ export const ORIGEM_PEDIDO_DE_TESTE: Esquema<'OrigemSaida'>[] = [
 
 // ---------- atendimento ----------
 
-// conversa de WhatsApp sem cliente identificado (A6): o canal e o contato ficam no chamado (P6)
+// conversa de WhatsApp sem cliente identificado (A6): o canal e o contato ficam no chamado (P6), e a API
+// manda o contato no lugar do nome do cliente
 export function chamadoVultoDeTeste(dados: Partial<Esquema<'ChamadoSaida'>> = {}): Esquema<'ChamadoSaida'> {
   return {
     id_chamado: 7001,
@@ -263,7 +264,7 @@ export function chamadoVultoDeTeste(dados: Partial<Esquema<'ChamadoSaida'>> = {}
     motivo_encerramento: 'resolvido',
     id_cliente: null,
     id_cliente_sem_conta: null,
-    cliente: 'Rodrigo',
+    cliente: '+5541999990000',
     id_responsavel: 'b5d1c0de-0000-4000-8000-000000000101',
     responsavel: 'Júlia',
     id_pedido: null,
