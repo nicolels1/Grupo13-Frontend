@@ -10,10 +10,12 @@
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
-    /* Jost em tudo; Marcellus só na logo; Newsreader só nos títulos da loja */
+    /* Jost em tudo; Marcellus só na logo da Casa Lorenzi; Newsreader só nos títulos da loja. A logo da
+       Vulto segue a da marca: Helvetica Neue em negrito, como no sistema dela */
     --font-heading: var(--font-sans);
     --font-sans: 'Jost Variable', 'Futura', 'Helvetica Neue', Helvetica, sans-serif;
     --font-logo: 'Marcellus', Georgia, serif;
+    --font-logo-vulto: 'Helvetica Neue', Helvetica, Arial, sans-serif;
     --font-titulo: 'Newsreader Variable', Georgia, serif;
     /* paleta da Casa Lorenzi (casa_lorenzi.pdf) */
     --color-marinho: var(--marinho);

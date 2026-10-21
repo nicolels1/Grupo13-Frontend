@@ -4,30 +4,34 @@ import { Link, Outlet, useLocation, useNavigate, useSearchParams } from 'react-r
 import { cn } from 'cn'
 
 import { useAuth } from '@/auth/contexto'
-import { Logo } from '@/components/Logo'
+import { Logo, NomeDaLoja } from '@/components/Logo'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import type { Esquema } from '@/lib/api'
 import { useCategorias } from '@/lib/listas'
+import { escolherLoja, useLojaEscolhida, type Loja } from '@/lib/lojaEscolhida'
 import { CarrinhoProvider } from '@/pages/loja/carrinho/CarrinhoProvider'
 import { useCarrinho } from '@/pages/loja/carrinho/contexto'
 import { GavetaCarrinho } from '@/pages/loja/carrinho/GavetaCarrinho'
 import { useChamadosDaConta } from '@/pages/loja/conta/useChamadosDaConta'
 
-// plataforma do cliente: a vitrine é pública; a conta aparece à direita do topo
+// plataforma do cliente: a vitrine é pública; a conta aparece à direita do topo. Em cima de tudo, uma
+// aba para cada loja do grupo; o menu de categorias e o logo são os da loja escolhida
 export function LayoutCliente() {
-  const { dados: categorias } = useCategorias()
+  const loja = useLojaEscolhida()
+  const { dados: categorias } = useCategorias(loja)
   const ativas = (categorias ?? []).filter((c) => c.ativo)
 
   return (
     <CarrinhoProvider>
       <div className="flex min-h-svh flex-col bg-background text-foreground">
+        <AbasDasLojas loja={loja} />
         <p className="bg-marinho-escuro px-4 py-2 text-center text-[0.7rem] font-medium tracking-[0.12em] text-white uppercase">
           Frete grátis a partir de R$ 299 e retirada grátis na loja
         </p>
 
         <header className="border-b">
           <div className="mx-auto grid max-w-7xl grid-cols-[auto_minmax(0,1fr)] items-center gap-x-4 gap-y-3 px-4 py-4 sm:px-6 lg:grid-cols-[auto_minmax(0,1fr)_auto_auto] lg:gap-x-8">
-            <Logo para="/loja" className="text-lg sm:text-2xl" />
+            <Logo para="/loja" loja={loja} className="text-lg sm:text-2xl" />
             <Categorias categorias={ativas} />
             <BuscaDaLoja />
             <div className="col-start-2 row-start-1 flex items-center justify-end gap-5 lg:col-start-auto lg:row-start-auto">
@@ -46,6 +50,38 @@ export function LayoutCliente() {
         <GavetaCarrinho />
       </div>
     </CarrinhoProvider>
+  )
+}
+
+const LOJAS: Loja[] = ['lorenzi', 'vulto']
+
+// as duas lojas do grupo, como abas acima do topo (a loja aberta fica na cor do fundo da página).
+// Trocar de aba leva ao início da outra loja; carrinho e conta continuam os mesmos
+function AbasDasLojas({ loja }: { loja: Loja }) {
+  const navegar = useNavigate()
+  return (
+    <nav aria-label="Lojas" className="bg-superficie">
+      <ul className="mx-auto flex max-w-7xl px-4 sm:px-6">
+        {LOJAS.map((opcao) => (
+          <li key={opcao}>
+            <button
+              type="button"
+              aria-current={opcao === loja ? 'page' : undefined}
+              onClick={() => {
+                escolherLoja(opcao)
+                navegar('/loja')
+              }}
+              className={cn(
+                'px-5 py-2.5 text-sm transition-colors sm:px-8',
+                opcao === loja ? 'bg-background text-foreground' : 'text-muted-foreground hover:text-foreground',
+              )}
+            >
+              <NomeDaLoja loja={opcao} />
+            </button>
+          </li>
+        ))}
+      </ul>
+    </nav>
   )
 }
 
