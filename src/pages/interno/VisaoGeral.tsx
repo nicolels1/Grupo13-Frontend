@@ -121,7 +121,7 @@ export function VisaoGeral() {
   // as duas colunas já existem antes do resumo chegar, pelo perfil: assim os números carregam ao
   // lado das pendências, e não aparecem embaixo delas para depois pular de lugar
   const verPontos = pode('gerenciar_fidelidade')
-  const teraNumeros = admin || VENDAS.some(pode) || pode('atender_chamado') || verPontos
+  const teraNumeros = admin || VENDAS.some(pode) || pode('atender_chamado')
 
   return (
     <div className="space-y-12">
@@ -138,16 +138,20 @@ export function VisaoGeral() {
       </Cabecalho>
 
       <div className={cn('grid gap-12', teraNumeros && 'lg:grid-cols-[25rem_1fr]')}>
-        {/* linha vertical entre pendências e números, com o mesmo respiro dos dois lados */}
-        <section aria-labelledby="titulo-pendencias" className={cn(teraNumeros ? 'lg:border-r lg:pr-12' : 'max-w-md')}>
-          <h2 id="titulo-pendencias" className="border-b border-foreground pb-3 text-lg font-medium">Pendências</h2>
-          {pendencias.erro && <div className="mt-4"><Aviso mensagem={pendencias.erro} /></div>}
-          {pendencias.carregando && !pendencias.dados && <Carregando texto="Conferindo as pendências..." />}
-          {pendencias.dados?.length === 0 && <p className="py-6 text-sm text-muted-foreground">Sua conta não tem pendências para acompanhar aqui.</p>}
-          <ul>
-            {pendenciasEmOrdem.map((p) => <LinhaPendencia key={p.chave} pendencia={p} />)}
-          </ul>
-        </section>
+        {/* linha vertical entre pendências e números, com o mesmo respiro dos dois lados. Embaixo das
+            pendências, os pontos: são da rede inteira, então ficam fora da coluna da unidade escolhida */}
+        <div className={cn('space-y-12', teraNumeros ? 'lg:border-r lg:pr-12' : 'max-w-md')}>
+          <section aria-labelledby="titulo-pendencias">
+            <h2 id="titulo-pendencias" className="border-b border-foreground pb-3 text-lg font-medium">Pendências</h2>
+            {pendencias.erro && <div className="mt-4"><Aviso mensagem={pendencias.erro} /></div>}
+            {pendencias.carregando && !pendencias.dados && <Carregando texto="Conferindo as pendências..." />}
+            {pendencias.dados?.length === 0 && <p className="py-6 text-sm text-muted-foreground">Sua conta não tem pendências para acompanhar aqui.</p>}
+            <ul>
+              {pendenciasEmOrdem.map((p) => <LinhaPendencia key={p.chave} pendencia={p} />)}
+            </ul>
+          </section>
+          {verPontos && <PassivoDePontos />}
+        </div>
 
         {teraNumeros && (
           <div className="min-w-0 space-y-12">
@@ -174,7 +178,6 @@ export function VisaoGeral() {
                 <GraficoChamados dias={r.chamados.por_dia} />
               </section>
             )}
-            {verPontos && <PassivoDePontos />}
           </div>
         )}
       </div>
@@ -249,12 +252,13 @@ function PassivoDePontos() {
     <section aria-labelledby="titulo-pontos" className="space-y-6">
       <div className="flex flex-wrap items-baseline justify-between gap-3 border-b border-foreground pb-3">
         <h2 id="titulo-pontos" className="text-lg font-medium">Pontos a resgatar</h2>
-        <span className="text-xs text-muted-foreground">toda a rede, pelo valor do ponto na época em que foi ganho</span>
+        <span className="text-xs text-muted-foreground">toda a rede</span>
       </div>
+      <p className="text-xs text-muted-foreground">Cada ponto pelo valor da época em que foi ganho.</p>
       {passivo.erro && <Aviso mensagem={passivo.erro} />}
       {passivo.carregando && !passivo.dados && <Carregando texto="Somando os pontos..." />}
       {passivo.dados && (
-        <div className="grid gap-6 sm:grid-cols-2">
+        <div className="space-y-8">
           {passivoPorLoja(passivo.dados.items).map(({ loja, passivo: p }) => (
             <div key={loja} className="space-y-3">
               <NomeDaLoja loja={loja} className="text-sm" />
