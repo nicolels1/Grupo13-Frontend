@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest'
 
 import { CLIENTE_SO_NOS_PONTOS_DE_TESTE, clienteVultoDeTeste } from '@/lib/vultoDeTeste'
-import { nomeDoCliente, rotuloConsentimento, rotuloMovimentoPontos, telefoneFormatado } from './regrasCliente'
+import {
+  caminhoDaFicha, filtroDoCliente, nomeDoCliente, rotuloConsentimento, rotuloMovimentoPontos, telefoneFormatado,
+} from './regrasCliente'
 
 describe('nomeDoCliente', () => {
   it('usa o nome do cadastro', () => {
@@ -42,5 +44,13 @@ describe('rotuloMovimentoPontos', () => {
   it('dá nome ao tipo do movimento', () => {
     expect(rotuloMovimentoPontos('saldo_inicial')).toBe('Saldo inicial')
     expect(rotuloMovimentoPontos('outro')).toBe('outro')
+  })
+})
+
+describe('filtroDoCliente', () => {
+  it('usa o id da conta ou o do cadastro sem conta, conforme o tipo', () => {
+    expect(filtroDoCliente('conta', 'b5d1c0de')).toEqual({ id_cliente: 'b5d1c0de' })
+    expect(filtroDoCliente('sem-conta', '301')).toEqual({ id_cliente_sem_conta: 301 })
+    expect(caminhoDaFicha('sem-conta', 301)).toBe('/interno/clientes/sem-conta/301')
   })
 })

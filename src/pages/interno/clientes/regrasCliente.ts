@@ -40,3 +40,23 @@ export const TIPOS_MOVIMENTO_PONTOS: Record<string, string> = {
 export function rotuloMovimentoPontos(tipo: string) {
   return TIPOS_MOVIMENTO_PONTOS[tipo] ?? tipo
 }
+
+// ---------- os dois tipos de cliente ----------
+
+// a conta é uma só no grupo: o cliente não é de uma loja, os pedidos e os pontos é que são. A separação
+// é entre quem tem conta (login, qualquer loja) e quem veio da Vulto sem conta (P2), até criá-la
+export type TipoCliente = 'conta' | 'sem-conta'
+
+export function caminhoDaFicha(tipo: TipoCliente, id: string | number) {
+  return `/interno/clientes/${tipo}/${id}`
+}
+
+// o cliente nos filtros das listas da equipe (pedidos, chamados e pontos)
+export function filtroDoCliente(tipo: TipoCliente, id: string): { id_cliente: string } | { id_cliente_sem_conta: number } {
+  return tipo === 'conta' ? { id_cliente: id } : { id_cliente_sem_conta: Number(id) }
+}
+
+// cliente com conta como GET /vendas/clientes/{id_usuario} vai devolver: o resumo e, se a pessoa veio da
+// Vulto, o cadastro sem conta ligado a ela (para a origem). A rota ainda não está no backend; quando
+// estiver, este tipo sai dos tipos gerados da API
+export type ClienteComConta = Esquema<'ClienteResumo'> & { id_cliente_sem_conta: number | null }

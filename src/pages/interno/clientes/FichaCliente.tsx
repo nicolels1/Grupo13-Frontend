@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react'
+import { useMemo, type ReactNode } from 'react'
 import { ChevronLeft } from 'lucide-react'
 import { Link, useParams } from 'react-router'
 import { cn } from 'cn'
@@ -11,13 +11,26 @@ import { Cabecalho } from '@/components/Navegacao'
 import { OrigemMigracao } from '@/components/OrigemMigracao'
 import { Status } from '@/components/Status'
 import { api, type Esquema } from '@/lib/api'
-import { CATEGORIAS_CHAMADO, dataCurta, dataLonga, mascaraCpf, moeda, numero, plural } from '@/lib/formato'
+import { CATEGORIAS_CHAMADO, dataCurta, dataLonga, mascaraCpf, moeda, numero, plural, STATUS_CONTA } from '@/lib/formato'
 import { lojaDaMarca } from '@/lib/lojaEscolhida'
 import { useCarregar } from '@/lib/useCarregar'
 import { nomeDaCategoria, saldosPorLoja } from '@/pages/loja/conta/pontosDaConta'
-import { nomeDoCliente, rotuloConsentimento, rotuloMovimentoPontos, telefoneFormatado } from './regrasCliente'
+import {
+  caminhoDaFicha, filtroDoCliente, nomeDoCliente, rotuloConsentimento, rotuloMovimentoPontos, telefoneFormatado,
+  type ClienteComConta, type TipoCliente,
+} from './regrasCliente'
 
-type Cliente = Esquema<'ClienteSemContaSaida'>
+type ClienteSemConta = Esquema<'ClienteSemContaSaida'>
+type Filtro = ReturnType<typeof filtroDoCliente>
+
+// o que a ficha mostra, igual para os dois tipos de cliente
+type Ficha = {
+  nome: string
+  subtitulo: ReactNode
+  dados: { rotulo: string; valor: ReactNode }[]
+  // o cadastro sem conta de onde a pessoa veio da Vulto, para a origem (null: não veio da migração)
+  idOrigem: number | null
+}
 
 // quem pode ver os pontos de um cliente (o mesmo do GET /fidelidade/clientes/pontos)
 const VER_PONTOS: CodigoPermissao[] = ['atender_chamado', 'registrar_venda_fisica', 'gerenciar_fidelidade']
@@ -37,43 +50,76 @@ function Secao({ titulo, extra, children }: { titulo: string; extra?: ReactNode;
   )
 }
 
-// ficha de um cliente da Vulto sem conta: cadastro, pontos, pedidos, chamados e de onde o cadastro veio.
-// Pontos e chamados só para quem pode vê-los (o backend confere de novo)
-export function FichaCliente() {
-  const { idCliente } = useParams()
+function fichaSemConta(c: ClienteSemConta): Ficha {
+  return {
+    nome: nomeDoCliente(c),
+    subtitulo: c.id_usuario ? (
+      <>Veio da Vulto e já criou a conta: os pedidos e os pontos passaram para ela. <Link to={caminhoDaFicha('conta', c.id_usuario)} className="underline underline-offset-4">Ver a conta</Link></>
+    ) : 'Veio da Vulto sem conta: quando criar a conta com o CPF ou o e-mail, o histórico vai junto.',
+    dados: [
+      { rotulo: 'CPF', valor: c.cpf ? mascaraCpf(c.cpf) : '—' },
+      { rotulo: 'E-mail', valor: <span className="break-all">{c.email ?? '—'}</span> },
+      { rotulo: 'Telefone', valor: telefoneFormatado(c.telefone) },
+      { rotulo: 'Mensagens da loja', valor: rotuloConsentimento(c.aceita_mensagem) },
+    ],
+    idOrigem: c.id_cliente_sem_conta,
+  }
+}
+
+function fichaComConta(c: ClienteComConta): Ficha {
+  return {
+    nome: c.nome,
+    subtitulo: c.id_cliente_sem_conta ? 'Cliente com conta, que veio da Vulto.' : 'Cliente com conta.',
+    dados: [
+      { rotulo: 'CPF', valor: c.cpf ? mascaraCpf(c.cpf) : '—' },
+      { rotulo: 'E-mail', valor: <span className="break-all">{c.email}</span> },
+      { rotulo: 'Conta', valor: STATUS_CONTA[c.status_conta] ?? c.status_conta },
+    ],
+    idOrigem: c.id_cliente_sem_conta,
+  }
+}
+
+// ficha de um cliente, com conta ou sem conta (migrado da Vulto): cadastro, pontos das duas lojas,
+// pedidos, chamados e, para quem veio da Vulto, a origem. Pontos e chamados só para quem pode vê-los
+// (o backend confere de novo)
+export function FichaCliente({ tipo }: { tipo: TipoCliente }) {
+  const { idCliente = '' } = useParams()
   const { perfil } = useAuth()
-  const cliente = useCarregar(() => api<Cliente>(`/vendas/clientes-sem-conta/${idCliente}`), [idCliente])
+  const carga = useCarregar<Ficha>(
+    () => (tipo === 'conta'
+      ? api<ClienteComConta>(`/vendas/clientes/${idCliente}`).then(fichaComConta)
+      : api<ClienteSemConta>(`/vendas/clientes-sem-conta/${idCliente}`).then(fichaSemConta)),
+    [tipo, idCliente],
+  )
   const vePontos = VER_PONTOS.some((p) => temPermissao(perfil, p))
   const veChamados = temPermissao(perfil, 'atender_chamado')
+  // o mesmo objeto enquanto o cliente não muda: as seções recarregam só ao trocar de cliente
+  const filtro = useMemo(() => filtroDoCliente(tipo, idCliente), [tipo, idCliente])
 
-  if (cliente.carregando && !cliente.dados) return <Carregando />
-  if (cliente.erro || !cliente.dados) return <Aviso mensagem={cliente.erro ?? 'Cliente não encontrado.'} />
-  const c = cliente.dados
+  if (carga.carregando && !carga.dados) return <Carregando />
+  if (carga.erro || !carga.dados) return <Aviso mensagem={carga.erro ?? 'Cliente não encontrado.'} />
+  const f = carga.dados
 
   return (
     <>
       <Link to="/interno/clientes" className="mb-3 inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
         <ChevronLeft className="size-4" aria-hidden="true" /> Clientes
       </Link>
-      <Cabecalho
-        titulo={nomeDoCliente(c)}
-        subtitulo={c.id_usuario ? 'Cliente da Vulto que já criou a conta.' : 'Cliente da Vulto sem conta: entra com o CPF ou o e-mail quando criar a conta.'}
-      />
+      <Cabecalho titulo={f.nome} subtitulo={f.subtitulo} />
 
       <dl className="grid gap-4 text-sm sm:grid-cols-2 lg:grid-cols-4">
-        <Dado rotulo="CPF">{c.cpf ? mascaraCpf(c.cpf) : '—'}</Dado>
-        <Dado rotulo="E-mail"><span className="break-all">{c.email ?? '—'}</span></Dado>
-        <Dado rotulo="Telefone">{telefoneFormatado(c.telefone)}</Dado>
-        <Dado rotulo="Mensagens da loja">{rotuloConsentimento(c.aceita_mensagem)}</Dado>
+        {f.dados.map((d) => <Dado key={d.rotulo} rotulo={d.rotulo}>{d.valor}</Dado>)}
       </dl>
 
-      {vePontos && <Pontos idCliente={c.id_cliente_sem_conta} />}
-      <Pedidos idCliente={c.id_cliente_sem_conta} />
-      {veChamados && <Chamados idCliente={c.id_cliente_sem_conta} />}
+      {vePontos && <Pontos filtro={filtro} />}
+      <Pedidos filtro={filtro} />
+      {veChamados && <Chamados filtro={filtro} />}
 
-      <Secao titulo="Origem na Vulto">
-        <OrigemMigracao tabela="cliente_sem_conta" idRegistro={c.id_cliente_sem_conta} />
-      </Secao>
+      {f.idOrigem !== null && (
+        <Secao titulo="Origem na Vulto">
+          <OrigemMigracao tabela="cliente_sem_conta" idRegistro={f.idOrigem} />
+        </Secao>
+      )}
     </>
   )
 }
@@ -87,16 +133,16 @@ function Dado({ rotulo, children }: { rotulo: string; children: ReactNode }) {
   )
 }
 
-function Pontos({ idCliente }: { idCliente: number }) {
+function Pontos({ filtro }: { filtro: Filtro }) {
   const saldos = useCarregar(
-    () => api<Esquema<'PontosDoCliente'>>('/fidelidade/clientes/pontos', { params: { id_cliente_sem_conta: idCliente } }),
-    [idCliente],
+    () => api<Esquema<'PontosDoCliente'>>('/fidelidade/clientes/pontos', { params: filtro }),
+    [filtro],
   )
   const extrato = useCarregar(
     () => api<Esquema<'Pagina_MovimentoPontosSaida_'>>('/fidelidade/clientes/pontos/extrato', {
-      params: { id_cliente_sem_conta: idCliente, limit: ULTIMOS },
+      params: { ...filtro, limit: ULTIMOS },
     }),
-    [idCliente],
+    [filtro],
   )
 
   return (
@@ -161,10 +207,10 @@ function Pontos({ idCliente }: { idCliente: number }) {
   )
 }
 
-function Pedidos({ idCliente }: { idCliente: number }) {
+function Pedidos({ filtro }: { filtro: Filtro }) {
   const pedidos = useCarregar(
-    () => api<Esquema<'Pagina_PedidoSaida_'>>('/vendas/pedidos', { params: { id_cliente_sem_conta: idCliente, limit: ULTIMOS } }),
-    [idCliente],
+    () => api<Esquema<'Pagina_PedidoSaida_'>>('/vendas/pedidos', { params: { ...filtro, limit: ULTIMOS } }),
+    [filtro],
   )
   const total = pedidos.dados?.total ?? 0
   return (
@@ -205,10 +251,10 @@ function Pedidos({ idCliente }: { idCliente: number }) {
   )
 }
 
-function Chamados({ idCliente }: { idCliente: number }) {
+function Chamados({ filtro }: { filtro: Filtro }) {
   const chamados = useCarregar(
-    () => api<Esquema<'Pagina_ChamadoSaida_'>>('/atendimento/chamados', { params: { id_cliente_sem_conta: idCliente, limit: ULTIMOS } }),
-    [idCliente],
+    () => api<Esquema<'Pagina_ChamadoSaida_'>>('/atendimento/chamados', { params: { ...filtro, limit: ULTIMOS } }),
+    [filtro],
   )
   const total = chamados.dados?.total ?? 0
   return (
