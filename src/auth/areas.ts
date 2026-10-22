@@ -49,6 +49,8 @@ export const AREAS: Area[] = [
     rotulo: 'Clientes',
     permissoes: ['registrar_venda_fisica', 'preparar_entregar_pedido', 'cancelar_pedido_equipe', 'corrigir_cadastro_cliente', 'registrar_troca_devolucao', 'atender_chamado'],
   },
+  // regras do programa de pontos de cada marca; no começo, gerenciar_fidelidade é só do Admin
+  { caminho: 'fidelidade', rotulo: 'Fidelidade', permissoes: ['gerenciar_fidelidade'] },
   { caminho: 'atendimento', rotulo: 'Atendimento', permissoes: ['atender_chamado'] },
   { caminho: 'avaliacoes', rotulo: 'Avaliações', permissoes: ['moderar_avaliacoes'] },
   { caminho: 'catalogo', rotulo: 'Catálogo', permissoes: ['gerenciar_catalogo'] },

@@ -7,6 +7,7 @@ export const Caixa = lazy(() => import('@/pages/interno/Caixa').then((m) => ({ d
 export const Clientes = lazy(() => import('@/pages/interno/Clientes').then((m) => ({ default: m.Clientes })))
 export const FichaCliente = lazy(() => import('@/pages/interno/clientes/FichaCliente').then((m) => ({ default: m.FichaCliente })))
 export const Catalogo = lazy(() => import('@/pages/interno/Catalogo').then((m) => ({ default: m.Catalogo })))
+export const Fidelidade = lazy(() => import('@/pages/interno/Fidelidade').then((m) => ({ default: m.Fidelidade })))
 export const Estoque = lazy(() => import('@/pages/interno/Estoque').then((m) => ({ default: m.Estoque })))
 export const HistoricoEstoque = lazy(() => import('@/pages/interno/HistoricoEstoque').then((m) => ({ default: m.HistoricoEstoque })))
 export const Gestao = lazy(() => import('@/pages/interno/Gestao').then((m) => ({ default: m.Gestao })))

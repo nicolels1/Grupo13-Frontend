@@ -7,8 +7,8 @@ import { LayoutInterno } from '@/layouts/LayoutInterno'
 import { RepassaContexto } from './RepassaContexto'
 import { tela } from './tela'
 import {
-  Atendimento, Caixa, Catalogo, Clientes, Estoque, FichaCliente, Gestao, HistoricoEstoque, Moderacao, Movimentacoes, Pedidos, ProdutoInterno,
-  Transferencias, VisaoGeral,
+  Atendimento, Caixa, Catalogo, Clientes, Estoque, FichaCliente, Fidelidade, Gestao, HistoricoEstoque, Moderacao, Movimentacoes, Pedidos,
+  ProdutoInterno, Transferencias, VisaoGeral,
 } from './telasInterno'
 
 // telas de cada área da barra interna
@@ -32,6 +32,7 @@ const TELAS: Record<string, { tela: ReactElement; filhas?: RouteObject[] }> = {
       { path: 'sem-conta/:idCliente', element: tela(<FichaCliente tipo="sem-conta" />) },
     ],
   },
+  fidelidade: { tela: tela(<Fidelidade />) },
   avaliacoes: { tela: tela(<Moderacao />) },
   // o chamado aberto é a mesma caixa de entrada com a terceira coluna preenchida
   atendimento: { tela: tela(<Atendimento />), filhas: [{ path: ':idChamado', element: tela(<Atendimento />) }] },
