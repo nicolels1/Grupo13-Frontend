@@ -12,6 +12,8 @@ import { CATEGORIAS_CHAMADO } from '@/lib/formato'
 import { useCarregar } from '@/lib/useCarregar'
 import { ChamadoAberto } from './atendimento/Conversa'
 import { ItemDaFila } from './atendimento/Fila'
+import { SeletorDeMarca } from './componentes/FiltroDeMarca'
+import { useFiltroDeMarca } from './componentes/useFiltroDeMarca'
 
 type Fila = 'sem' | 'meus' | 'respondeu' | 'andamento' | 'concluidos'
 
@@ -39,15 +41,17 @@ export function Atendimento() {
   const [categoria, setCategoria] = useState('')
   const [offset, setOffset] = useState(0)
   const filtros = FILTROS_DA_FILA[fila]
+  const filtroMarca = useFiltroDeMarca(() => setOffset(0))
+  const marca = filtroMarca.marca
 
   const lista = useCarregar(
-    () => api<Esquema<'Pagina_ChamadoSaida_'>>('/atendimento/chamados', { params: { ...filtros, categoria, id_unidade: unidade, limit: POR_PAGINA, offset } }),
-    [filtros, categoria, unidade, offset],
+    () => api<Esquema<'Pagina_ChamadoSaida_'>>('/atendimento/chamados', { params: { ...filtros, categoria, id_unidade: unidade, marca, limit: POR_PAGINA, offset } }),
+    [filtros, categoria, unidade, marca, offset],
   )
   // contagem de cada fila (só o total, uma linha por consulta)
   const contagens = useCarregar(
-    () => Promise.all(FILAS.map((f) => api<Esquema<'Pagina_ChamadoSaida_'>>('/atendimento/chamados', { params: { ...f.filtros, id_unidade: unidade, limit: 1 } }).then((r) => r.total))),
-    [unidade],
+    () => Promise.all(FILAS.map((f) => api<Esquema<'Pagina_ChamadoSaida_'>>('/atendimento/chamados', { params: { ...f.filtros, id_unidade: unidade, marca, limit: 1 } }).then((r) => r.total))),
+    [unidade, marca],
   )
   const { recarregar: recarregarLista } = lista
   const { recarregar: recarregarContagens } = contagens
@@ -93,6 +97,7 @@ export function Atendimento() {
             <option value="">Todas as categorias</option>
             {Object.entries(CATEGORIAS_CHAMADO).map(([v, r]) => <option key={v} value={v}>{r}</option>)}
           </Select>
+          <SeletorDeMarca filtro={filtroMarca} className="mb-2" />
           {lista.erro && <Aviso mensagem={lista.erro} />}
           {lista.carregando && !lista.dados && <Carregando />}
           {lista.dados?.items.length === 0 && <p className="py-8 text-center text-sm text-muted-foreground">Nenhum chamado nesta fila.</p>}

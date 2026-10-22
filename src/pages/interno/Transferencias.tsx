@@ -16,6 +16,8 @@ import { api, type Esquema } from '@/lib/api'
 import { CANAIS, codigoTransferencia, dataCurta, hora, plural, rotuloCanal } from '@/lib/formato'
 import { nomeUnidade, useVariantes } from '@/lib/listas'
 import { useCarregar, useEnviar } from '@/lib/useCarregar'
+import { SeletorDeMarca } from './componentes/FiltroDeMarca'
+import { useFiltroDeMarca } from './componentes/useFiltroDeMarca'
 
 type Transferencia = Esquema<'TransferenciaSaida'>
 type ItemEstoque = Esquema<'EstoqueItem'>
@@ -38,7 +40,11 @@ export function Transferencias() {
   const nova = params.get('nova') === '1'
   const idUnidade = unidade ? Number(unidade) : null
 
-  const lista = useCarregar(() => api<Esquema<'Pagina_TransferenciaSaida_'>>('/transferencias', { params: { id_unidade: unidade, limit: 200 } }), [unidade])
+  const filtroMarca = useFiltroDeMarca()
+  const lista = useCarregar(
+    () => api<Esquema<'Pagina_TransferenciaSaida_'>>('/transferencias', { params: { id_unidade: unidade, marca: filtroMarca.marca, limit: 200 } }),
+    [unidade, filtroMarca.marca],
+  )
   const todas = lista.dados?.items ?? []
   const chegando = todas.filter((t) => t.status === 'enviada' && (!idUnidade || t.id_unidade_destino === idUnidade))
   const paraEnviar = todas.filter((t) => t.status === 'solicitada' && (!idUnidade || t.id_unidade_origem === idUnidade))
@@ -73,6 +79,7 @@ export function Transferencias() {
 
       <div className="grid gap-10 lg:grid-cols-[22rem_1fr]">
         <div>
+          <SeletorDeMarca filtro={filtroMarca} className="mb-2" />
           <Abas
             rotulo="Transferências"
             valor={aba}

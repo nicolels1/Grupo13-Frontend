@@ -15,6 +15,8 @@ import { api, todasAsPaginas, type Esquema } from '@/lib/api'
 import { ordenarTamanhos } from '@/lib/cores'
 import { CANAIS, dataCurta, hora, plural, TIPOS_MOVIMENTACAO } from '@/lib/formato'
 import { useAdiado, useCarregar, useEnviar } from '@/lib/useCarregar'
+import { SeletorDeMarca } from './componentes/FiltroDeMarca'
+import { useFiltroDeMarca } from './componentes/useFiltroDeMarca'
 
 type ItemEstoque = Esquema<'EstoqueItem'>
 type Canal = ItemEstoque['canal']
@@ -87,10 +89,11 @@ export function Estoque() {
   const [offset, setOffset] = useState(0)
   const [aberto, setAberto] = useState<string | null>(null)
   const buscaAplicada = useAdiado(busca.trim())
+  const filtroMarca = useFiltroDeMarca(() => setOffset(0))
 
   const lista = useCarregar(
-    () => todasAsPaginas<ItemEstoque>('/estoque', { id_unidade: unidade, canal, busca: buscaAplicada }),
-    [unidade, canal, buscaAplicada],
+    () => todasAsPaginas<ItemEstoque>('/estoque', { id_unidade: unidade, canal, busca: buscaAplicada, marca: filtroMarca.marca }),
+    [unidade, canal, buscaAplicada, filtroMarca.marca],
   )
   const todos = porProduto(lista.dados ?? [])
   const produtos = soAbaixo ? todos.filter((p) => p.abaixo > 0) : todos
@@ -118,6 +121,7 @@ export function Estoque() {
           <option value="">Loja física e online</option>
           {Object.entries(CANAIS).map(([v, r]) => <option key={v} value={v}>Só {r.toLowerCase()}</option>)}
         </Select>
+        <SeletorDeMarca filtro={filtroMarca} className="w-auto" />
         <label className="flex h-9 items-center gap-2 border border-input px-3 text-sm">
           <input type="checkbox" checked={soAbaixo} onChange={filtro(setSoAbaixo)} className="size-4 accent-marinho" />
           Só produtos com peça abaixo do mínimo
