@@ -2592,7 +2592,7 @@ export interface components {
             valor_itens: string;
             /**
              * Valor Frete
-             * @description Soma do frete de cada pedido
+             * @description O frete da compra, um só, repartido entre os pedidos pelo valor das peças
              */
             valor_frete: string;
             /**
@@ -4414,12 +4414,12 @@ export interface components {
             valor_itens: string;
             /**
              * Frete Entrega
-             * @description Soma do frete de cada marca; grátis a partir do valor mínimo; zero na retirada
+             * @description Um frete só para o carrinho, mesmo com as duas marcas; grátis a partir do valor mínimo; zero na retirada
              */
             frete_entrega: string;
             /**
              * Frete Gratis A Partir De
-             * @description Valor mínimo em itens de uma marca para o frete dela sair grátis (a loja mostra quanto falta)
+             * @description Valor mínimo em itens do carrinho inteiro para o frete sair grátis (a loja mostra quanto falta)
              */
             frete_gratis_a_partir_de: string;
             /** Total Entrega */
@@ -4451,11 +4451,6 @@ export interface components {
             marca: "lorenzi" | "vulto";
             /** Valor Itens */
             valor_itens: string;
-            /**
-             * Frete Entrega
-             * @description Frete do pedido desta marca; grátis a partir do valor mínimo
-             */
-            frete_entrega: string;
             /**
              * Entrega Disponivel
              * @description Algum CD ou loja que despacha desta marca tem todos os itens dela
