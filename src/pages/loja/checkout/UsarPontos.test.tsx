@@ -20,8 +20,8 @@ function saldo(marca: string, pontos: number, reais: string): Esquema<'SaldoPont
 }
 
 const DUAS_MARCAS: Esquema<'ResumoMarca'>[] = [
-  { marca: 'lorenzi', valor_itens: '100.00', frete_entrega: '19.90', entrega_disponivel: true },
-  { marca: 'vulto', valor_itens: '350.00', frete_entrega: '0.00', entrega_disponivel: true },
+  { marca: 'lorenzi', valor_itens: '100.00', entrega_disponivel: true },
+  { marca: 'vulto', valor_itens: '350.00', entrega_disponivel: true },
 ]
 
 // meus-pontos com o saldo dado; o resgate vale R$ 0,10 por ponto
