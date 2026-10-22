@@ -28,19 +28,6 @@ export function telefoneFormatado(telefone: string | null) {
   return telefone
 }
 
-export const TIPOS_MOVIMENTO_PONTOS: Record<string, string> = {
-  saldo_inicial: 'Saldo inicial',
-  credito: 'Crédito',
-  resgate: 'Resgate',
-  estorno: 'Estorno',
-  ajuste: 'Ajuste',
-  vencimento: 'Vencimento',
-}
-
-export function rotuloMovimentoPontos(tipo: string) {
-  return TIPOS_MOVIMENTO_PONTOS[tipo] ?? tipo
-}
-
 // ---------- os dois tipos de cliente ----------
 
 // a conta é uma só no grupo: o cliente não é de uma loja, os pedidos e os pontos é que são. A separação

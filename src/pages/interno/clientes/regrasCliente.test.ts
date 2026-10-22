@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 
 import { CLIENTE_SO_NOS_PONTOS_DE_TESTE, clienteVultoDeTeste } from '@/lib/vultoDeTeste'
 import {
-  caminhoDaFicha, filtroDoCliente, nomeDoCliente, rotuloConsentimento, rotuloMovimentoPontos, telefoneFormatado,
+  caminhoDaFicha, filtroDoCliente, nomeDoCliente, rotuloConsentimento, telefoneFormatado,
 } from './regrasCliente'
 
 describe('nomeDoCliente', () => {
@@ -37,13 +37,6 @@ describe('telefoneFormatado', () => {
   it('deixa como veio o que não tem 10 ou 11 dígitos', () => {
     expect(telefoneFormatado('987654321')).toBe('987654321')
     expect(telefoneFormatado(null)).toBe('—')
-  })
-})
-
-describe('rotuloMovimentoPontos', () => {
-  it('dá nome ao tipo do movimento', () => {
-    expect(rotuloMovimentoPontos('saldo_inicial')).toBe('Saldo inicial')
-    expect(rotuloMovimentoPontos('outro')).toBe('outro')
   })
 })
 
