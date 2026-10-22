@@ -2843,7 +2843,7 @@ export interface components {
              * Codigo
              * @enum {string}
              */
-            codigo: "gerenciar_contas" | "gerenciar_modelos_acesso" | "gerenciar_catalogo" | "gerenciar_unidades" | "movimentar_estoque" | "definir_estoque_minimo" | "solicitar_transferencia" | "enviar_transferencia" | "receber_transferencia" | "registrar_venda_fisica" | "registrar_troca_devolucao" | "preparar_entregar_pedido" | "cancelar_pedido_equipe" | "corrigir_cadastro_cliente" | "atender_chamado" | "moderar_avaliacoes" | "gerenciar_fidelidade";
+            codigo: "gerenciar_contas" | "gerenciar_modelos_acesso" | "gerenciar_catalogo" | "gerenciar_unidades" | "movimentar_estoque" | "definir_estoque_minimo" | "solicitar_transferencia" | "enviar_transferencia" | "receber_transferencia" | "registrar_venda_fisica" | "registrar_troca_devolucao" | "preparar_entregar_pedido" | "cancelar_pedido_equipe" | "corrigir_cadastro_cliente" | "atender_chamado" | "moderar_avaliacoes" | "gerenciar_fidelidade" | "ver_marca_lorenzi" | "ver_marca_vulto";
             /**
              * Efeito
              * @enum {string}
@@ -3350,7 +3350,7 @@ export interface components {
             /** Pessoas */
             pessoas: number;
             /** Permissoes */
-            permissoes: ("gerenciar_contas" | "gerenciar_modelos_acesso" | "gerenciar_catalogo" | "gerenciar_unidades" | "movimentar_estoque" | "definir_estoque_minimo" | "solicitar_transferencia" | "enviar_transferencia" | "receber_transferencia" | "registrar_venda_fisica" | "registrar_troca_devolucao" | "preparar_entregar_pedido" | "cancelar_pedido_equipe" | "corrigir_cadastro_cliente" | "atender_chamado" | "moderar_avaliacoes" | "gerenciar_fidelidade")[];
+            permissoes: ("gerenciar_contas" | "gerenciar_modelos_acesso" | "gerenciar_catalogo" | "gerenciar_unidades" | "movimentar_estoque" | "definir_estoque_minimo" | "solicitar_transferencia" | "enviar_transferencia" | "receber_transferencia" | "registrar_venda_fisica" | "registrar_troca_devolucao" | "preparar_entregar_pedido" | "cancelar_pedido_equipe" | "corrigir_cadastro_cliente" | "atender_chamado" | "moderar_avaliacoes" | "gerenciar_fidelidade" | "ver_marca_lorenzi" | "ver_marca_vulto")[];
         };
         /** MovimentacaoItem */
         MovimentacaoItem: {
@@ -3897,7 +3897,7 @@ export interface components {
             id_unidade: number | null;
             modelo_acesso: components["schemas"]["ModeloAcessoSaida"] | null;
             /** Permissoes */
-            permissoes: ("gerenciar_contas" | "gerenciar_modelos_acesso" | "gerenciar_catalogo" | "gerenciar_unidades" | "movimentar_estoque" | "definir_estoque_minimo" | "solicitar_transferencia" | "enviar_transferencia" | "receber_transferencia" | "registrar_venda_fisica" | "registrar_troca_devolucao" | "preparar_entregar_pedido" | "cancelar_pedido_equipe" | "corrigir_cadastro_cliente" | "atender_chamado" | "moderar_avaliacoes" | "gerenciar_fidelidade")[];
+            permissoes: ("gerenciar_contas" | "gerenciar_modelos_acesso" | "gerenciar_catalogo" | "gerenciar_unidades" | "movimentar_estoque" | "definir_estoque_minimo" | "solicitar_transferencia" | "enviar_transferencia" | "receber_transferencia" | "registrar_venda_fisica" | "registrar_troca_devolucao" | "preparar_entregar_pedido" | "cancelar_pedido_equipe" | "corrigir_cadastro_cliente" | "atender_chamado" | "moderar_avaliacoes" | "gerenciar_fidelidade" | "ver_marca_lorenzi" | "ver_marca_vulto")[];
         };
         /** PermissaoSaida */
         PermissaoSaida: {
@@ -3905,7 +3905,7 @@ export interface components {
              * Codigo
              * @enum {string}
              */
-            codigo: "gerenciar_contas" | "gerenciar_modelos_acesso" | "gerenciar_catalogo" | "gerenciar_unidades" | "movimentar_estoque" | "definir_estoque_minimo" | "solicitar_transferencia" | "enviar_transferencia" | "receber_transferencia" | "registrar_venda_fisica" | "registrar_troca_devolucao" | "preparar_entregar_pedido" | "cancelar_pedido_equipe" | "corrigir_cadastro_cliente" | "atender_chamado" | "moderar_avaliacoes" | "gerenciar_fidelidade";
+            codigo: "gerenciar_contas" | "gerenciar_modelos_acesso" | "gerenciar_catalogo" | "gerenciar_unidades" | "movimentar_estoque" | "definir_estoque_minimo" | "solicitar_transferencia" | "enviar_transferencia" | "receber_transferencia" | "registrar_venda_fisica" | "registrar_troca_devolucao" | "preparar_entregar_pedido" | "cancelar_pedido_equipe" | "corrigir_cadastro_cliente" | "atender_chamado" | "moderar_avaliacoes" | "gerenciar_fidelidade" | "ver_marca_lorenzi" | "ver_marca_vulto";
             /** Descricao */
             descricao: string;
             /** So Admin */
@@ -4521,7 +4521,7 @@ export interface components {
              * Permissoes
              * @description Permissões efetivas: modelo + acrescentadas - retiradas
              */
-            permissoes: ("gerenciar_contas" | "gerenciar_modelos_acesso" | "gerenciar_catalogo" | "gerenciar_unidades" | "movimentar_estoque" | "definir_estoque_minimo" | "solicitar_transferencia" | "enviar_transferencia" | "receber_transferencia" | "registrar_venda_fisica" | "registrar_troca_devolucao" | "preparar_entregar_pedido" | "cancelar_pedido_equipe" | "corrigir_cadastro_cliente" | "atender_chamado" | "moderar_avaliacoes" | "gerenciar_fidelidade")[];
+            permissoes: ("gerenciar_contas" | "gerenciar_modelos_acesso" | "gerenciar_catalogo" | "gerenciar_unidades" | "movimentar_estoque" | "definir_estoque_minimo" | "solicitar_transferencia" | "enviar_transferencia" | "receber_transferencia" | "registrar_venda_fisica" | "registrar_troca_devolucao" | "preparar_entregar_pedido" | "cancelar_pedido_equipe" | "corrigir_cadastro_cliente" | "atender_chamado" | "moderar_avaliacoes" | "gerenciar_fidelidade" | "ver_marca_lorenzi" | "ver_marca_vulto")[];
             /**
              * Convite Pendente
              * @description O login ainda não foi confirmado (convite não aceito)
@@ -4877,6 +4877,8 @@ export interface operations {
                 busca?: string | null;
                 /** @description Só as linhas abaixo (true) ou não abaixo (false) do mínimo */
                 abaixo_minimo?: boolean | null;
+                /** @description lorenzi ou vulto. Vazio: as marcas que a pessoa vê */
+                marca?: ("lorenzi" | "vulto") | null;
                 limit?: number;
                 offset?: number;
             };
@@ -4931,6 +4933,8 @@ export interface operations {
                 id_variante?: number | null;
                 canal?: ("loja_fisica" | "online") | null;
                 busca?: string | null;
+                /** @description lorenzi ou vulto. Vazio: as marcas que a pessoa vê */
+                marca?: ("lorenzi" | "vulto") | null;
                 limit?: number;
                 offset?: number;
             };
@@ -4985,6 +4989,8 @@ export interface operations {
                 /** @description Transferências que saem ou chegam nesta unidade */
                 id_unidade?: number | null;
                 busca?: string | null;
+                /** @description lorenzi ou vulto. Vazio: as marcas que a pessoa vê */
+                marca?: ("lorenzi" | "vulto") | null;
             };
             header?: {
                 authorization?: string;
@@ -5085,7 +5091,10 @@ export interface operations {
     };
     divergencias_estoque_divergencias_get: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description lorenzi ou vulto. Vazio: as marcas que a pessoa vê */
+                marca?: ("lorenzi" | "vulto") | null;
+            };
             header?: {
                 authorization?: string;
             };
@@ -5194,6 +5203,8 @@ export interface operations {
                 /** @description AAAA-MM-DD (fim do dia) ou AAAA-MM-DDTHH:MM */
                 ate?: string | null;
                 busca?: string | null;
+                /** @description lorenzi ou vulto. Vazio: as marcas que a pessoa vê */
+                marca?: ("lorenzi" | "vulto") | null;
                 limit?: number;
                 offset?: number;
             };
@@ -6447,6 +6458,8 @@ export interface operations {
                 id_unidade?: number | null;
                 limit?: number;
                 offset?: number;
+                /** @description lorenzi ou vulto. Vazio: as marcas que a pessoa vê */
+                marca?: ("lorenzi" | "vulto") | null;
             };
             header?: {
                 authorization?: string;
@@ -7371,6 +7384,8 @@ export interface operations {
                 id_cliente?: string | null;
                 /** @description Chamados de um cliente da Vulto sem conta */
                 id_cliente_sem_conta?: number | null;
+                /** @description lorenzi ou vulto. Vazio: as marcas que a pessoa vê */
+                marca?: ("lorenzi" | "vulto") | null;
                 limit?: number;
                 offset?: number;
             };
@@ -9388,6 +9403,8 @@ export interface operations {
                 ate?: string | null;
                 limit?: number;
                 offset?: number;
+                /** @description lorenzi ou vulto. Vazio: as marcas que a pessoa vê */
+                marca?: ("lorenzi" | "vulto") | null;
             };
             header?: {
                 authorization?: string;
@@ -10835,6 +10852,8 @@ export interface operations {
                 id_pedido?: number | null;
                 /** @description Com ou sem máscara */
                 cpf?: string | null;
+                /** @description lorenzi ou vulto. Vazio: as marcas que a pessoa vê */
+                marca?: ("lorenzi" | "vulto") | null;
             };
             header?: {
                 authorization?: string;
@@ -11005,6 +11024,8 @@ export interface operations {
                 canal?: ("loja_fisica" | "online") | null;
                 limit?: number;
                 offset?: number;
+                /** @description lorenzi ou vulto. Vazio: as marcas que a pessoa vê */
+                marca?: ("lorenzi" | "vulto") | null;
             };
             header?: {
                 authorization?: string;
@@ -11058,10 +11079,10 @@ export interface operations {
             query?: {
                 /** @description Vazio: a rede inteira (rede_agora ignora o filtro) */
                 id_unidade?: number | null;
-                /** @description Vazio: as duas marcas. Vale para todas as seções */
-                marca?: ("lorenzi" | "vulto") | null;
                 /** @description Último dia das janelas; vazio: hoje. Ex.: 2026-09-30 para ver o histórico da Vulto, que vai até essa data */
                 referencia?: string | null;
+                /** @description lorenzi ou vulto. Vazio: as marcas que a pessoa vê */
+                marca?: ("lorenzi" | "vulto") | null;
             };
             header?: {
                 authorization?: string;
@@ -11222,6 +11243,7 @@ export interface operations {
     listar_regras_fidelidade_regras_get: {
         parameters: {
             query?: {
+                /** @description lorenzi ou vulto. Vazio: as marcas que a pessoa vê */
                 marca?: ("lorenzi" | "vulto") | null;
             };
             header?: {
@@ -11461,9 +11483,10 @@ export interface operations {
             query?: {
                 id_cliente?: string | null;
                 id_cliente_sem_conta?: number | null;
-                marca?: ("lorenzi" | "vulto") | null;
                 limit?: number;
                 offset?: number;
+                /** @description lorenzi ou vulto. Vazio: as marcas que a pessoa vê */
+                marca?: ("lorenzi" | "vulto") | null;
             };
             header?: {
                 authorization?: string;
