@@ -34,7 +34,7 @@ Frontend da plataforma da Casa Lorenzi, desenvolvida no Case Tech da Trainee Ins
 - página do produto com fotos por cor, tamanhos esgotados riscados e avaliações com fotos, filtro "Com fotos", voto útil e denúncia;
 - um carrinho só para a Casa Lorenzi e a Vulto, salvo no navegador (gaveta e página), com as peças separadas por marca e uma barra de frete grátis só, que conta as duas marcas juntas;
 - checkout em uma página: entrega em casa (CEP preenchido pelo ViaCEP) ou retirada grátis numa loja (só com peças de uma marca), reserva de 15 minutos e um pagamento simulado por Pix ou cartão de teste para a compra inteira; com as duas marcas, o backend faz um pedido por marca; os pontos de cada marca viram desconto nas peças dela;
-- área "Minha conta": pedidos com linha do tempo, avaliação da peça recebida, compra feita na loja ligada à conta pelo código da notinha, chamados com conversa e anexos, endereços e os pontos das duas lojas lado a lado (o programa da Vulto é o Vulto+);
+- área "Minha conta": pedidos com linha do tempo, avaliação da peça recebida, compra feita na loja ligada à conta pelo código da notinha, chamados com conversa e anexos, endereços e os pontos das duas lojas lado a lado (o programa da Vulto é o Vulto+), com o extrato de cada uma em **Meus pontos**;
 - cadastro, login por e-mail ou CPF e recuperação de senha por e-mail.
 
 **Plataforma interna (`/interno`)**
@@ -42,9 +42,10 @@ Frontend da plataforma da Casa Lorenzi, desenvolvida no Case Tech da Trainee Ins
 - **Visão Geral:** a primeira tela depois do login mostra as pendências da conta (peças abaixo do mínimo, transferências, pedidos para preparar, retiradas perto de vencer, chamados, denúncias) e os números das suas áreas; o Admin vê também a rede inteira e uma linha por unidade. Quem vê as duas marcas filtra os números por marca, e quem pode ver pontos acompanha os **pontos a resgatar** (passivo) de cada marca;
 - **Estoque:** saldo por unidade em matriz cor × tamanho, movimentações e o **Histórico do estoque**, que responde "qual era o estoque da loja X em tal data e hora", com gráfico de evolução de cada peça;
 - **Transferências** entre unidades (solicitada, enviada, recebida);
-- **Caixa:** nova venda com CPF na nota opcional e notinha para imprimir, retiradas, vendas do dia, consulta de peça e troca ou devolução no balcão;
+- **Caixa:** nova venda com CPF na nota opcional, pontos do cliente desse CPF como desconto e notinha com o nome da rede para imprimir, retiradas, vendas do dia, consulta de peça e troca ou devolução no balcão;
 - **Pedidos** online para preparar, enviar e entregar, com canal, desconto, pagamento e, no pedido que veio da Vulto, a origem na Vulto;
 - **Clientes:** abas "Com conta" e "Sem conta (Vulto)", com busca; a ficha de cada cliente mostra cadastro, pontos das duas lojas, pedidos, chamados e, para quem veio da Vulto, a origem da migração;
+- **Fidelidade:** as regras dos pontos de cada marca (valor do ponto, pontos por real, multiplicador do site e do app, bônus do Ouro, vencimento, categorias e resgate mínimo): a que vale hoje, o histórico e a criação da próxima, que vale a partir de uma data futura e nunca muda um ponto já ganho;
 - **Atendimento** em caixa de entrada: filas, conversa com nota interna, troca, devolução e estorno a partir do chamado; o chamado migrado da Vulto mostra o canal de origem (WhatsApp, Instagram ou e-mail);
 - **Avaliações:** moderação das denúncias;
 - **Catálogo:** produtos, variantes, preços e fotos, com a rede (marca), o código de barras e a origem da peça migrada, e a aba **Destaques da página inicial**, onde se editam os slides do carrossel (texto, botão, link, foto, ordem e se aparecem na loja);
@@ -101,11 +102,13 @@ src/
     ├── loja/            telas da plataforma do cliente
     │   ├── carrinho/    estado, gaveta e lista de itens do carrinho
     │   ├── checkout/    endereço, CEP e pagamento simulado
-    │   ├── conta/       área "Minha conta"
+    │   ├── conta/       área "Minha conta", com os pontos e o extrato
     │   ├── chamados/    chamado novo, conversa, mensagens e anexos
     │   └── componentes/ partes das telas da loja (cartão do produto, avaliações, estrelas, fotos)
     └── interno/         telas da plataforma interna
+        ├── caixa/       nova venda (com o desconto de pontos), retiradas, vendas do dia e a notinha
         ├── clientes/    ficha do cliente com conta ou sem conta (migrado da Vulto)
+        ├── fidelidade/  regras do programa de pontos de cada marca (área Fidelidade)
         ├── numeros/     aba "Migração da Vulto" da Gestão: os três números da Entrega 3
         ├── troca/       troca, devolução e estorno (usados no Caixa e no Atendimento) e as regras deles
         └── componentes/ partes das telas do interno (gráficos e estilos de bloco)
@@ -132,6 +135,7 @@ Componente usado nas duas plataformas fica em `components/`; o que é de uma pla
 | Caixa | venda física, troca e devolução ou preparar e entregar pedido |
 | Pedidos | venda física, preparar e entregar pedido, cancelar pedido ou corrigir cadastro |
 | Clientes | venda física, preparar e entregar pedido, cancelar pedido, corrigir cadastro, troca e devolução ou atender chamado |
+| Fidelidade | gerenciar fidelidade (no começo, só o Admin) |
 | Atendimento | atender chamado |
 | Avaliações | moderar avaliações |
 | Catálogo | gerenciar catálogo |
@@ -148,12 +152,13 @@ Componente usado nas duas plataformas fica em `components/`; o que é de uma pla
 | `/loja/produtos`, `/loja/produtos/:id` | lista e página do produto | público |
 | `/loja/carrinho`, `/loja/ajuda` | carrinho e central de ajuda | público |
 | `/loja/checkout`, `/loja/compra-confirmada/:id` | finalizar compra e confirmação | cliente |
-| `/loja/conta`, `/loja/pedidos`, `/loja/chamados`, `/loja/enderecos` | área "Minha conta" | cliente |
+| `/loja/conta`, `/loja/pedidos`, `/loja/chamados`, `/loja/enderecos`, `/loja/pontos` | área "Minha conta" | cliente |
 | `/loja/avaliar/:idItem` | escrever avaliação | cliente |
 | `/interno` | Visão Geral | conta interna |
 | `/interno/estoque` (`/movimentacoes`, `/historico`) | saldo, movimentações e histórico | conforme a área |
 | `/interno/transferencias`, `/interno/caixa`, `/interno/pedidos` | transferências, caixa e pedidos | conforme a área |
 | `/interno/clientes` (`/conta/:idCliente`, `/sem-conta/:idCliente`) | clientes e ficha do cliente com ou sem conta | conforme a área |
+| `/interno/fidelidade` | regras dos pontos de cada marca | conforme a área |
 | `/interno/atendimento/:idChamado?` | caixa de entrada dos chamados | conforme a área |
 | `/interno/avaliacoes`, `/interno/catalogo/:idProduto?`, `/interno/gestao` | moderação, catálogo e gestão (`?aba=migracao` abre os três números da Vulto) | conforme a área |
 
@@ -203,7 +208,7 @@ Para usar a API local (`http://127.0.0.1:8000`), suba o backend antes, seguindo 
 
 - funções de formato (datas no horário de Brasília, moeda, CPF, plural e tamanho de arquivo) e a tradução de erros da API;
 - as regras de acesso às áreas internas;
-- as regras das telas: troca, devolução e estorno, variações e fotos do produto, anexos dos chamados, CEP, compra em aberto no checkout, fotos por cor e os pedidos da conta;
+- as regras das telas: troca, devolução e estorno, variações e fotos do produto, anexos dos chamados, CEP, compra em aberto no checkout, fotos por cor, os pedidos da conta, as regras de pontos da Fidelidade e o desconto de pontos no caixa;
 - as listas com cache (unidades e variantes) e os hooks de carregamento, envio e intervalo;
 - as telas de entrar e a proteção das rotas, com o roteador de verdade e o `useAuth()` trocado por um de teste (`src/auth/authDeTeste.ts`): login por e-mail e CPF, credencial errada, volta à página de origem, conta do tipo errado e área sem permissão.
 
