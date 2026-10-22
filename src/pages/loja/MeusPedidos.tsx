@@ -48,10 +48,14 @@ export function MeusPedidos() {
   const [quantos, setQuantos] = useState(LIMITE)
   const [abaEscolhida, setAbaEscolhida] = useState<Aba | null>(null)
   const [aberto, setAberto] = useState<number | null>(null)
-  const { dados, erro, carregando, recarregar } = useCarregar(
-    () => api<Esquema<'Pagina_PedidoSaida_'>>('/pedidos', { params: { limit: quantos } }),
-    [quantos],
-  )
+  // de LIMITE em LIMITE pelo offset: um limit só, crescendo, passaria do máximo da API (200) no quarto clique
+  const { dados, erro, carregando, recarregar } = useCarregar(async () => {
+    const offsets = Array.from({ length: Math.ceil(quantos / LIMITE) }, (_, i) => i * LIMITE)
+    const paginas = await Promise.all(
+      offsets.map((offset) => api<Esquema<'Pagina_PedidoSaida_'>>('/pedidos', { params: { limit: LIMITE, offset } })),
+    )
+    return { items: paginas.flatMap((p) => p.items), total: paginas[0]?.total ?? 0 }
+  }, [quantos])
   // sem os cancelados que nunca foram pagos (ver pedidosDoCliente)
   const pedidos = pedidosDoCliente(dados?.items ?? [])
   const resumo = resumoDosPedidos(pedidos)
