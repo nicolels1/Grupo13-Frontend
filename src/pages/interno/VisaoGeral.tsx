@@ -4,7 +4,7 @@ import { Link, useSearchParams } from 'react-router'
 import { cn } from 'cn'
 
 import { useAuth } from '@/auth/contexto'
-import { ehAdmin, temPermissao, type CodigoPermissao } from '@/auth/areas'
+import { ehAdmin, marcasVistas, temPermissao, type CodigoPermissao } from '@/auth/areas'
 import { Aviso, Carregando } from '@/components/Estados'
 import { NomeDaLoja } from '@/components/Logo'
 import { Cabecalho } from '@/components/Navegacao'
@@ -114,8 +114,10 @@ export function VisaoGeral() {
   const [dia] = useState(() => new Date().toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'America/Sao_Paulo' }))
   // a marca dos números, no endereço (?marca=; vazio são as duas). Só os números do resumo mudam: as
   // pendências são sempre as da rede toda ou da unidade do topo
+  // quem vê uma marca só já recebe só ela do backend, e pedir a outra daria 403: o seletor some
   const [params, setParams] = useSearchParams()
-  const marca = params.get('marca') ?? ''
+  const veAsDuas = marcasVistas(perfil).size > 1
+  const marca = veAsDuas ? (params.get('marca') ?? '') : ''
   function filtrarMarca(valor: string) {
     setParams(valor ? { marca: valor } : {}, { replace: true })
   }
@@ -155,7 +157,7 @@ export function VisaoGeral() {
       >
         <Atalhos pode={pode} />
       </Cabecalho>
-      {teraNumeros && <FiltroDeMarca marca={marca} aoMudar={filtrarMarca} atualizando={atualizando} />}
+      {teraNumeros && veAsDuas && <FiltroDeMarca marca={marca} aoMudar={filtrarMarca} atualizando={atualizando} />}
       {teraNumeros && unidadeDeOutraMarca && (
         <Aviso mensagem={`A unidade escolhida no topo não é da ${MARCAS[marca] ?? marca}. Escolha "Todas as unidades" ou uma unidade dessa marca para ver os números.`} />
       )}

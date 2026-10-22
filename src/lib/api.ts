@@ -1,4 +1,5 @@
 import { API_URL } from '@/config/ambiente'
+import { MARCAS } from './formato'
 import { supabase } from './supabaseClient'
 import type { components } from './tiposApi'
 
@@ -18,10 +19,22 @@ export class ErroApi extends Error {
   }
 }
 
+// o backend fala da marca pelo código ("Sem acesso à marca vulto", "Savassi é da marca lorenzi: ...");
+// a tela mostra o nome, e o 403 de marca diz o que fazer
+function traduzirMarcas(detalhe: string): string {
+  const semAcesso = detalhe.match(/^Sem acesso à marca (.+)$/)
+  if (semAcesso?.[1]) {
+    const marcas = semAcesso[1].split(' e ').map((m) => MARCAS[m] ?? m).join(' e ')
+    return `Isto é da ${marcas}, que você não vê. Peça ao Admin a permissão de ver essa marca.`
+  }
+  if (detalhe === 'Sem acesso a nenhuma marca') return 'Sua conta não vê nenhuma marca. Peça ao Admin a permissão de ver a Casa Lorenzi ou a Vulto.'
+  return detalhe.replace(/\bmarca (lorenzi|vulto)\b/g, (_, m: string) => `marca ${MARCAS[m]}`)
+}
+
 // o backend responde {"detail": "..."}; na validação (422) o detail é uma lista de erros
 export function mensagemDoErro(corpo: unknown, status: number): string {
   const detalhe = (corpo as { detail?: unknown } | null)?.detail
-  if (typeof detalhe === 'string') return detalhe
+  if (typeof detalhe === 'string') return traduzirMarcas(detalhe)
   if (Array.isArray(detalhe) && detalhe.length > 0) {
     return detalhe
       .map((erro: { msg?: unknown }) => String(erro.msg ?? '').replace(/^Value error, /, ''))

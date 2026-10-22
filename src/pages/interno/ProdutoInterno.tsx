@@ -3,6 +3,8 @@ import { ChevronLeft, ExternalLink, Plus } from 'lucide-react'
 import { Link, useLocation, useNavigate, useParams } from 'react-router'
 import { cn } from 'cn'
 
+import { marcasVistas, type Marca } from '@/auth/areas'
+import { useAuth } from '@/auth/contexto'
 import { Aviso, Carregando, Sucesso } from '@/components/Estados'
 import { Cabecalho } from '@/components/Navegacao'
 import { OrigemMigracao } from '@/components/OrigemMigracao'
@@ -60,6 +62,9 @@ function FormularioProduto({ produto, recarregar }: { produto: Produto | null; r
       }
     : DADOS_VAZIOS
   const [dados, setDados] = useState(inicial)
+  // marca do produto novo: só as que a pessoa vê (o backend recusa a outra); depois, só pela correção de marca
+  const vistas = [...marcasVistas(useAuth().perfil)]
+  const [marca, setMarca] = useState<Marca>(vistas[0] ?? 'lorenzi')
   const [variantesNovas, setVariantesNovas] = useState<(VarianteNova & { chave: string })[]>(produto ? [] : [novaLinha()])
   const [salvo, setSalvo] = useState(false)
   // "Salvar produto" sem nada mudado avisa em vez de não fazer nada (fotos e variações salvam na hora)
@@ -74,6 +79,12 @@ function FormularioProduto({ produto, recarregar }: { produto: Produto | null; r
     setDados({ ...dados, [campo]: alvo instanceof HTMLInputElement && alvo.type === 'checkbox' ? alvo.checked : alvo.value })
   }
 
+  // o estoque inicial já escolhido numa unidade da outra marca volta para "Unidade"
+  function mudarMarca(nova: Marca) {
+    setMarca(nova)
+    setVariantesNovas(variantesNovas.map((v) => ({ ...v, estoque_inicial: v.estoque_inicial.map((e) => ({ ...e, id_unidade: '' })) })))
+  }
+
   async function salvar(evento: FormEvent) {
     evento.preventDefault()
     setSalvo(false)
@@ -82,6 +93,7 @@ function FormularioProduto({ produto, recarregar }: { produto: Produto | null; r
         metodo: 'POST',
         corpo: {
           ...dados,
+          marca,
           id_categoria: Number(dados.id_categoria),
           variantes: variantesNovas.filter((v) => v.sku.trim()).map(varianteParaApi),
         },
@@ -151,6 +163,13 @@ function FormularioProduto({ produto, recarregar }: { produto: Produto | null; r
                 {ativas.map((c) => <option key={c.id_categoria} value={c.id_categoria}>{c.nome}</option>)}
               </Select>
             </Campo>
+            {!produto && vistas.length > 1 && (
+              <Campo id="prod-marca" rotulo="Marca">
+                <Select id="prod-marca" value={marca} onChange={(e) => mudarMarca(e.target.value as Marca)}>
+                  {vistas.map((m) => <option key={m} value={m}>{MARCAS[m]}</option>)}
+                </Select>
+              </Campo>
+            )}
             <Campo id="prod-desc-cliente" rotulo="Descrição no site" className="md:col-span-2">
               <Textarea id="prod-desc-cliente" rows={3} value={dados.descricao_cliente} onChange={mudar('descricao_cliente')} required />
             </Campo>
@@ -182,6 +201,7 @@ function FormularioProduto({ produto, recarregar }: { produto: Produto | null; r
                   key={v.chave}
                   indice={i}
                   valor={v}
+                  marca={marca}
                   aoMudar={(novo) => setVariantesNovas(variantesNovas.map((x, j) => (j === i ? { ...novo, chave: x.chave } : x)))}
                   aoTirar={variantesNovas.length > 1 ? () => setVariantesNovas(variantesNovas.filter((_, j) => j !== i)) : undefined}
                 />
@@ -244,7 +264,7 @@ function FormularioProduto({ produto, recarregar }: { produto: Produto | null; r
           </section>
           <section className="mt-14">
             <SecaoTitulo>Nova variação</SecaoTitulo>
-            <NovaVariante idProduto={produto.id_produto} aoCriar={recarregar} />
+            <NovaVariante idProduto={produto.id_produto} marca={produto.marca} aoCriar={recarregar} />
           </section>
         </>
       )}

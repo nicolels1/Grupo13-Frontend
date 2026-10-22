@@ -6,6 +6,7 @@ import { Abas } from '@/components/Navegacao'
 import { Etiqueta, NomePeca } from '@/components/Peca'
 import { Button } from '@/components/ui/button'
 import { Input, Select } from '@/components/ui/input'
+import { useUnidadeEscolhida } from '@/layouts/unidadeEscolhida'
 import { api, type Esquema } from '@/lib/api'
 import { BLOCO_ACO } from '../componentes/estilos'
 import { dataCurta, mascaraCpf, METODOS_PAGAMENTO, moeda, plural } from '@/lib/formato'
@@ -37,7 +38,10 @@ export function AtenderPedido({
   const [quantidades, setQuantidades] = useState<Record<number, string>>({})
   const [novas, setNovas] = useState<Record<number, string>>({})
   const { enviar, enviando, erro } = useEnviar()
-  const bloqueio = motivoBloqueio(pedido, loja)
+  // fora do LayoutInterno (testes) não há a lista: o backend confere a marca de qualquer jeito
+  const unidades = useUnidadeEscolhida()?.unidades ?? []
+  const marcaDoPedido = unidades.find((u) => u.id_unidade === pedido.id_unidade)?.marca
+  const bloqueio = motivoBloqueio(pedido, loja, marcaDoPedido)
 
   // na troca, as outras cores e tamanhos do mesmo produto com saldo na loja física desta loja
   // a lista de nomes e o motivo de bloqueio mudam de identidade a cada render: a busca depende do texto deles

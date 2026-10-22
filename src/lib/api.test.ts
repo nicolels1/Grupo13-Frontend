@@ -12,6 +12,13 @@ describe('mensagemDoErro', () => {
     expect(mensagemDoErro({ detail: 'Pedido não encontrado' }, 404)).toBe('Pedido não encontrado')
   })
 
+  it('mostra o nome da marca e o que fazer no 403 de marca', () => {
+    expect(mensagemDoErro({ detail: 'Sem acesso à marca vulto' }, 403))
+      .toBe('Isto é da Vulto, que você não vê. Peça ao Admin a permissão de ver essa marca.')
+    expect(mensagemDoErro({ detail: 'Savassi é da marca lorenzi: só guarda peças dessa marca' }, 422))
+      .toBe('Savassi é da marca Casa Lorenzi: só guarda peças dessa marca')
+  })
+
   it('junta os erros de validação (422) sem o prefixo do Pydantic', () => {
     const corpo = { detail: [{ msg: 'Value error, CPF inválido' }, { msg: 'Campo obrigatório' }] }
     expect(mensagemDoErro(corpo, 422)).toBe('CPF inválido; Campo obrigatório')

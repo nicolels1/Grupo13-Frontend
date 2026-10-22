@@ -16,6 +16,8 @@ import { api, type Esquema } from '@/lib/api'
 import { CANAIS, codigoTransferencia, dataCurta, hora, plural, rotuloCanal } from '@/lib/formato'
 import { nomeUnidade, useVariantes } from '@/lib/listas'
 import { useCarregar, useEnviar } from '@/lib/useCarregar'
+import { SeletorDeMarca } from './componentes/FiltroDeMarca'
+import { useFiltroDeMarca } from './componentes/useFiltroDeMarca'
 
 type Transferencia = Esquema<'TransferenciaSaida'>
 type ItemEstoque = Esquema<'EstoqueItem'>
@@ -38,7 +40,11 @@ export function Transferencias() {
   const nova = params.get('nova') === '1'
   const idUnidade = unidade ? Number(unidade) : null
 
-  const lista = useCarregar(() => api<Esquema<'Pagina_TransferenciaSaida_'>>('/transferencias', { params: { id_unidade: unidade, limit: 200 } }), [unidade])
+  const filtroMarca = useFiltroDeMarca()
+  const lista = useCarregar(
+    () => api<Esquema<'Pagina_TransferenciaSaida_'>>('/transferencias', { params: { id_unidade: unidade, marca: filtroMarca.marca, limit: 200 } }),
+    [unidade, filtroMarca.marca],
+  )
   const todas = lista.dados?.items ?? []
   const chegando = todas.filter((t) => t.status === 'enviada' && (!idUnidade || t.id_unidade_destino === idUnidade))
   const paraEnviar = todas.filter((t) => t.status === 'solicitada' && (!idUnidade || t.id_unidade_origem === idUnidade))
@@ -73,6 +79,7 @@ export function Transferencias() {
 
       <div className="grid gap-10 lg:grid-cols-[22rem_1fr]">
         <div>
+          <SeletorDeMarca filtro={filtroMarca} className="mb-2" />
           <Abas
             rotulo="Transferências"
             valor={aba}
@@ -313,6 +320,16 @@ function NovaTransferencia({ aoCriar, aoFechar }: { aoCriar: (transferencia: Tra
   const [itens, setItens] = useState<ItemNovo[]>([])
   const { enviar, enviando, erro } = useEnviar()
   const tipo = (id: string) => unidades.find((u) => String(u.id_unidade) === String(id))?.tipo
+  const marca = (id: string) => unidades.find((u) => String(u.id_unidade) === String(id))?.marca
+  // a transferência fica dentro da marca (o backend recusa entre a Lorenzi e a Vulto): a origem só lista
+  // as unidades da marca do destino, e trocar o destino de marca limpa a origem
+  const origens = ativas.filter((u) => String(u.id_unidade) !== String(destino) && (!destino || u.marca === marca(destino)))
+
+  function mudarDestino(valor: string) {
+    if (origem && marca(origem) !== marca(valor)) setOrigem('')
+    setDestino(valor)
+    setItens([])
+  }
 
   const achadas = useCarregar(
     () => (origem && termo.trim().length >= 2 ? api<Esquema<'Pagina_EstoqueItem_'>>('/estoque', { params: { id_unidade: origem, busca: termo.trim(), limit: 40 } }) : null),
@@ -359,11 +376,11 @@ function NovaTransferencia({ aoCriar, aoFechar }: { aoCriar: (transferencia: Tra
         <Campo id="tr-origem" rotulo="Pedir de">
           <Select id="tr-origem" value={origem} onChange={(e) => { setOrigem(e.target.value); setItens([]) }} required>
             <option value="" disabled>Escolha a unidade</option>
-            {ativas.filter((u) => String(u.id_unidade) !== String(destino)).map((u) => <option key={u.id_unidade} value={u.id_unidade}>{u.nome}</option>)}
+            {origens.map((u) => <option key={u.id_unidade} value={u.id_unidade}>{u.nome}</option>)}
           </Select>
         </Campo>
         <Campo id="tr-destino" rotulo="Para">
-          <Select id="tr-destino" value={destino} onChange={(e) => { setDestino(e.target.value); setItens([]) }} required>
+          <Select id="tr-destino" value={destino} onChange={(e) => mudarDestino(e.target.value)} required>
             <option value="" disabled>Escolha a unidade</option>
             {ativas.filter((u) => String(u.id_unidade) !== String(origem)).map((u) => <option key={u.id_unidade} value={u.id_unidade}>{u.nome}</option>)}
           </Select>

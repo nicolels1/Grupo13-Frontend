@@ -19,6 +19,8 @@ import { BLOCO_ACO } from './componentes/estilos'
 import { CANAIS_VENDA, dataCurta, dataHora, haQuanto, hora, mascaraCpf, moeda, nomeDoMetodo, plural } from '@/lib/formato'
 import { useCarregar, useEnviar } from '@/lib/useCarregar'
 import { caminhoDaFicha } from './clientes/regrasCliente'
+import { SeletorDeMarca } from './componentes/FiltroDeMarca'
+import { useFiltroDeMarca } from './componentes/useFiltroDeMarca'
 
 type Pedido = Esquema<'PedidoSaida'>
 type PaginaPedidos = Esquema<'Pagina_PedidoSaida_'>
@@ -69,17 +71,19 @@ export function Pedidos() {
   const [corrigindo, setCorrigindo] = useState(false)
   const idVer = params.get('ver')
   const filtros = FILTROS_DA_FILA[fila]
+  const filtroMarca = useFiltroDeMarca(() => setOffset(0))
+  const marca = filtroMarca.marca
 
   const lista = useCarregar(
-    () => api<PaginaPedidos>('/vendas/pedidos', { params: { ...filtros, id_unidade: unidade, limit: POR_PAGINA, offset } }),
-    [filtros, unidade, offset],
+    () => api<PaginaPedidos>('/vendas/pedidos', { params: { ...filtros, id_unidade: unidade, marca, limit: POR_PAGINA, offset } }),
+    [filtros, unidade, marca, offset],
   )
   // contagem de cada fila (só o total; "Todos" não precisa)
   const contagens = useCarregar(
     () => Promise.all(FILAS.map((f) => (f.valor === 'todos'
       ? Promise.resolve(null)
-      : api<PaginaPedidos>('/vendas/pedidos', { params: { ...f.filtros, id_unidade: unidade, limit: 1 } }).then((r) => r.total)))),
-    [unidade],
+      : api<PaginaPedidos>('/vendas/pedidos', { params: { ...f.filtros, id_unidade: unidade, marca, limit: 1 } }).then((r) => r.total)))),
+    [unidade, marca],
   )
   const itens = lista.dados?.items ?? []
   // o pedido aberto vem da lista; se não está na página (link direto), o detalhe busca sozinho
@@ -118,6 +122,7 @@ export function Pedidos() {
 
       <div className="grid gap-10 lg:grid-cols-[24rem_minmax(0,1fr)]">
         <div className="min-w-0">
+          <SeletorDeMarca filtro={filtroMarca} className="mb-2" />
           {lista.erro && <Aviso mensagem={lista.erro} />}
           {lista.carregando && !lista.dados && <Carregando />}
           {lista.dados && itens.length === 0 && <p className="py-8 text-sm text-muted-foreground">Nenhum pedido nesta fila.</p>}
