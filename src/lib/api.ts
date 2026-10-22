@@ -46,6 +46,27 @@ export function mensagemDoErro(corpo: unknown, status: number): string {
 
 export const SESSAO_VENCIDA = 'Sua sessão expirou. Entre de novo para continuar.'
 
+// o VITE_API_URL é gravado no build: vazio ou sem http(s) quebraria todas as chamadas com um erro genérico.
+// Devolve o que está errado (null = endereço certo)
+export function erroDoEnderecoDaApi(endereco: string): string | null {
+  const onde = 'Preencha no .env (ou na Vercel, e publique de novo) o endereço completo, ex.: https://grupo13-backend-megw.onrender.com'
+  if (!endereco.trim()) return `O endereço da API (VITE_API_URL) não foi configurado. ${onde}`
+  let url: URL
+  try {
+    url = new URL(endereco)
+  } catch {
+    return `O endereço da API (VITE_API_URL) é inválido: "${endereco}". ${onde}`
+  }
+  if (url.protocol !== 'http:' && url.protocol !== 'https:') {
+    return `O endereço da API (VITE_API_URL) precisa começar com http:// ou https://: "${endereco}". ${onde}`
+  }
+  return null
+}
+
+// conferido uma vez, ao abrir o site: avisa no console e cada chamada mostra a mensagem na tela
+const ERRO_DE_CONFIGURACAO = erroDoEnderecoDaApi(API_URL)
+if (ERRO_DE_CONFIGURACAO) console.error(ERRO_DE_CONFIGURACAO)
+
 type ValorSimples = string | number | boolean | null | undefined
 // uma lista repete o parâmetro na URL (?tamanho=P&tamanho=M)
 type ValorParametro = ValorSimples | ValorSimples[]
@@ -69,6 +90,7 @@ export async function api<T = unknown>(
   caminho: string,
   { metodo = 'GET', corpo, params, autenticado = true }: OpcoesApi = {},
 ): Promise<T> {
+  if (ERRO_DE_CONFIGURACAO) throw new ErroApi(0, ERRO_DE_CONFIGURACAO)
   const url = new URL(API_URL + caminho)
   for (const [chave, valor] of Object.entries(params ?? {})) {
     for (const item of Array.isArray(valor) ? valor : [valor]) {

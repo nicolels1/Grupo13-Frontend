@@ -5,7 +5,29 @@ const auth = vi.hoisted(() => ({ getSession: vi.fn(), signOut: vi.fn() }))
 vi.mock('./supabaseClient', () => ({ supabase: { auth } }))
 vi.mock('@/config/ambiente', () => ({ API_URL: 'http://api.teste' }))
 
-const { api, mensagemDoErro, SESSAO_VENCIDA } = await import('./api')
+const { api, erroDoEnderecoDaApi, mensagemDoErro, SESSAO_VENCIDA } = await import('./api')
+
+describe('erroDoEnderecoDaApi', () => {
+  it('aceita o endereço publicado e o local', () => {
+    expect(erroDoEnderecoDaApi('https://grupo13-backend-megw.onrender.com')).toBeNull()
+    expect(erroDoEnderecoDaApi('http://127.0.0.1:8000')).toBeNull()
+  })
+
+  it('variável vazia ou só com espaços diz que falta configurar', () => {
+    expect(erroDoEnderecoDaApi('')).toContain('não foi configurado')
+    expect(erroDoEnderecoDaApi('   ')).toContain('não foi configurado')
+  })
+
+  it('endereço sem protocolo é inválido', () => {
+    expect(erroDoEnderecoDaApi('grupo13-backend-megw.onrender.com')).toContain('é inválido: "grupo13-backend-megw.onrender.com"')
+  })
+
+  it('protocolo que não é http(s) é recusado', () => {
+    expect(erroDoEnderecoDaApi('ftp://api.exemplo.com')).toContain('precisa começar com http:// ou https://')
+    // "localhost:8000" vira o protocolo "localhost:", não um endereço
+    expect(erroDoEnderecoDaApi('localhost:8000')).toContain('precisa começar com http:// ou https://')
+  })
+})
 
 describe('mensagemDoErro', () => {
   it('usa o texto que o backend mandou', () => {
