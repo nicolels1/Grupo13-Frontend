@@ -14,8 +14,9 @@ import { useCarrinho } from '@/pages/loja/carrinho/contexto'
 import { GavetaCarrinho } from '@/pages/loja/carrinho/GavetaCarrinho'
 import { useChamadosDaConta } from '@/pages/loja/conta/useChamadosDaConta'
 
-// plataforma do cliente: a vitrine é pública; a conta aparece à direita do topo. Em cima de tudo, uma
-// aba para cada loja do grupo; o menu de categorias e o logo são os da loja escolhida
+// plataforma do cliente: a vitrine é pública; a conta aparece à direita do topo. Em cima de tudo, a faixa
+// do frete e, logo abaixo, uma aba para cada loja do grupo; o menu de categorias e o logo são os da loja
+// escolhida
 export function LayoutCliente() {
   const loja = useLojaEscolhida()
   const { dados: categorias } = useCategorias(loja)
@@ -24,10 +25,10 @@ export function LayoutCliente() {
   return (
     <CarrinhoProvider>
       <div className="flex min-h-svh flex-col bg-background text-foreground">
-        <AbasDasLojas loja={loja} />
         <p className="bg-marinho-escuro px-4 py-2 text-center text-[0.7rem] font-medium tracking-[0.12em] text-white uppercase">
           Frete grátis a partir de R$ 299 e retirada grátis na loja
         </p>
+        <AbasDasLojas loja={loja} />
 
         <header className="border-b">
           <div className="mx-auto grid max-w-7xl grid-cols-[auto_minmax(0,1fr)] items-center gap-x-4 gap-y-3 px-4 py-4 sm:px-6 lg:grid-cols-[auto_minmax(0,1fr)_auto_auto] lg:gap-x-8">
