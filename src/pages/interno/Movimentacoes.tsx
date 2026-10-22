@@ -170,10 +170,13 @@ function RegistrarMovimentacao({ aoRegistrar }: { aoRegistrar: (mensagem: string
   const [motivo, setMotivo] = useState('')
   const { enviar, enviando, erro } = useEnviar()
 
-  // a peça é procurada na rede inteira: uma unidade pode receber uma peça que ainda não tinha
+  const unidadeEscolhida = unidades.find((u) => String(u.id_unidade) === String(idUnidade))
+  // a peça é procurada nas unidades da mesma marca: uma unidade pode receber uma peça que ainda não tinha,
+  // mas só da própria marca (o backend recusa a da outra)
+  const marca = unidadeEscolhida?.marca
   const encontradas = useCarregar(
-    () => (termo.trim().length >= 2 && !peca ? api<PaginaEstoque>('/estoque', { params: { busca: termo.trim(), limit: 30 } }) : null),
-    [termo, peca],
+    () => (termo.trim().length >= 2 && !peca ? api<PaginaEstoque>('/estoque', { params: { busca: termo.trim(), marca, limit: 30 } }) : null),
+    [termo, peca, marca],
   )
   const saldoAqui = useCarregar(
     () => (peca && idUnidade ? api<PaginaEstoque>('/estoque', { params: { id_variante: peca.id_variante, id_unidade: idUnidade } }) : null),
@@ -182,12 +185,17 @@ function RegistrarMovimentacao({ aoRegistrar }: { aoRegistrar: (mensagem: string
   const opcoes = [...new Map((encontradas.dados?.items ?? []).map((e) => [e.id_variante, e])).values()].slice(0, 6)
   const disponivel = (c: Canal) => saldoAqui.dados?.items.find((l) => l.canal === c)?.disponivel ?? 0
   const precisaMotivo = tipo !== 'recebimento'
-  const unidadeEscolhida = unidades.find((u) => String(u.id_unidade) === String(idUnidade))
   const canais: Canal[] = unidadeEscolhida?.tipo === 'cd' ? ['online'] : ['loja_fisica', 'online']
 
   const qtd = Number(quantidade) || 0
   const efeito = tipo === 'ajuste' ? qtd : tipo === 'recebimento' ? qtd : -qtd
   const fica = disponivel(canal) + efeito
+
+  // a peça escolhida é da marca da unidade: trocar para uma unidade da outra marca limpa a peça
+  function mudarUnidade(valor: string) {
+    if (unidades.find((u) => String(u.id_unidade) === valor)?.marca !== marca) setPeca(null)
+    setIdUnidade(valor)
+  }
 
   async function registrar(evento: FormEvent) {
     evento.preventDefault()
@@ -226,7 +234,7 @@ function RegistrarMovimentacao({ aoRegistrar }: { aoRegistrar: (mensagem: string
       </fieldset>
 
       <Campo id="mov-unidade" rotulo="Unidade">
-        <Select id="mov-unidade" value={idUnidade} onChange={(e) => setIdUnidade(e.target.value)} className="bg-background" required>
+        <Select id="mov-unidade" value={idUnidade} onChange={(e) => mudarUnidade(e.target.value)} className="bg-background" required>
           <option value="" disabled>Escolha a unidade</option>
           {unidades.filter((u) => u.ativo).map((u) => <option key={u.id_unidade} value={u.id_unidade}>{u.nome}</option>)}
         </Select>

@@ -313,6 +313,16 @@ function NovaTransferencia({ aoCriar, aoFechar }: { aoCriar: (transferencia: Tra
   const [itens, setItens] = useState<ItemNovo[]>([])
   const { enviar, enviando, erro } = useEnviar()
   const tipo = (id: string) => unidades.find((u) => String(u.id_unidade) === String(id))?.tipo
+  const marca = (id: string) => unidades.find((u) => String(u.id_unidade) === String(id))?.marca
+  // a transferência fica dentro da marca (o backend recusa entre a Lorenzi e a Vulto): a origem só lista
+  // as unidades da marca do destino, e trocar o destino de marca limpa a origem
+  const origens = ativas.filter((u) => String(u.id_unidade) !== String(destino) && (!destino || u.marca === marca(destino)))
+
+  function mudarDestino(valor: string) {
+    if (origem && marca(origem) !== marca(valor)) setOrigem('')
+    setDestino(valor)
+    setItens([])
+  }
 
   const achadas = useCarregar(
     () => (origem && termo.trim().length >= 2 ? api<Esquema<'Pagina_EstoqueItem_'>>('/estoque', { params: { id_unidade: origem, busca: termo.trim(), limit: 40 } }) : null),
@@ -359,11 +369,11 @@ function NovaTransferencia({ aoCriar, aoFechar }: { aoCriar: (transferencia: Tra
         <Campo id="tr-origem" rotulo="Pedir de">
           <Select id="tr-origem" value={origem} onChange={(e) => { setOrigem(e.target.value); setItens([]) }} required>
             <option value="" disabled>Escolha a unidade</option>
-            {ativas.filter((u) => String(u.id_unidade) !== String(destino)).map((u) => <option key={u.id_unidade} value={u.id_unidade}>{u.nome}</option>)}
+            {origens.map((u) => <option key={u.id_unidade} value={u.id_unidade}>{u.nome}</option>)}
           </Select>
         </Campo>
         <Campo id="tr-destino" rotulo="Para">
-          <Select id="tr-destino" value={destino} onChange={(e) => { setDestino(e.target.value); setItens([]) }} required>
+          <Select id="tr-destino" value={destino} onChange={(e) => mudarDestino(e.target.value)} required>
             <option value="" disabled>Escolha a unidade</option>
             {ativas.filter((u) => String(u.id_unidade) !== String(origem)).map((u) => <option key={u.id_unidade} value={u.id_unidade}>{u.nome}</option>)}
           </Select>

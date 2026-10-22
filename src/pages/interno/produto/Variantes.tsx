@@ -23,9 +23,11 @@ type VarianteEditada = { id_variante: number; sku: string; preco: string; ativo:
 
 // variações do produto: o editor de cada linha, a criação, a tabela e o histórico de preço
 
-export function EditorVariante({ indice, valor, aoMudar, aoTirar }: {
+export function EditorVariante({ indice, valor, marca, aoMudar, aoTirar }: {
   indice: number | string
   valor: VarianteNova
+  // marca do produto: o estoque inicial só entra numa unidade da mesma marca
+  marca: string
   aoMudar: (valor: VarianteNova) => void
   aoTirar?: () => void
 }) {
@@ -65,7 +67,7 @@ export function EditorVariante({ indice, valor, aoMudar, aoTirar }: {
           <div key={j} className="flex flex-wrap items-center gap-2">
             <Select aria-label="Unidade" value={e.id_unidade} onChange={(ev) => mudarEstoque(j, 'id_unidade', ev.target.value)} className="w-48 bg-background" required>
               <option value="" disabled>Unidade</option>
-              {unidades.filter((u) => u.ativo).map((u) => <option key={u.id_unidade} value={u.id_unidade}>{u.nome}</option>)}
+              {unidades.filter((u) => u.ativo && u.marca === marca).map((u) => <option key={u.id_unidade} value={u.id_unidade}>{u.nome}</option>)}
             </Select>
             <Select aria-label="Canal" value={e.canal} onChange={(ev) => mudarEstoque(j, 'canal', ev.target.value)} className="w-36 bg-background">
               {Object.entries(CANAIS).map(([v, r]) => <option key={v} value={v}>{r}</option>)}
@@ -89,7 +91,7 @@ export function EditorVariante({ indice, valor, aoMudar, aoTirar }: {
   )
 }
 
-export function NovaVariante({ idProduto, aoCriar }: { idProduto: number; aoCriar: () => void }) {
+export function NovaVariante({ idProduto, marca, aoCriar }: { idProduto: number; marca: string; aoCriar: () => void }) {
   const [valor, setValor] = useState<VarianteNova>({ ...VARIANTE_VAZIA })
   const [criada, setCriada] = useState<string | null>(null)
   const { enviar, enviando, erro } = useEnviar()
@@ -107,7 +109,7 @@ export function NovaVariante({ idProduto, aoCriar }: { idProduto: number; aoCria
 
   return (
     <form onSubmit={criar} className="space-y-3">
-      <EditorVariante indice="nova" valor={valor} aoMudar={setValor} />
+      <EditorVariante indice="nova" valor={valor} marca={marca} aoMudar={setValor} />
       {erro && <Aviso mensagem={erro} />}
       {criada && <Sucesso>{criada}</Sucesso>}
       <div className="flex justify-end">

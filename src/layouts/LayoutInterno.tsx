@@ -3,7 +3,7 @@ import { ChevronDown, Store } from 'lucide-react'
 import { NavLink, Outlet, useNavigate } from 'react-router'
 import { cn } from 'cn'
 
-import { AREAS, podeVerArea } from '@/auth/areas'
+import { AREAS, podeVerArea, veMarca } from '@/auth/areas'
 import { useAuth } from '@/auth/contexto'
 import { Logo } from '@/components/Logo'
 import {
@@ -30,10 +30,12 @@ const COR_DA_ABA: Record<string, string> = {
 export function LayoutInterno() {
   const { perfil } = useAuth()
   const areas = AREAS.filter((area) => podeVerArea(perfil, area))
-  const { dados: unidades } = useUnidades()
+  // só as unidades das marcas que a pessoa vê: as da outra marca dariam 403 em toda tela
+  const { dados: todas } = useUnidades()
+  const unidades = (todas ?? []).filter((u) => veMarca(perfil, u.marca))
   // a unidade da conta é só o filtro inicial; dá para olhar qualquer outra
   const [unidade, setUnidade] = useState(perfil?.id_unidade ? String(perfil.id_unidade) : '')
-  const contexto: UnidadeEscolhida = { unidade, setUnidade, unidades: unidades ?? [] }
+  const contexto: UnidadeEscolhida = { unidade, setUnidade, unidades }
 
   return (
     <div className="min-h-svh bg-background text-foreground">
@@ -75,7 +77,7 @@ export function LayoutInterno() {
                 className="max-w-44 bg-transparent py-1 text-sm text-white outline-none focus-visible:ring-2 focus-visible:ring-ring [&>option]:text-foreground"
               >
                 <option value="">Todas as unidades</option>
-                {(unidades ?? []).filter((u) => u.ativo).map((u) => (
+                {unidades.filter((u) => u.ativo).map((u) => (
                   <option key={u.id_unidade} value={u.id_unidade}>{u.nome}</option>
                 ))}
               </select>

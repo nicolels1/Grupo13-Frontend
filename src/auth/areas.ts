@@ -6,6 +6,9 @@ type Perfil = Esquema<'Perfil'>
 // que ela é igual à das migrações. Código escrito errado nas telas não compila
 export type CodigoPermissao = Perfil['permissoes'][number]
 
+export type Marca = 'lorenzi' | 'vulto'
+const MARCAS: Marca[] = ['lorenzi', 'vulto']
+
 export type Area = {
   caminho: string
   rotulo: string
@@ -58,6 +61,16 @@ export function ehAdmin(perfil: Perfil | null | undefined) {
 
 export function temPermissao(perfil: Perfil | null | undefined, codigo: CodigoPermissao) {
   return ehAdmin(perfil) || Boolean(perfil?.permissoes?.includes(codigo))
+}
+
+// marcas que a pessoa da equipe vê (ver_marca_lorenzi, ver_marca_vulto; o Admin vê as duas). O backend
+// recusa (403) a unidade, o pedido ou a peça de uma marca fora daqui
+export function marcasVistas(perfil: Perfil | null | undefined): Set<Marca> {
+  return new Set(MARCAS.filter((marca) => temPermissao(perfil, `ver_marca_${marca}`)))
+}
+
+export function veMarca(perfil: Perfil | null | undefined, marca: string | null | undefined) {
+  return Boolean(marca) && marcasVistas(perfil).has(marca as Marca)
 }
 
 // a conta interna vê a área? (permissoes null = qualquer conta interna)

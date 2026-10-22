@@ -1,4 +1,5 @@
 import type { Esquema } from '@/lib/api'
+import { MARCAS } from '@/lib/formato'
 
 type Pedido = Esquema<'PedidoSaida'>
 type Pagamento = Esquema<'PagamentoSaida'>
@@ -29,12 +30,16 @@ export function prazoTroca(pedido: Pedido) {
 }
 
 // por que o pedido não aceita troca nem devolução (null = aceita)
-export function motivoBloqueio(pedido: Pedido, loja: Unidade) {
+// marcaDoPedido: a da unidade do pedido; cada loja só recebe peça da própria marca
+export function motivoBloqueio(pedido: Pedido, loja: Unidade, marcaDoPedido?: string | null) {
   if (pedido.status !== 'entregue') return 'Só pedido entregue tem troca ou devolução.'
   const prazo = prazoTroca(pedido)
   if (prazo && prazo.getTime() < Date.now()) return `Passou o prazo de ${PRAZO_TROCA_DIAS} dias após a entrega.`
   if (pedido.devolucao === 'total') return 'Todas as peças deste pedido já foram devolvidas.'
   if (loja.tipo !== 'loja') return 'Troca e devolução são feitas numa loja.'
+  if (marcaDoPedido && loja.marca && marcaDoPedido !== loja.marca) {
+    return `Este pedido é da ${MARCAS[marcaDoPedido] ?? marcaDoPedido}: a troca ou devolução é feita numa loja da mesma marca.`
+  }
   return null
 }
 

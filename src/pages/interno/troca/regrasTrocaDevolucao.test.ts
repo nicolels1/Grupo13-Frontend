@@ -22,7 +22,7 @@ function pagamento(dados: Partial<Pagamento>): Pagamento {
   return { tipo: 'pagamento', status: 'aprovado', id_pagamento_original: null, metodo: 'pix', valor: '0', ...dados } as Pagamento
 }
 
-const loja = { tipo: 'loja' } as Unidade
+const loja = { tipo: 'loja', marca: 'lorenzi' } as Unidade
 const centro = { tipo: 'cd' } as Unidade
 
 describe('prazoTroca', () => {
@@ -62,6 +62,12 @@ describe('motivoBloqueio', () => {
   it('troca só acontece numa loja', () => {
     vi.useFakeTimers({ now: new Date('2026-10-10T12:00:00Z') })
     expect(motivoBloqueio(pedido(), centro)).toBe('Troca e devolução são feitas numa loja.')
+  })
+
+  it('pedido de outra marca não é trocado nesta loja', () => {
+    vi.useFakeTimers({ now: new Date('2026-10-10T12:00:00Z') })
+    expect(motivoBloqueio(pedido(), loja, 'vulto')).toBe('Este pedido é da Vulto: a troca ou devolução é feita numa loja da mesma marca.')
+    expect(motivoBloqueio(pedido(), loja, 'lorenzi')).toBeNull()
   })
 })
 
