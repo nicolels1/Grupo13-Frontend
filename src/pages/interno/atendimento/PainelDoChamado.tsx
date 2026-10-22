@@ -214,7 +214,7 @@ export function PainelDoChamado({ chamado: c, historico, aoMudar }: { chamado: C
       {/* só no chamado que veio do atendimento da Vulto: a linha da conversa, a categoria e quem atendeu lá */}
       {c.canal_externo && (
         <div className="border-t pt-4">
-          <OrigemMigracao tabela="chamado" idRegistro={c.id_chamado} titulo="Origem na Vulto" />
+          <OrigemMigracao tabela="chamado" idRegistro={c.id_chamado} titulo="Origem na Vulto" semDecisoes />
         </div>
       )}
     </aside>

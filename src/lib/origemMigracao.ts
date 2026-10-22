@@ -33,6 +33,7 @@ const CAMPOS: Record<string, string> = {
   descontinuado: 'Descontinuada',
   nome: 'Nome',
   categoria: 'Categoria',
+  assunto: 'Assunto',
   codigo_venda: 'Código da venda',
   valor_total: 'Valor total',
   status: 'Situação',

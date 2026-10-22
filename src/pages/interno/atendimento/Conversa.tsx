@@ -1,5 +1,5 @@
 import { useRef, useState, type ChangeEvent, type FormEvent } from 'react'
-import { Paperclip, Send, X } from 'lucide-react'
+import { Info, Paperclip, Send, X } from 'lucide-react'
 import { cn } from 'cn'
 
 import { Aviso, Carregando } from '@/components/Estados'
@@ -186,12 +186,16 @@ function Responder({ chamado: c, aoEnviar }: { chamado: Chamado; aoEnviar: () =>
 
   return (
     <div className="space-y-2">
+      {/* aviso para a equipe, com a cor de aviso (terracota) e não a das mensagens: não é uma fala da conversa */}
       {soNota && (
-        <p className="bg-superficie px-4 py-3 text-sm">
-          {quemAbriu(c)} não tem conta na plataforma e não vê respostas por aqui.
-          {c.canal_externo && c.contato_externo
-            ? ` Fale pelo ${nomeDoCanalExterno(c.canal_externo)} (${c.contato_externo}) e registre o combinado como nota interna.`
-            : ' Registre o atendimento como nota interna.'}
+        <p role="note" className="flex items-start gap-3 border-l-4 border-terracota bg-terracota/10 p-4 text-sm">
+          <Info className="mt-0.5 size-4 shrink-0 text-terracota" aria-hidden="true" />
+          <span>
+            {quemAbriu(c)} não tem conta na plataforma e não vê respostas por aqui.
+            {c.canal_externo && c.contato_externo
+              ? ` Fale pelo ${nomeDoCanalExterno(c.canal_externo)} (${c.contato_externo}) e registre o combinado como nota interna.`
+              : ' Registre o atendimento como nota interna.'}
+          </span>
         </p>
       )}
       <form onSubmit={responder} className={cn('border focus-within:ring-2 focus-within:ring-ring', interna && 'border-ardosia')}>
