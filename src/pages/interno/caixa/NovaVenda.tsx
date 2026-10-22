@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react'
+import { useState, type FormEvent, type KeyboardEvent } from 'react'
 import { Printer, Trash2 } from 'lucide-react'
 import { cn } from 'cn'
 
@@ -8,9 +8,10 @@ import { Button } from '@/components/ui/button'
 import { Campo, Input, Select } from '@/components/ui/input'
 import { api, ErroApi, type Esquema } from '@/lib/api'
 import { BLOCO_ACO } from '../componentes/estilos'
-import { mascaraCpf, METODOS_PAGAMENTO, moeda, plural, soDigitos } from '@/lib/formato'
+import { MARCAS, mascaraCpf, METODOS_PAGAMENTO, moeda, plural, soDigitos } from '@/lib/formato'
 import { useCarregar, useEnviar } from '@/lib/useCarregar'
 import { Notinha } from './impressao'
+import { descontoCabe, pontosDoCpf, valorAPagar, type PontosNoCaixa } from './pontosNoCaixa'
 import { useImprimirAoAbrir } from './useImprimirAoAbrir'
 
 type Unidade = Esquema<'UnidadeSaida'>
@@ -31,6 +32,7 @@ export function NovaVenda({ loja }: { loja: Unidade }) {
     return (
       <VendaFinalizada
         venda={venda}
+        marca={loja.marca}
         troco={troco}
         aoNovaVenda={() => {
           setVenda(null)
@@ -58,6 +60,7 @@ function FormularioVenda({ loja, aoFinalizar }: { loja: Unidade; aoFinalizar: (p
   const [cpf, setCpf] = useState('')
   const [metodo, setMetodo] = useState('pix')
   const [recebido, setRecebido] = useState('')
+  const [pontosAplicados, setPontosAplicados] = useState<PontosNoCaixa | null>(null)
   const { enviar, enviando, erro } = useEnviar()
 
   const achadas = useCarregar(
@@ -95,14 +98,19 @@ function FormularioVenda({ loja, aoFinalizar }: { loja: Unidade; aoFinalizar: (p
     [cpfDigitos],
   )
 
+  // pontos do cliente do CPF como desconto; o pagamento fecha com o total menos o desconto
+  const pontos = pontosDoCpf(pontosAplicados, cpfDigitos)
+  const aPagar = pontos ? valorAPagar(total, pontos.desconto) : total
+  const descontoOk = !pontos || descontoCabe(pontos.desconto, total)
+
   const emDinheiro = metodo === 'dinheiro'
   const valorRecebido = Number(recebido.replace(',', '.'))
-  const trocoDado = emDinheiro && total && recebido ? valorRecebido - Number(total) : null
+  const trocoDado = emDinheiro && aPagar && recebido ? valorRecebido - Number(aPagar) : null
   const faltaDinheiro = emDinheiro && (!recebido || (trocoDado ?? 0) < 0)
 
   const quantidadesOk = itens.length > 0 && itens.every((i) => Number(i.quantidade) >= 1 && Number(i.quantidade) <= i.linha.disponivel)
   const cpfOk = cpfDigitos.length === 0 || cpfDigitos.length === 11
-  const pronta = quantidadesOk && cpfOk && total && !resumo.carregando && !resumo.erro && !faltaDinheiro
+  const pronta = quantidadesOk && cpfOk && total && descontoOk && !resumo.carregando && !resumo.erro && !faltaDinheiro
 
   function adicionar(linha: ItemEstoque) {
     setTermo('')
@@ -125,7 +133,8 @@ function FormularioVenda({ loja, aoFinalizar }: { loja: Unidade; aoFinalizar: (p
       id_unidade: loja.id_unidade,
       itens: itens.map((i) => ({ id_variante: i.linha.id_variante, quantidade: Number(i.quantidade) })),
       cpf_nota: cpfDigitos || null,
-      pagamentos: [{ metodo, valor: total }],
+      pagamentos: [{ metodo, valor: aPagar }],
+      pontos_resgate: pontos?.pontos ?? null,
     }
     const pedido = await enviar(() => api<Pedido>('/vendas/pedidos', { metodo: 'POST', corpo }))
     if (pedido) aoFinalizar(pedido, trocoDado)
@@ -233,6 +242,10 @@ function FormularioVenda({ loja, aoFinalizar }: { loja: Unidade; aoFinalizar: (p
           {cliente.erro && <p className="text-xs text-destructive">{cliente.erro}</p>}
         </Campo>
 
+        {cpfDigitos.length === 11 && (
+          <UsarPontosNoCaixa marca={loja.marca} cpf={cpfDigitos} aplicados={pontos} aoMudar={setPontosAplicados} />
+        )}
+
         <Campo id="venda-metodo" rotulo="Forma de pagamento">
           <Select id="venda-metodo" value={metodo} onChange={(e) => setMetodo(e.target.value)}>
             {Object.entries(METODOS_PAGAMENTO).map(([valor, rotulo]) => <option key={valor} value={valor}>{rotulo}</option>)}
@@ -258,9 +271,21 @@ function FormularioVenda({ loja, aoFinalizar }: { loja: Unidade; aoFinalizar: (p
           </Campo>
         )}
 
-        <div className="flex items-baseline justify-between border-t pt-4">
-          <span className="text-sm text-muted-foreground">Total</span>
-          <span className="text-2xl font-medium tabular-nums">{resumo.carregando && validos.length ? '...' : moeda(total)}</span>
+        <div className="space-y-1 border-t pt-4">
+          {pontos && (
+            <>
+              <p className="flex justify-between text-sm"><span className="text-muted-foreground">Peças</span><span className="tabular-nums">{moeda(total)}</span></p>
+              <p className="flex justify-between text-sm">
+                <span className="text-muted-foreground">{plural(pontos.pontos, 'ponto', 'pontos')}</span>
+                <span className="tabular-nums">−{moeda(pontos.desconto)}</span>
+              </p>
+            </>
+          )}
+          <p className="flex items-baseline justify-between">
+            <span className="text-sm text-muted-foreground">Total</span>
+            <span className="text-2xl font-medium tabular-nums">{resumo.carregando && validos.length ? '...' : moeda(aPagar)}</span>
+          </p>
+          {!descontoOk && <p role="alert" className="text-sm text-ferrugem">O desconto dos pontos ficou maior que as peças. Tire os pontos ou use menos.</p>}
         </div>
 
         {erro && <Aviso mensagem={erro} />}
@@ -272,8 +297,87 @@ function FormularioVenda({ loja, aoFinalizar }: { loja: Unidade; aoFinalizar: (p
   )
 }
 
+// pontos do cliente do CPF como desconto, na marca da loja (cada marca tem o seu programa). O valor vem de
+// GET /fidelidade/resgate/caixa, a mesma conta que a venda faz; saldo e resgate mínimo, o backend confere.
+// Fica dentro do formulário da venda: o Enter aqui aplica os pontos em vez de finalizar a venda
+function UsarPontosNoCaixa({ marca, cpf, aplicados, aoMudar }: {
+  marca: Unidade['marca']
+  cpf: string
+  aplicados: PontosNoCaixa | null
+  aoMudar: (aplicados: PontosNoCaixa | null) => void
+}) {
+  const [texto, setTexto] = useState('')
+  const [aviso, setAviso] = useState<string | null>(null)
+  const { enviar, enviando, erro } = useEnviar()
+  const nome = MARCAS[marca] ?? marca
+
+  async function aplicar() {
+    setAviso(null)
+    const pontos = Number(texto)
+    if (!Number.isInteger(pontos) || pontos <= 0) {
+      setAviso('Escreva quantos pontos o cliente quer usar.')
+      return
+    }
+    const resgate = await enviar(() =>
+      api<Esquema<'ResgateSimulado'>>('/fidelidade/resgate/caixa', { params: { cpf, marca, pontos } }),
+    )
+    if (!resgate) return
+    aoMudar({ cpf, pontos, desconto: resgate.desconto, saldo: resgate.saldo })
+    setTexto('')
+  }
+
+  function aoTeclar(evento: KeyboardEvent<HTMLInputElement>) {
+    if (evento.key !== 'Enter') return
+    evento.preventDefault()
+    void aplicar()
+  }
+
+  if (aplicados) {
+    return (
+      <div className="space-y-1 text-sm">
+        <p>
+          {plural(aplicados.pontos, 'ponto', 'pontos')} da {nome} aplicados,{' '}
+          <span className="font-medium tabular-nums">−{moeda(aplicados.desconto)}</span>
+        </p>
+        <p className="text-xs text-muted-foreground">O cliente tinha {plural(aplicados.saldo, 'ponto', 'pontos')}.</p>
+        <button type="button" onClick={() => aoMudar(null)} className="underline underline-offset-4 hover:text-aco">
+          Tirar os pontos
+        </button>
+      </div>
+    )
+  }
+
+  return (
+    <div className="space-y-2">
+      <div className="flex items-end gap-2">
+        <Campo id="venda-pontos" rotulo={`Usar pontos da ${nome}`} opcional className="min-w-0 flex-1">
+          <Input
+            id="venda-pontos"
+            inputMode="numeric"
+            value={texto}
+            onChange={(e) => setTexto(soDigitos(e.target.value).slice(0, 9))}
+            onKeyDown={aoTeclar}
+            placeholder="Quantos pontos"
+            autoComplete="off"
+            aria-invalid={Boolean(aviso || erro) || undefined}
+          />
+        </Campo>
+        <Button type="button" variant="outline" disabled={enviando || !texto} onClick={() => void aplicar()}>
+          {enviando ? 'Calculando...' : 'Aplicar desconto'}
+        </Button>
+      </div>
+      {(aviso || erro) && <p role="alert" className="text-xs text-destructive">{aviso ?? erro}</p>}
+    </div>
+  )
+}
+
 // a notinha abre para imprimir assim que a venda fecha; "Nova venda" só depois de imprimir
-function VendaFinalizada({ venda, troco, aoNovaVenda }: { venda: Pedido; troco: number | null; aoNovaVenda: () => void }) {
+function VendaFinalizada({ venda, marca, troco, aoNovaVenda }: {
+  venda: Pedido
+  marca: Unidade['marca']
+  troco: number | null
+  aoNovaVenda: () => void
+}) {
   const { imprimiu, imprimir } = useImprimirAoAbrir()
 
   return (
@@ -285,7 +389,7 @@ function VendaFinalizada({ venda, troco, aoNovaVenda }: { venda: Pedido; troco: 
         </p>
       </div>
 
-      <Notinha venda={venda} troco={troco} />
+      <Notinha venda={venda} marca={marca} troco={troco} />
 
       <div className="flex flex-wrap justify-center gap-2">
         <Button type="button" variant="outline" size="lg" className="h-11 px-4" onClick={imprimir}>

@@ -14,9 +14,9 @@ import { api, type Esquema } from '@/lib/api'
 import { CANAIS_VENDA, CATEGORIAS_CHAMADO, dataCurta, dataLonga, mascaraCpf, moeda, numero, plural, STATUS_CONTA } from '@/lib/formato'
 import { lojaDaMarca } from '@/lib/lojaEscolhida'
 import { useCarregar } from '@/lib/useCarregar'
-import { nomeDaCategoria, saldosPorLoja } from '@/pages/loja/conta/pontosDaConta'
+import { nomeDaCategoria, rotuloMovimentoPontos, saldosPorLoja } from '@/pages/loja/conta/pontosDaConta'
 import {
-  caminhoDaFicha, filtroDoCliente, nomeDoCliente, rotuloConsentimento, rotuloMovimentoPontos, telefoneFormatado,
+  caminhoDaFicha, filtroDoCliente, nomeDoCliente, rotuloConsentimento, telefoneFormatado,
   type ClienteComConta, type TipoCliente,
 } from './regrasCliente'
 

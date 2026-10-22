@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
 import { PONTOS_DE_TESTE } from '@/lib/vultoDeTeste'
-import { nomeDaCategoria, saldosPorLoja } from './pontosDaConta'
+import { nomeDaCategoria, rotuloMovimentoPontos, saldosPorLoja } from './pontosDaConta'
 
 describe('saldosPorLoja', () => {
   it('mostra as duas lojas, a sem pontos vazia', () => {
@@ -16,5 +16,12 @@ describe('nomeDaCategoria', () => {
   it('escreve a categoria com maiúscula', () => {
     expect(nomeDaCategoria('prata')).toBe('Prata')
     expect(nomeDaCategoria('diamante')).toBe('diamante')
+  })
+})
+
+describe('rotuloMovimentoPontos', () => {
+  it('dá nome ao tipo do movimento', () => {
+    expect(rotuloMovimentoPontos('saldo_inicial')).toBe('Saldo inicial')
+    expect(rotuloMovimentoPontos('outro')).toBe('outro')
   })
 })

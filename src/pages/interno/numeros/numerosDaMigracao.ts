@@ -1,6 +1,6 @@
 // os 3 números da Entrega 3 como a migração calculou (migracao_vulto/numeros.md, no backend, gerado pelo
 // numeros.py a partir dos dados da Vulto) e o que o sistema da Vulto dizia. A aba "Migração da Vulto" da Gestão
-// mostra estes números ao lado do que a plataforma soma depois da carga: os dois têm que bater (Etapa 9).
+// mostra estes números ao lado do que a plataforma soma depois da carga: os dois têm que bater.
 // Se o numeros.md mudar, estes valores mudam junto
 
 export const DATA_BASE = '2026-10-01'

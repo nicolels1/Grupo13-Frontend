@@ -6,7 +6,7 @@ import { InicioLoja } from '@/pages/loja/Inicio'
 import { tela } from './tela'
 import {
   AjudaLoja, AreaDaConta, AvaliarPeca, Cadastro, CarrinhoLoja, ChamadosCliente, CheckoutLoja, ConfirmacaoCompra, ConversaCliente, Enderecos,
-  Entrar, EsqueciSenha, MeusPedidos, NovoChamadoCliente, ProdutoLoja, ProdutosLoja, RedefinirSenha, SemChamadoEscolhido, VisaoGeralConta,
+  Entrar, EsqueciSenha, MeusPedidos, MeusPontosLoja, NovoChamadoCliente, ProdutoLoja, ProdutosLoja, RedefinirSenha, SemChamadoEscolhido, VisaoGeralConta,
 } from './telasLoja'
 
 export const rotasLoja: RouteObject[] = [
@@ -40,6 +40,7 @@ export const rotasLoja: RouteObject[] = [
           { path: 'pedidos', element: tela(<MeusPedidos />) },
           { path: 'avaliar/:idItem', element: tela(<AvaliarPeca />) },
           { path: 'enderecos', element: tela(<Enderecos />) },
+          { path: 'pontos', element: tela(<MeusPontosLoja />) },
           {
             path: 'chamados',
             element: tela(<ChamadosCliente />),

@@ -1,4 +1,4 @@
-import { LayoutGrid, LogOut, MapPin, MessageCircle, Package } from 'lucide-react'
+import { Award, LayoutGrid, LogOut, MapPin, MessageCircle, Package } from 'lucide-react'
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router'
 import { cn } from 'cn'
 
@@ -11,6 +11,7 @@ const SECOES = [
   { para: '/loja/conta', rotulo: 'Visão geral', icone: LayoutGrid, exata: true },
   { para: '/loja/pedidos', rotulo: 'Meus pedidos', icone: Package },
   { para: '/loja/chamados', rotulo: 'Chamados', icone: MessageCircle },
+  { para: '/loja/pontos', rotulo: 'Meus pontos', icone: Award },
   { para: '/loja/enderecos', rotulo: 'Endereços', icone: MapPin },
 ]
 

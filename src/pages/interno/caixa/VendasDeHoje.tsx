@@ -107,7 +107,7 @@ export function VendasDeHoje({ loja }: { loja: Unidade }) {
 
       {reimprimindo && (
         <div className="hidden print:block">
-          <Notinha venda={reimprimindo} troco={null} />
+          <Notinha venda={reimprimindo} marca={loja.marca} troco={null} />
         </div>
       )}
     </div>
