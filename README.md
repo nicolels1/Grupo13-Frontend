@@ -1,9 +1,11 @@
 # Casa Lorenzi — Frontend
 
-Frontend da plataforma da Casa Lorenzi, desenvolvida no Case Tech da Trainee Insper Jr 2026.2. Uma única aplicação com entrada única atende as duas frentes: a **plataforma do cliente** (loja online, compra, pedidos, chamados e avaliações) e a **plataforma interna** (estoque, transferências, caixa, pedidos, atendimento, avaliações, catálogo e gestão). A API fica no repositório [Grupo13-Backend](https://github.com/nicolels1/Grupo13-Backend).
+Frontend da plataforma da Casa Lorenzi, desenvolvida no Case Tech da Trainee Insper Jr 2026.2. Uma única aplicação com entrada única atende as duas frentes: a **plataforma do cliente** (loja online da Casa Lorenzi e da Vulto, compra, pedidos, chamados, avaliações e pontos) e a **plataforma interna** (estoque, transferências, caixa, pedidos, clientes, atendimento, avaliações, catálogo e gestão). A API fica no repositório [Grupo13-Backend](https://github.com/nicolels1/Grupo13-Backend).
 
 - **Plataforma publicada:** https://lorenzi.vercel.app
-- **API:** https://grupo13-backend-megw.onrender.com (documentação em `/docs`)
+- **API:** https://grupo13-backend-megw.onrender.com (documentação interativa em [`/docs`](https://grupo13-backend-megw.onrender.com/docs))
+- **Backend:** https://github.com/nicolels1/Grupo13-Backend
+- **Migração da Vulto (Entrega 3):** ver [Documentação da Entrega 3](#documentação-da-entrega-3)
 
 > A API roda no plano gratuito do Render e dorme depois de 15 minutos sem uso. Se a primeira tela demorar para carregar, espere cerca de 1 minuto: as próximas respondem normalmente.
 
@@ -21,29 +23,34 @@ Frontend da plataforma da Casa Lorenzi, desenvolvida no Case Tech da Trainee Ins
 - [Deploy (Vercel)](#deploy-vercel)
 - [Problemas comuns](#problemas-comuns)
 - [Decisões de arquitetura](#decisões-de-arquitetura)
+- [Documentação da Entrega 3](#documentação-da-entrega-3)
 
 ## O que a plataforma faz
 
 **Plataforma do cliente (`/loja`)**
 
+- duas lojas como abas no topo, Casa Lorenzi e Vulto: a vitrine (início, lista e categorias) mostra a loja escolhida, que fica guardada no navegador; carrinho, checkout e conta são um só para as duas;
 - vitrine com carrossel (slides editados pelo interno), categorias, busca sem acento e tolerante a erro de digitação, filtros de tamanho e estoque e ordenação;
 - página do produto com fotos por cor, tamanhos esgotados riscados e avaliações com fotos, filtro "Com fotos", voto útil e denúncia;
 - um carrinho só para a Casa Lorenzi e a Vulto, salvo no navegador (gaveta e página), com as peças separadas por marca e uma barra de frete grátis só, que conta as duas marcas juntas;
 - checkout em uma página: entrega em casa (CEP preenchido pelo ViaCEP) ou retirada grátis numa loja (só com peças de uma marca), reserva de 15 minutos e um pagamento simulado por Pix ou cartão de teste para a compra inteira; com as duas marcas, o backend faz um pedido por marca; os pontos de cada marca viram desconto nas peças dela;
-- área "Minha conta": pedidos com linha do tempo, avaliação da peça recebida, compra feita na loja ligada à conta pelo código da notinha, chamados com conversa e anexos, e endereços;
+- área "Minha conta": pedidos com linha do tempo, avaliação da peça recebida, compra feita na loja ligada à conta pelo código da notinha, chamados com conversa e anexos, endereços e os pontos das duas lojas lado a lado (o programa da Vulto é o Vulto+);
 - cadastro, login por e-mail ou CPF e recuperação de senha por e-mail.
 
 **Plataforma interna (`/interno`)**
 
-- **Visão Geral:** a primeira tela depois do login mostra as pendências da conta (peças abaixo do mínimo, transferências, pedidos para preparar, retiradas perto de vencer, chamados, denúncias) e os números das suas áreas; o Admin vê também a rede inteira e uma linha por unidade;
+- **Visão Geral:** a primeira tela depois do login mostra as pendências da conta (peças abaixo do mínimo, transferências, pedidos para preparar, retiradas perto de vencer, chamados, denúncias) e os números das suas áreas; o Admin vê também a rede inteira e uma linha por unidade. Quem vê as duas marcas filtra os números por marca, e quem pode ver pontos acompanha os **pontos a resgatar** (passivo) de cada marca;
 - **Estoque:** saldo por unidade em matriz cor × tamanho, movimentações e o **Histórico do estoque**, que responde "qual era o estoque da loja X em tal data e hora", com gráfico de evolução de cada peça;
 - **Transferências** entre unidades (solicitada, enviada, recebida);
 - **Caixa:** nova venda com CPF na nota opcional e notinha para imprimir, retiradas, vendas do dia, consulta de peça e troca ou devolução no balcão;
-- **Pedidos** online para preparar, enviar e entregar;
-- **Atendimento** em caixa de entrada: filas, conversa com nota interna, troca, devolução e estorno a partir do chamado;
+- **Pedidos** online para preparar, enviar e entregar, com canal, desconto, pagamento e, no pedido que veio da Vulto, a origem na Vulto;
+- **Clientes:** abas "Com conta" e "Sem conta (Vulto)", com busca; a ficha de cada cliente mostra cadastro, pontos das duas lojas, pedidos, chamados e, para quem veio da Vulto, a origem da migração;
+- **Atendimento** em caixa de entrada: filas, conversa com nota interna, troca, devolução e estorno a partir do chamado; o chamado migrado da Vulto mostra o canal de origem (WhatsApp, Instagram ou e-mail);
 - **Avaliações:** moderação das denúncias;
-- **Catálogo:** produtos, variantes, preços e fotos, e a aba **Destaques da página inicial**, onde se editam os slides do carrossel (texto, botão, link, foto, ordem e se aparecem na loja);
-- **Gestão** (só Admin): contas internas, modelos de acesso, exceções de permissão e unidades.
+- **Catálogo:** produtos, variantes, preços e fotos, com a rede (marca), o código de barras e a origem da peça migrada, e a aba **Destaques da página inicial**, onde se editam os slides do carrossel (texto, botão, link, foto, ordem e se aparecem na loja);
+- **Gestão** (só Admin): contas internas, modelos de acesso, exceções de permissão, unidades e a aba **Migração da Vulto** (`/interno/gestao?aba=migracao`), com os três números da Entrega 3 (faturamento de jan/2025 a set/2026, estoque e passivo de pontos em 01/10/2026): o que a migração calculou, o que a plataforma soma depois da carga, a diferença para o sistema da Vulto e a margem de erro.
+
+Cada registro migrado (peça, pedido, cliente e chamado) mostra de onde veio na Vulto e o que a migração mudou nele, com o código da decisão do [registro de decisões](https://github.com/nicolels1/Grupo13-Backend/blob/main/migracao_vulto/registro_decisoes.md).
 
 ## Arquitetura e stack
 
@@ -98,6 +105,8 @@ src/
     │   ├── chamados/    chamado novo, conversa, mensagens e anexos
     │   └── componentes/ partes das telas da loja (cartão do produto, avaliações, estrelas, fotos)
     └── interno/         telas da plataforma interna
+        ├── clientes/    ficha do cliente com conta ou sem conta (migrado da Vulto)
+        ├── numeros/     aba "Migração da Vulto" da Gestão: os três números da Entrega 3
         ├── troca/       troca, devolução e estorno (usados no Caixa e no Atendimento) e as regras deles
         └── componentes/ partes das telas do interno (gráficos e estilos de bloco)
 ```
@@ -110,6 +119,7 @@ Componente usado nas duas plataformas fica em `components/`; o que é de uma pla
 
 - Há uma só tela de login (`/entrar`), por e-mail ou CPF. Depois de entrar, conta de cliente vai para a loja e conta interna para a Visão Geral.
 - O perfil vem da API (`GET /me`) com as permissões efetivas da conta. A barra do interno mostra só as áreas que a conta pode usar; o que ela não pode fazer nem aparece.
+- Cada conta interna vê a Casa Lorenzi, a Vulto ou as duas (permissões `ver_marca_lorenzi` e `ver_marca_vulto`; o Admin vê as duas). Unidades, listas e números mostram só as marcas que a conta vê, e o seletor de marca só aparece para quem vê as duas.
 - Esconder na tela é conveniência: a regra de verdade é do backend, que recusa qualquer ação sem permissão.
 - Se a API recusar o token (401), a sessão desta aba é encerrada e a página protegida leva de volta ao `/entrar`.
 - A recuperação de senha e o convite de funcionário usam o mesmo link do Supabase Auth, que abre a página `/redefinir-senha`.
@@ -121,6 +131,7 @@ Componente usado nas duas plataformas fica em `components/`; o que é de uma pla
 | Transferências | solicitar, enviar ou receber transferência |
 | Caixa | venda física, troca e devolução ou preparar e entregar pedido |
 | Pedidos | venda física, preparar e entregar pedido, cancelar pedido ou corrigir cadastro |
+| Clientes | venda física, preparar e entregar pedido, cancelar pedido, corrigir cadastro, troca e devolução ou atender chamado |
 | Atendimento | atender chamado |
 | Avaliações | moderar avaliações |
 | Catálogo | gerenciar catálogo |
@@ -142,8 +153,9 @@ Componente usado nas duas plataformas fica em `components/`; o que é de uma pla
 | `/interno` | Visão Geral | conta interna |
 | `/interno/estoque` (`/movimentacoes`, `/historico`) | saldo, movimentações e histórico | conforme a área |
 | `/interno/transferencias`, `/interno/caixa`, `/interno/pedidos` | transferências, caixa e pedidos | conforme a área |
+| `/interno/clientes` (`/conta/:idCliente`, `/sem-conta/:idCliente`) | clientes e ficha do cliente com ou sem conta | conforme a área |
 | `/interno/atendimento/:idChamado?` | caixa de entrada dos chamados | conforme a área |
-| `/interno/avaliacoes`, `/interno/catalogo/:idProduto?`, `/interno/gestao` | moderação, catálogo e gestão | conforme a área |
+| `/interno/avaliacoes`, `/interno/catalogo/:idProduto?`, `/interno/gestao` | moderação, catálogo e gestão (`?aba=migracao` abre os três números da Vulto) | conforme a área |
 
 ## Como rodar localmente
 
@@ -171,6 +183,8 @@ Use sempre a porta **5173**: a API só aceita chamadas dos endereços liberados 
 | `VITE_SUPABASE_PUBLISHABLE_KEY` | chave pública (publishable/anon) do Supabase |
 
 Tudo que começa com `VITE_` vai para o navegador: nunca coloque uma chave secreta (como a `service_role`) aqui.
+
+Para usar a API local (`http://127.0.0.1:8000`), suba o backend antes, seguindo o [README do Grupo13-Backend](https://github.com/nicolels1/Grupo13-Backend#readme). Se o `VITE_API_URL` estiver vazio ou sem `http://`/`https://`, o site avisa no console ao abrir e cada tela mostra a mensagem com o que corrigir.
 
 ## Scripts
 
@@ -230,6 +244,7 @@ Em cada Pull Request para `main`, o GitHub Actions instala as dependências, con
 |---|---|
 | "Sem conexão com o servidor" | a API está acordando no Render (espere cerca de 1 minuto) ou o endereço do front não está liberado no CORS. Localmente, confira se está na porta 5173 |
 | Tela carregando por muito tempo na primeira visita | mesma causa: a API dormiu. As chamadas seguintes são rápidas |
+| "O endereço da API (VITE_API_URL) não foi configurado" ou "é inválido" | preencha o `VITE_API_URL` com o endereço completo (com `https://`) no `.env` ou na Vercel e, na Vercel, faça um novo deploy |
 | Link de recuperação de senha cai na página errada ou não funciona | o endereço não está nas Redirect URLs do Supabase Auth, ou o link venceu (vale 24 horas). Peça outro em "Esqueci minha senha" |
 | Variável nova não faz efeito na Vercel | faltou fazer um novo deploy depois de mudar a variável |
 | Erro de tipo depois de uma mudança na API | rode `npm run tipos:api` para atualizar os tipos gerados |
@@ -247,3 +262,18 @@ As decisões difíceis de desfazer ficam registradas em [docs/adr/](docs/adr/):
 | [0005](docs/adr/0005-tipos-gerados-do-openapi.md) | Tipos da API gerados do OpenAPI do backend |
 
 As decisões do backend e do banco estão no [Grupo13-Backend](https://github.com/nicolels1/Grupo13-Backend/tree/main/docs/adr).
+
+## Documentação da Entrega 3
+
+A Entrega 3 trouxe a Vulto para a plataforma: os dados dela foram tratados e carregados no banco da Casa Lorenzi (carga definitiva em 21/10/2026), e a diretoria recebeu três números calculados a partir deles. A migração e os scripts ficam no backend; este frontend mostra o resultado (abas das lojas, área Clientes, origem dos registros migrados, pontos e a aba **Migração da Vulto** da Gestão).
+
+| Documento | O que tem |
+|---|---|
+| [Repositório do backend](https://github.com/nicolels1/Grupo13-Backend) | API, banco e a pasta [`migracao_vulto/`](https://github.com/nicolels1/Grupo13-Backend/tree/main/migracao_vulto), com scripts, notebooks e de-para |
+| [README da migração](https://github.com/nicolels1/Grupo13-Backend/blob/main/migracao_vulto/README.md) | etapas (padronização, tratamento, carga e validação), como rodar cada uma e o que cada arquivo faz |
+| [Os três números](https://github.com/nicolels1/Grupo13-Backend/blob/main/migracao_vulto/numeros.md) | faturamento de jan/2025 a set/2026, estoque e passivo de pontos em 01/10/2026, com o detalhe, a diferença para o sistema da Vulto e a margem de erro |
+| [Registro de decisões](https://github.com/nicolels1/Grupo13-Backend/blob/main/migracao_vulto/registro_decisoes.md) | cada problema encontrado nos dados da Vulto, o que foi decidido e o impacto em cada número |
+| [Validação](https://github.com/nicolels1/Grupo13-Backend/blob/main/migracao_vulto/validacao.md) | o que entrou no banco, o motivo de cada linha que ficou de fora e a comparação de cada tabela tratada com o banco |
+| [Mapeamento](https://github.com/nicolels1/Grupo13-Backend/blob/main/migracao_vulto/mapeamento.md) | onde cada dado da Vulto entra no banco da Casa Lorenzi e a decisão que o resolve |
+
+Na plataforma publicada, os três números ficam em [Gestão → Migração da Vulto](https://lorenzi.vercel.app/interno/gestao?aba=migracao) (precisa de uma conta Admin).
