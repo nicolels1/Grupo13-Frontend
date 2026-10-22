@@ -4,12 +4,11 @@ import { Link } from 'react-router'
 import { cn } from 'cn'
 
 import { useAuth } from '@/auth/contexto'
-import { NomeDaLoja } from '@/components/Logo'
 import { api, type Esquema } from '@/lib/api'
-import { dataLonga, moeda, numero, plural } from '@/lib/formato'
+import { plural } from '@/lib/formato'
 import { useCarregar } from '@/lib/useCarregar'
+import { CartoesDePontos } from './CartoesDePontos'
 import { pedidosDoCliente, resumoDosPedidos } from './pedidosDaConta'
-import { nomeDaCategoria, saldosPorLoja } from './pontosDaConta'
 import { useChamadosDaConta } from './useChamadosDaConta'
 
 // visão geral da conta: um cartão para cada seção, com o ícone na cor dela e o que importa de relance
@@ -88,36 +87,17 @@ export function VisaoGeralConta() {
   )
 }
 
-// os pontos das duas lojas lado a lado: cada marca tem o seu programa (a da Vulto é o Vulto+)
+// os pontos das duas lojas lado a lado; o extrato fica em Meus pontos
 function MeusPontos() {
   const pontos = useCarregar(() => api<Esquema<'PontosDoCliente'>>('/fidelidade/meus-pontos'), [])
   if (!pontos.dados) return null
   return (
     <section aria-labelledby="titulo-pontos" className="rounded-xl border bg-background p-6 shadow-xs">
-      <h2 id="titulo-pontos" className="mb-4 font-titulo text-2xl">Meus pontos</h2>
-      <ul className="grid gap-4 sm:grid-cols-2">
-        {saldosPorLoja(pontos.dados.saldos).map(({ loja, saldo }) => (
-          <li key={loja} className="space-y-2 bg-superficie p-4 text-sm">
-            <NomeDaLoja loja={loja} className="text-base" />
-            {!saldo ? (
-              <p className="text-muted-foreground">Você ainda não tem pontos nesta loja. Eles entram a cada compra paga.</p>
-            ) : (
-              <>
-                <p>
-                  <span className="text-2xl font-medium tabular-nums">{numero(saldo.saldo)}</span> pontos,{' '}
-                  <span className="text-muted-foreground">valem {moeda(saldo.valor_em_reais)}</span>
-                </p>
-                <p>Categoria {nomeDaCategoria(saldo.categoria)}, com {numero(saldo.ganhos_no_ano)} pontos ganhos no ano</p>
-                {saldo.proximo_vencimento && saldo.pontos_no_proximo_vencimento > 0 && (
-                  <p className="text-muted-foreground">
-                    {plural(saldo.pontos_no_proximo_vencimento, 'ponto vence', 'pontos vencem')} em {dataLonga(saldo.proximo_vencimento)}
-                  </p>
-                )}
-              </>
-            )}
-          </li>
-        ))}
-      </ul>
+      <div className="mb-4 flex flex-wrap items-baseline justify-between gap-2">
+        <h2 id="titulo-pontos" className="font-titulo text-2xl">Meus pontos</h2>
+        <Link to="/loja/pontos" className="text-sm underline underline-offset-4 hover:text-aco">Ver o extrato</Link>
+      </div>
+      <CartoesDePontos saldos={pontos.dados.saldos} />
     </section>
   )
 }

@@ -14,6 +14,7 @@ export const ConversaCliente = lazy(() => import('@/pages/loja/chamados/Conversa
 export const Enderecos = lazy(() => import('@/pages/loja/Enderecos').then((m) => ({ default: m.Enderecos })))
 export const Entrar = lazy(() => import('@/pages/acesso/Entrar').then((m) => ({ default: m.Entrar })))
 export const EsqueciSenha = lazy(() => import('@/pages/acesso/EsqueciSenha').then((m) => ({ default: m.EsqueciSenha })))
+export const MeusPontosLoja = lazy(() => import('@/pages/loja/conta/MeusPontos').then((m) => ({ default: m.MeusPontos })))
 export const MeusPedidos = lazy(() => import('@/pages/loja/MeusPedidos').then((m) => ({ default: m.MeusPedidos })))
 export const NovoChamadoCliente = lazy(() => import('@/pages/loja/chamados/NovoChamadoCliente').then((m) => ({ default: m.NovoChamadoCliente })))
 export const ProdutoLoja = lazy(() => import('@/pages/loja/Produto').then((m) => ({ default: m.ProdutoLoja })))
