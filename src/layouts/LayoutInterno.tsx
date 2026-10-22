@@ -5,7 +5,9 @@ import { cn } from 'cn'
 
 import { AREAS, podeVerArea, veMarca } from '@/auth/areas'
 import { useAuth } from '@/auth/contexto'
+import { Aviso } from '@/components/Estados'
 import { Logo } from '@/components/Logo'
+import { Button } from '@/components/ui/button'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -31,11 +33,26 @@ export function LayoutInterno() {
   const { perfil } = useAuth()
   const areas = AREAS.filter((area) => podeVerArea(perfil, area))
   // só as unidades das marcas que a pessoa vê: as da outra marca dariam 403 em toda tela
-  const { dados: todas } = useUnidades()
+  const { dados: todas, erro: erroUnidades, recarregar: recarregarUnidades } = useUnidades()
   const unidades = (todas ?? []).filter((u) => veMarca(perfil, u.marca))
   // a unidade da conta é só o filtro inicial; dá para olhar qualquer outra
   const [unidade, setUnidade] = useState(perfil?.id_unidade ? String(perfil.id_unidade) : '')
   const contexto: UnidadeEscolhida = { unidade, setUnidade, unidades }
+
+  // o filtro que vale precisa aparecer no seletor: sem opção para ele (lista carregando ou com erro, unidade
+  // inativa ou de fora), o navegador mostraria "Todas" com outra unidade filtrando as telas
+  const ativas = unidades.filter((u) => u.ativo)
+  let foraDaLista: { rotulo: string; aviso: string | null } | null = null
+  if (unidade && !ativas.some((u) => String(u.id_unidade) === unidade)) {
+    const inativa = unidades.find((u) => String(u.id_unidade) === unidade)
+    if (erroUnidades) foraDaLista = { rotulo: `Unidade ${unidade}`, aviso: null }
+    else if (!todas) foraDaLista = { rotulo: 'Carregando unidades...', aviso: null }
+    else if (inativa) {
+      foraDaLista = { rotulo: `${inativa.nome} (inativa)`, aviso: `A unidade ${inativa.nome} está inativa. As telas seguem filtradas por ela até você escolher outra.` }
+    } else {
+      foraDaLista = { rotulo: `Unidade ${unidade} (indisponível)`, aviso: `A unidade ${unidade} não está entre as que sua conta vê. As telas seguem filtradas por ela até você escolher outra.` }
+    }
+  }
 
   return (
     <div className="min-h-svh bg-background text-foreground">
@@ -77,7 +94,8 @@ export function LayoutInterno() {
                 className="max-w-44 bg-transparent py-1 text-sm text-white outline-none focus-visible:ring-2 focus-visible:ring-ring [&>option]:text-foreground"
               >
                 <option value="">Todas as unidades</option>
-                {unidades.filter((u) => u.ativo).map((u) => (
+                {foraDaLista && <option value={unidade}>{foraDaLista.rotulo}</option>}
+                {ativas.map((u) => (
                   <option key={u.id_unidade} value={u.id_unidade}>{u.nome}</option>
                 ))}
               </select>
@@ -88,6 +106,23 @@ export function LayoutInterno() {
       </header>
 
       <main className="mx-auto max-w-7xl px-4 py-10 sm:px-6">
+        {erroUnidades && (
+          <div className="mb-6">
+            <Aviso
+              titulo="Não foi possível carregar as unidades"
+              mensagem={`${erroUnidades} ${unidade ? `As telas seguem filtradas pela unidade ${unidade}.` : 'As telas mostram todas as unidades.'}`}
+            >
+              <Button size="sm" variant="outline" onClick={recarregarUnidades}>Tentar de novo</Button>
+            </Aviso>
+          </div>
+        )}
+        {foraDaLista?.aviso && (
+          <div className="mb-6">
+            <Aviso titulo="Unidade fora da lista" mensagem={foraDaLista.aviso}>
+              <Button size="sm" variant="outline" onClick={() => setUnidade('')}>Ver todas as unidades</Button>
+            </Aviso>
+          </div>
+        )}
         <Outlet context={contexto} />
       </main>
     </div>
