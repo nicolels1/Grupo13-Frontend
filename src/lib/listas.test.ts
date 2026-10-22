@@ -6,7 +6,7 @@ import type { Esquema } from './api'
 const api = vi.fn()
 vi.mock('./api', () => ({ api }))
 
-const { buscarVariante, nomeUnidade } = await import('./listas')
+const { buscarVariante, limparVariantes, nomeUnidade } = await import('./listas')
 
 type Unidade = Esquema<'UnidadeSaida'>
 
@@ -41,6 +41,15 @@ describe('buscarVariante', () => {
     api.mockRejectedValueOnce(new Error('sem rede')).mockResolvedValueOnce({ items: [{ id_variante: 8 }] })
     expect(await buscarVariante(8)).toBeNull()
     expect(await buscarVariante(8)).toEqual({ id_variante: 8 })
+    expect(api).toHaveBeenCalledTimes(2)
+  })
+
+  it('depois de limpar, consulta de novo', async () => {
+    api.mockReset()
+    api.mockResolvedValueOnce({ items: [{ id_variante: 6, sku: 'DA-ANA' }] }).mockResolvedValueOnce({ items: [{ id_variante: 6, sku: 'DO-BRUNO' }] })
+    expect(await buscarVariante(6)).toEqual({ id_variante: 6, sku: 'DA-ANA' })
+    limparVariantes()
+    expect(await buscarVariante(6)).toEqual({ id_variante: 6, sku: 'DO-BRUNO' })
     expect(api).toHaveBeenCalledTimes(2)
   })
 
