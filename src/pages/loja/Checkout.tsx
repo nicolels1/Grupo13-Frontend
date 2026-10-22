@@ -12,14 +12,17 @@ import { useCarrinho } from './carrinho/contexto'
 import { useResumo, type ResumoCarrinho } from './carrinho/useResumo'
 import { FormEndereco } from './checkout/FormEndereco'
 import { Pagamento } from './checkout/Pagamento'
-import { guardarPedidoEmAberto, lerPedidoEmAberto } from './checkout/pedidoEmAberto'
+import { guardarCompraEmAberto, lerCompraEmAberto } from './checkout/compraEmAberto'
+import { UsarPontos, type PontosAplicados } from './checkout/UsarPontos'
 import { rotuloTamanho } from './componentes/tamanhos'
 
-type Pedido = Esquema<'PedidoSaida'>
+type Compra = Esquema<'CompraSaida'>
 type Endereco = Esquema<'EnderecoSaida'>
 type Modalidade = 'entrega' | 'retirada'
 
-// checkout em uma página (design): Receber → Endereço ou loja → Pagamento, resumo fixo ao lado
+// checkout em uma página (design): Receber → Endereço ou loja → Pagamento, resumo fixo ao lado.
+// O carrinho junta as duas marcas e vira uma compra, com uma cobrança só; por dentro, o backend faz um
+// pedido por marca, cada um saindo de uma unidade dela (ADR 0017 do backend)
 export function CheckoutLoja() {
   const navegar = useNavigate()
   const { itens, esvaziar } = useCarrinho()
@@ -29,68 +32,90 @@ export function CheckoutLoja() {
   const [idEndereco, setIdEndereco] = useState<number | null>(null)
   const [idLoja, setIdLoja] = useState<number | null>(null)
   const [novoEndereco, setNovoEndereco] = useState(false)
-  const [pedido, setPedido] = useState<Pedido | null>(null)
-  const [retomando, setRetomando] = useState(() => lerPedidoEmAberto() !== null)
+  const [compra, setCompra] = useState<Compra | null>(null)
+  const [pontosAplicados, setPontosAplicados] = useState<PontosAplicados>({})
+  const [venceuSemCobrar, setVenceuSemCobrar] = useState(false)
+  const [retomando, setRetomando] = useState(() => lerCompraEmAberto() !== null)
   const { enviar, enviando, erro } = useEnviar()
 
-  // retoma o pedido desta aba se ele ainda espera pagamento
+  // retoma a compra desta aba se ela ainda espera pagamento
   useEffect(() => {
-    const id = lerPedidoEmAberto()
+    const id = lerCompraEmAberto()
     if (!id) return
-    api<Pedido>(`/pedidos/${id}`)
-      .then((achado) => {
-        if (achado.status === 'aguardando_pagamento') setPedido(achado)
-        else guardarPedidoEmAberto(null)
+    api<Compra>(`/compras/${id}`)
+      .then((achada) => {
+        if (achada.status === 'aguardando_pagamento') setCompra(achada)
+        else guardarCompraEmAberto(null)
       })
-      .catch(() => guardarPedidoEmAberto(null))
+      .catch(() => guardarCompraEmAberto(null))
       .finally(() => setRetomando(false))
   }, [])
 
   const dadosResumo = resumo.dados
   const listaEnderecos = enderecos.dados?.items ?? []
-  // escolhas padrão: entrega se der, o primeiro endereço salvo e a primeira loja
-  const modalidadeEfetiva: Modalidade | null =
-    modalidade ?? (dadosResumo ? (dadosResumo.entrega_disponivel ? 'entrega' : dadosResumo.lojas_retirada.length ? 'retirada' : null) : null)
+  const variasMarcas = Boolean(dadosResumo?.marcas && dadosResumo.marcas.length > 1)
+
+  // escolhas padrão: com duas marcas só entrega em casa (ADR 0017); senão entrega se der, primeiro endereço e primeira loja
+  const modalidadeEfetiva: Modalidade | null = variasMarcas
+    ? 'entrega'
+    : (modalidade ?? (dadosResumo ? (dadosResumo.entrega_disponivel ? 'entrega' : dadosResumo.lojas_retirada.length ? 'retirada' : null) : null))
   const enderecoEfetivo = idEndereco ?? listaEnderecos[0]?.id_endereco ?? null
   const lojaEfetiva = idLoja ?? dadosResumo?.lojas_retirada[0]?.id_unidade ?? null
+  // só valem os pontos de marcas que continuam no carrinho
+  const pontosValidos = Object.entries(pontosAplicados).filter(
+    (par): par is [string, NonNullable<PontosAplicados[string]>] =>
+      par[1] !== undefined && Boolean(dadosResumo?.marcas.some((m) => m.marca === par[0])),
+  )
 
   const aoAtualizar = useCallback(
-    (atualizado: Pedido) => {
-      setPedido(atualizado)
-      if (atualizado.status === 'pago') {
-        guardarPedidoEmAberto(null)
+    (atualizada: Compra) => {
+      if (atualizada.status === 'pago') {
+        guardarCompraEmAberto(null)
         esvaziar()
-        navegar(`/loja/pedido-confirmado/${atualizado.id_pedido}`, { replace: true })
+        navegar(`/loja/compra-confirmada/${atualizada.id_compra}`, { replace: true })
+        return
       }
+      // a resposta do pagamento chegou depois do prazo: o backend cancelou a compra sem cobrar nada
+      if (atualizada.status === 'cancelado') {
+        guardarCompraEmAberto(null)
+        setCompra(null)
+        setVenceuSemCobrar(true)
+        return
+      }
+      setCompra(atualizada)
     },
     [esvaziar, navegar],
   )
 
   async function irParaPagamento() {
-    const criado = await enviar(() =>
-      api<Pedido>('/pedidos', {
+    setVenceuSemCobrar(false)
+    const criada = await enviar(() =>
+      api<Compra>('/compras', {
         metodo: 'POST',
         corpo: {
           itens: itens.map(({ id_variante, quantidade }) => ({ id_variante, quantidade })),
           modalidade: modalidadeEfetiva,
           id_endereco: modalidadeEfetiva === 'entrega' ? enderecoEfetivo : null,
           id_unidade_retirada: modalidadeEfetiva === 'retirada' ? lojaEfetiva : null,
+          pontos_por_marca: Object.fromEntries(pontosValidos.map(([marca, aplicado]) => [marca, aplicado.pontos])),
         },
       }),
     )
-    if (criado) {
-      guardarPedidoEmAberto(criado.id_pedido)
-      setPedido(criado)
+    if (criada) {
+      guardarCompraEmAberto(criada.id_compra)
+      setCompra(criada)
+      // os pontos já foram usados nesta compra; se ela for cancelada, voltam ao saldo e podem ser aplicados de novo
+      setPontosAplicados({})
     }
   }
 
-  // mudar a entrega depois da reserva: cancela o pedido (libera as peças) e volta a escolher
+  // mudar a entrega depois da reserva: cancela a compra (libera as peças das duas marcas) e volta a escolher
   async function alterarEntrega() {
-    if (!pedido) return
-    const cancelado = await enviar(() => api<Pedido>(`/pedidos/${pedido.id_pedido}/cancelar`, { metodo: 'POST' }))
-    if (cancelado) {
-      guardarPedidoEmAberto(null)
-      setPedido(null)
+    if (!compra) return
+    const cancelada = await enviar(() => api<Compra>(`/compras/${compra.id_compra}/cancelar`, { metodo: 'POST' }))
+    if (cancelada) {
+      guardarCompraEmAberto(null)
+      setCompra(null)
       // o botão fica no bloco 3, embaixo: leva a pessoa (e o foco) de volta ao bloco 1 para escolher
       requestAnimationFrame(() => {
         const bloco = document.getElementById('bloco-1')
@@ -100,17 +125,18 @@ export function CheckoutLoja() {
     }
   }
 
-  // o backend cancela a reserva vencida por uma tarefa agendada; cancelar aqui também evita que o
-  // pedido antigo segure as peças até ela rodar (se já foi cancelado, a recusa não importa)
+  // o backend cancela a reserva vencida por uma tarefa agendada; cancelar aqui também evita que a
+  // compra antiga segure as peças até ela rodar (se já foi cancelada, a recusa não importa)
   function reservaVenceu() {
-    if (pedido) void api(`/pedidos/${pedido.id_pedido}/cancelar`, { metodo: 'POST' }).catch(() => undefined)
-    guardarPedidoEmAberto(null)
-    setPedido(null)
+    if (compra) void api(`/compras/${compra.id_compra}/cancelar`, { metodo: 'POST' }).catch(() => undefined)
+    guardarCompraEmAberto(null)
+    setCompra(null)
   }
 
-  if (retomando) return <Carregando texto="Retomando seu pedido..." />
+  if (retomando) return <Carregando texto="Retomando sua compra..." />
 
-  if (itens.length === 0 && !pedido) {
+  const travado = compra !== null
+  if (itens.length === 0 && !travado) {
     return (
       <div className="mx-auto max-w-md space-y-4 px-4 py-16 text-center">
         <p>Seu carrinho está vazio.</p>
@@ -119,15 +145,19 @@ export function CheckoutLoja() {
     )
   }
 
-  const travado = pedido !== null
   const podeReservar =
     modalidadeEfetiva === 'entrega' ? enderecoEfetivo !== null : modalidadeEfetiva === 'retirada' && lojaEfetiva !== null
+
+  // os pedidos da compra saem com a mesma modalidade e o mesmo endereço
+  const primeiro = compra?.pedidos[0]
+  // antes de reservar, o desconto dos pontos aplicados; depois, o da compra
+  const descontoPrevisto = pontosValidos.reduce((soma, [, aplicado]) => soma + Number(aplicado.desconto), 0)
 
   return (
     <div className="mx-auto max-w-7xl px-4 pt-8 pb-4 sm:px-6">
       <h1 className="mb-6 font-titulo text-4xl">Finalizar compra</h1>
 
-      <ResumoNoCelular resumo={dadosResumo} pedido={pedido} modalidade={modalidadeEfetiva} />
+      <ResumoNoCelular resumo={dadosResumo} compra={compra} modalidade={modalidadeEfetiva} desconto={descontoPrevisto} />
 
       <div className="grid gap-10 lg:grid-cols-[minmax(0,1fr)_22rem]">
         <div className="space-y-6">
@@ -137,9 +167,7 @@ export function CheckoutLoja() {
             {!dadosResumo ? (
               <Carregando />
             ) : travado ? (
-              <Escolhido>
-                {pedido.modalidade === 'entrega' ? 'Entrega em casa' : 'Retirada na loja'}
-              </Escolhido>
+              <Escolhido>{primeiro?.modalidade === 'retirada' ? 'Retirada na loja' : 'Entrega em casa'}</Escolhido>
             ) : (
               <div className="grid gap-2 sm:grid-cols-2" role="radiogroup" aria-label="Como você quer receber">
                 <Opcao
@@ -159,10 +187,16 @@ export function CheckoutLoja() {
                 <Opcao
                   marcada={modalidadeEfetiva === 'retirada'}
                   aoMarcar={() => setModalidade('retirada')}
-                  desativada={dadosResumo.lojas_retirada.length === 0}
+                  desativada={variasMarcas || dadosResumo.lojas_retirada.length === 0}
                   icone={<Store className="size-5" aria-hidden="true" />}
                   titulo="Retirar na loja"
-                  detalhe={dadosResumo.lojas_retirada.length === 0 ? 'Nenhuma loja tem todas as peças agora' : 'Grátis'}
+                  detalhe={
+                    variasMarcas
+                      ? 'Retirada só com peças de uma marca (cada loja vende só a sua)'
+                      : dadosResumo.lojas_retirada.length === 0
+                        ? 'Nenhuma loja tem todas as peças agora'
+                        : 'Grátis'
+                  }
                 />
               </div>
             )}
@@ -171,9 +205,9 @@ export function CheckoutLoja() {
           <Bloco numero={2} titulo={modalidadeEfetiva === 'retirada' ? 'Loja para retirar' : 'Endereço de entrega'}>
             {travado ? (
               <Escolhido>
-                {pedido.modalidade === 'entrega' && pedido.endereco_entrega
-                  ? `${pedido.endereco_entrega.rua}, ${pedido.endereco_entrega.numero}, ${pedido.endereco_entrega.cidade} (${pedido.endereco_entrega.uf})`
-                  : pedido.unidade}
+                {primeiro?.modalidade === 'entrega' && primeiro.endereco_entrega
+                  ? `${primeiro.endereco_entrega.rua}, ${primeiro.endereco_entrega.numero}, ${primeiro.endereco_entrega.cidade} (${primeiro.endereco_entrega.uf})`
+                  : primeiro?.unidade}
               </Escolhido>
             ) : modalidadeEfetiva === 'retirada' ? (
               <div className="space-y-2" role="radiogroup" aria-label="Loja para retirar">
@@ -219,10 +253,10 @@ export function CheckoutLoja() {
           </Bloco>
 
           <Bloco numero={3} titulo="Pagamento">
-            {pedido ? (
+            {compra ? (
               <div className="space-y-5">
-                <ContadorReserva expiraEm={pedido.reserva_expira_em} aoVencer={reservaVenceu} />
-                <Pagamento pedido={pedido} aoAtualizar={aoAtualizar} />
+                <ContadorReserva expiraEm={compra.reserva_expira_em} aoVencer={reservaVenceu} />
+                <Pagamento compra={compra} aoAtualizar={aoAtualizar} />
                 <button
                   type="button"
                   onClick={() => void alterarEntrega()}
@@ -234,6 +268,15 @@ export function CheckoutLoja() {
               </div>
             ) : (
               <div className="space-y-3">
+                {venceuSemCobrar && (
+                  <p role="alert" className="border-l-4 border-terracota bg-superficie p-3 text-sm">
+                    A reserva de 15 minutos venceu antes da confirmação do pagamento, e nada foi cobrado. Separe as
+                    peças de novo para pagar.
+                  </p>
+                )}
+                {dadosResumo && (
+                  <UsarPontos marcas={dadosResumo.marcas} aplicados={pontosAplicados} aoMudar={setPontosAplicados} />
+                )}
                 <p className="text-sm text-muted-foreground">
                   Ao continuar, separamos as peças para você por 15 minutos enquanto paga.
                 </p>
@@ -252,7 +295,7 @@ export function CheckoutLoja() {
         </div>
 
         <aside className="hidden lg:block lg:sticky lg:top-6 lg:self-start">
-          <ResumoDoPedido resumo={dadosResumo} pedido={pedido} modalidade={modalidadeEfetiva} />
+          <ResumoDoPedido resumo={dadosResumo} compra={compra} modalidade={modalidadeEfetiva} desconto={descontoPrevisto} />
         </aside>
       </div>
     </div>
@@ -340,20 +383,30 @@ function ContadorReserva({ expiraEm, aoVencer }: { expiraEm: string | null; aoVe
   )
 }
 
-// valores: do pedido quando já existe (o que vai ser cobrado), senão do carrinho
-function valores(resumo: ResumoCarrinho | null, pedido: Pedido | null, modalidade: Modalidade | null) {
-  if (pedido) {
-    return { itens: pedido.valor_itens, frete: pedido.valor_frete, total: pedido.valor_total }
+// valores: da compra quando já existe (o que vai ser cobrado), senão do carrinho menos os pontos aplicados
+function valores(resumo: ResumoCarrinho | null, compra: Compra | null, modalidade: Modalidade | null, desconto: number) {
+  if (compra) {
+    return { itens: compra.valor_itens, frete: compra.valor_frete, desconto: compra.valor_desconto, total: compra.valor_total }
   }
   if (!resumo) return null
   const frete = modalidade === 'retirada' ? '0' : resumo.frete_entrega
-  const total = modalidade === 'retirada' ? resumo.total_retirada : resumo.total_entrega
-  return { itens: resumo.valor_itens, frete, total }
+  const total = Number(modalidade === 'retirada' ? resumo.total_retirada : resumo.total_entrega) - desconto
+  return { itens: resumo.valor_itens, frete, desconto: desconto.toFixed(2), total: total.toFixed(2) }
 }
 
-function ResumoDoPedido({ resumo, pedido, modalidade }: { resumo: ResumoCarrinho | null; pedido: Pedido | null; modalidade: Modalidade | null }) {
-  const linhas = pedido?.itens ?? resumo?.itens ?? []
-  const conta = valores(resumo, pedido, modalidade)
+function ResumoDoPedido({
+  resumo,
+  compra,
+  modalidade,
+  desconto,
+}: {
+  resumo: ResumoCarrinho | null
+  compra: Compra | null
+  modalidade: Modalidade | null
+  desconto: number
+}) {
+  const linhas = compra ? compra.pedidos.flatMap((p) => p.itens) : (resumo?.itens ?? [])
+  const conta = valores(resumo, compra, modalidade, desconto)
   return (
     <div className="space-y-5 bg-superficie p-6">
       <h2 className="font-titulo text-2xl">Resumo</h2>
@@ -375,6 +428,11 @@ function ResumoDoPedido({ resumo, pedido, modalidade }: { resumo: ResumoCarrinho
             <dt>{modalidade === 'retirada' ? 'Retirada' : 'Frete'}</dt>
             <dd className="tabular-nums">{Number(conta.frete) === 0 ? 'Grátis' : moeda(conta.frete)}</dd>
           </div>
+          {Number(conta.desconto) > 0 && (
+            <div className="flex justify-between">
+              <dt>Desconto com pontos</dt><dd className="tabular-nums">−{moeda(conta.desconto)}</dd>
+            </div>
+          )}
           <div className="flex justify-between border-t pt-3 text-base font-medium">
             <dt>Total</dt><dd className="tabular-nums">{moeda(conta.total)}</dd>
           </div>
@@ -385,8 +443,13 @@ function ResumoDoPedido({ resumo, pedido, modalidade }: { resumo: ResumoCarrinho
 }
 
 // no celular o resumo fica recolhido no topo, sempre mostrando o total (design)
-function ResumoNoCelular(props: { resumo: ResumoCarrinho | null; pedido: Pedido | null; modalidade: Modalidade | null }) {
-  const conta = valores(props.resumo, props.pedido, props.modalidade)
+function ResumoNoCelular(props: {
+  resumo: ResumoCarrinho | null
+  compra: Compra | null
+  modalidade: Modalidade | null
+  desconto: number
+}) {
+  const conta = valores(props.resumo, props.compra, props.modalidade, props.desconto)
   return (
     <details className="mb-6 border lg:hidden">
       <summary className="flex cursor-pointer items-center justify-between px-4 py-3 text-sm">

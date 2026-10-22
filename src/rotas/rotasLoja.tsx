@@ -5,7 +5,7 @@ import { LayoutCliente } from '@/layouts/LayoutCliente'
 import { InicioLoja } from '@/pages/loja/Inicio'
 import { tela } from './tela'
 import {
-  AjudaLoja, AreaDaConta, AvaliarPeca, Cadastro, CarrinhoLoja, ChamadosCliente, CheckoutLoja, ConfirmacaoPedido, ConversaCliente, Enderecos,
+  AjudaLoja, AreaDaConta, AvaliarPeca, Cadastro, CarrinhoLoja, ChamadosCliente, CheckoutLoja, ConfirmacaoCompra, ConversaCliente, Enderecos,
   Entrar, EsqueciSenha, MeusPedidos, NovoChamadoCliente, ProdutoLoja, ProdutosLoja, RedefinirSenha, SemChamadoEscolhido, VisaoGeralConta,
 } from './telasLoja'
 
@@ -28,8 +28,8 @@ export const rotasLoja: RouteObject[] = [
         element: <ExigeLogin tipo="cliente">{tela(<CheckoutLoja />)}</ExigeLogin>,
       },
       {
-        path: 'pedido-confirmado/:idPedido',
-        element: <ExigeLogin tipo="cliente">{tela(<ConfirmacaoPedido />)}</ExigeLogin>,
+        path: 'compra-confirmada/:idCompra',
+        element: <ExigeLogin tipo="cliente">{tela(<ConfirmacaoCompra />)}</ExigeLogin>,
       },
       // área "Minha conta": login de cliente e o menu das seções em volta; os endereços das
       // páginas não mudam (/loja/pedidos, /loja/chamados...) e /loja/conta é a visão geral
