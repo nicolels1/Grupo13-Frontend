@@ -28,10 +28,14 @@ export function Clientes() {
   const [offset, setOffset] = useState(0)
   const termo = busca.trim() || undefined
 
-  const lista = useCarregar(
-    () => api<PaginaComConta | PaginaSemConta>(LISTAS[aba], { params: { busca: termo, limit: POR_PAGINA, offset } }),
+  // a lista vem marcada com a aba dela: ao trocar de aba, a anterior continua na carga até a nova chegar,
+  // e não pode ser desenhada com a tabela da outra (cada aba tem um formato)
+  const carga = useCarregar(
+    () => api<PaginaComConta | PaginaSemConta>(LISTAS[aba], { params: { busca: termo, limit: POR_PAGINA, offset } })
+      .then((pagina) => ({ aba, pagina })),
     [aba, termo, offset],
   )
+  const lista = { ...carga, dados: carga.dados?.aba === aba ? carga.dados.pagina : null }
   // quantos cada aba tem com a busca de agora: diz em qual das duas a pessoa está
   const contagens = useCarregar(
     () => Promise.all((['conta', 'sem-conta'] as const).map((t) => api<{ total: number }>(LISTAS[t], { params: { busca: termo, limit: 1 } })
@@ -80,7 +84,7 @@ export function Clientes() {
       </label>
 
       {lista.erro && <Aviso mensagem={lista.erro} />}
-      {lista.carregando && !lista.dados && <Carregando />}
+      {!lista.dados && !lista.erro && <Carregando />}
       {lista.dados?.items.length === 0 && (
         <Vazio>
           {termo
