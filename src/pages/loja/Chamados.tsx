@@ -1,10 +1,11 @@
+import { useState } from 'react'
 import { Plus } from 'lucide-react'
 import { Link, NavLink, Outlet, useLocation } from 'react-router'
 import { cn } from 'cn'
 
 import { Aviso, Carregando } from '@/components/Estados'
 import { Status } from '@/components/Status'
-import { buttonVariants } from '@/components/ui/button'
+import { Button, buttonVariants } from '@/components/ui/button'
 import { api, type Esquema } from '@/lib/api'
 import { CATEGORIAS_CHAMADO, haQuanto } from '@/lib/formato'
 import { useCarregar } from '@/lib/useCarregar'
@@ -13,12 +14,23 @@ import { IconeDaCategoria } from './chamados/IconeDaCategoria'
 
 type Chamado = Esquema<'ChamadoSaida'>
 
+const POR_PAGINA = 50
+
 // /loja/chamados dentro da área "Minha conta": um cartão só, com a lista à esquerda e a conversa
 // (ou o chamado novo) à direita. No computador o cartão tem altura fixa e cada lado rola sozinho;
 // no celular aparece um de cada vez, a lista ou a conversa
 export function ChamadosCliente() {
   const local = useLocation()
-  const lista = useCarregar(() => api<Esquema<'Pagina_ChamadoSaida_'>>('/chamados', { params: { limit: 50 } }), [])
+  // os mais recentes primeiro, de 50 em 50 ("Mostrar mais"); recarregar (resposta lida, chamado novo) busca
+  // de novo todas as páginas já abertas. Cada página fica dentro do limite da API
+  const [paginas, setPaginas] = useState(1)
+  const lista = useCarregar(async () => {
+    const offsets = Array.from({ length: paginas }, (_, i) => i * POR_PAGINA)
+    const respostas = await Promise.all(
+      offsets.map((offset) => api<Esquema<'Pagina_ChamadoSaida_'>>('/chamados', { params: { limit: POR_PAGINA, offset } })),
+    )
+    return { items: respostas.flatMap((r) => r.items), total: respostas[0]?.total ?? 0 }
+  }, [paginas])
   const naLista = local.pathname.replace(/\/$/, '') === '/loja/chamados'
   const contexto: ContextoChamados = { recarregarLista: lista.recarregar }
   const chamados = lista.dados?.items ?? []
@@ -56,6 +68,15 @@ export function ChamadosCliente() {
                 </li>
               ))}
             </ul>
+            {/* compara com o que veio da API: há chamados mais antigos que os mostrados */}
+            {lista.dados && chamados.length < lista.dados.total && (
+              <div className="space-y-2 border-t p-4 text-center">
+                <p className="text-xs text-muted-foreground">Mostrando {chamados.length} de {lista.dados.total} chamados.</p>
+                <Button variant="outline" size="sm" className="rounded-full" onClick={() => setPaginas((n) => n + 1)} disabled={lista.carregando}>
+                  {lista.carregando ? 'Carregando...' : 'Mostrar mais chamados'}
+                </Button>
+              </div>
+            )}
           </div>
         </nav>
 
