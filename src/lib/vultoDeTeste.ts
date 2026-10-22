@@ -187,6 +187,7 @@ export function pedidoVultoDeTeste(dados: Partial<Esquema<'PedidoSaida'>> = {}):
     cliente: 'Bruna Teixeira',
     id_unidade: 5,
     unidade: 'CD Cajamar',
+    id_compra: null,
     id_registrado_por: null,
     cpf_nota: null,
     canal: 'online',

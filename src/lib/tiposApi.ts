@@ -1247,6 +1247,103 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/compras": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Fazer Compra
+         * @description Checkout do carrinho do site: reserva as peças por 15 minutos e cria a compra com um pedido por marca, cada um numa unidade dela, tudo ou nada (ADR 0017). Com as duas marcas, só entrega em casa. Os pontos de cada marca (`pontos_por_marca`) viram desconto no pedido dela.
+         */
+        post: operations["fazer_compra_compras_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/compras/{id_compra}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Minha Compra */
+        get: operations["minha_compra_compras__id_compra__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/compras/{id_compra}/pagamentos": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Pagar
+         * @description Cria a cobrança única da compra no gateway simulado (fica pendente até a resposta). Pedir de novo com o mesmo método devolve a mesma cobrança; outro método recusa a anterior.
+         */
+        post: operations["pagar_compras__id_compra__pagamentos_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/compras/{id_compra}/simular": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Simular Gateway
+         * @description Gateway de pagamento simulado: aprova ou recusa a cobrança pendente, uma vez só. Aprovada, todos os pedidos ficam pagos e o estoque baixa; se a reserva venceu, nada é cobrado e a compra é cancelada.
+         */
+        post: operations["simular_gateway_compras__id_compra__simular_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/compras/{id_compra}/cancelar": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Cancelar
+         * @description O cliente cancela a compra inteira até o pagamento; depois disso, cada pedido pelo atendimento.
+         */
+        post: operations["cancelar_compras__id_compra__cancelar_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/vendas/pedidos": {
         parameters: {
             query?: never;
@@ -2345,6 +2442,33 @@ export interface components {
              */
             pontos_resgate?: number | null;
         };
+        /** CheckoutCompra */
+        CheckoutCompra: {
+            /** Itens */
+            itens: components["schemas"]["ItemCarrinho"][];
+            /**
+             * Modalidade
+             * @enum {string}
+             */
+            modalidade: "entrega" | "retirada";
+            /**
+             * Id Endereco
+             * @description Obrigatório na entrega
+             */
+            id_endereco?: number | null;
+            /**
+             * Id Unidade Retirada
+             * @description Obrigatório na retirada
+             */
+            id_unidade_retirada?: number | null;
+            /**
+             * Pontos Por Marca
+             * @description Pontos usados como desconto em cada marca, como {"lorenzi": 200}. Cada marca usa os pontos dela no pedido dela (GET /fidelidade/resgate mostra quanto valem)
+             */
+            pontos_por_marca?: {
+                [key: string]: number;
+            };
+        };
         /** ClienteComConta */
         ClienteComConta: {
             /**
@@ -2452,6 +2576,67 @@ export interface components {
              * @enum {string}
              */
             metodo: "pix" | "cartao_credito" | "cartao_debito";
+        };
+        /** CompraSaida */
+        CompraSaida: {
+            /** Id Compra */
+            id_compra: number;
+            /** Codigo Compra */
+            codigo_compra: string;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "aguardando_pagamento" | "pago" | "cancelado";
+            /** Valor Itens */
+            valor_itens: string;
+            /**
+             * Valor Frete
+             * @description Soma do frete de cada pedido
+             */
+            valor_frete: string;
+            /**
+             * Valor Desconto
+             * @description Pontos usados como desconto, somando as marcas
+             */
+            valor_desconto: string;
+            /**
+             * Valor Total
+             * @description O que é cobrado: a soma dos pedidos
+             */
+            valor_total: string;
+            /**
+             * Reserva Expira Em
+             * Format: date-time
+             * @description A reserva das peças de todos os pedidos vence junto
+             */
+            reserva_expira_em: string;
+            /**
+             * Metodo
+             * @description Método da cobrança; vazio antes de pedir a cobrança
+             */
+            metodo: ("pix" | "cartao_credito" | "cartao_debito") | null;
+            /**
+             * Id Transacao Gateway
+             * @description Transação da cobrança no gateway simulado
+             */
+            id_transacao_gateway: string | null;
+            /** Status Cobranca */
+            status_cobranca: ("pendente" | "aprovado" | "recusado") | null;
+            /** Pago Em */
+            pago_em: string | null;
+            /** Cancelado Em */
+            cancelado_em: string | null;
+            /**
+             * Criado Em
+             * Format: date-time
+             */
+            criado_em: string;
+            /**
+             * Pedidos
+             * @description Um pedido por marca, cada um saindo de uma unidade dela
+             */
+            pedidos: components["schemas"]["PedidoSaida"][];
         };
         /** ContaInternaCriar */
         ContaInternaCriar: {
@@ -3015,6 +3200,12 @@ export interface components {
             sku: string;
             /** Produto */
             produto: string;
+            /**
+             * Marca
+             * @description Marca do produto: o carrinho do site junta as duas e o pedido sai por marca
+             * @enum {string}
+             */
+            marca: "lorenzi" | "vulto";
             /** Cor */
             cor: string;
             /** Tamanho */
@@ -3807,6 +3998,11 @@ export interface components {
             id_unidade: number;
             /** Unidade */
             unidade: string;
+            /**
+             * Id Compra
+             * @description Compra do site a que o pedido pertence (paga e cancela pela compra); vazio fora dela
+             */
+            id_compra: number | null;
             /** Id Registrado Por */
             id_registrado_por: string | null;
             /**
@@ -4218,12 +4414,12 @@ export interface components {
             valor_itens: string;
             /**
              * Frete Entrega
-             * @description Grátis a partir do valor mínimo; zero na retirada
+             * @description Soma do frete de cada marca; grátis a partir do valor mínimo; zero na retirada
              */
             frete_entrega: string;
             /**
              * Frete Gratis A Partir De
-             * @description Valor mínimo em itens para o frete da entrega sair grátis (para a loja mostrar quanto falta)
+             * @description Valor mínimo em itens de uma marca para o frete dela sair grátis (a loja mostra quanto falta)
              */
             frete_gratis_a_partir_de: string;
             /** Total Entrega */
@@ -4232,14 +4428,39 @@ export interface components {
             total_retirada: string;
             /**
              * Entrega Disponivel
-             * @description Algum CD ou loja que despacha tem todos os itens
+             * @description Cada marca do carrinho tem um CD ou loja que despacha com todos os itens dela
              */
             entrega_disponivel: boolean;
             /**
              * Lojas Retirada
-             * @description Lojas com todos os itens no estoque online
+             * @description Lojas com todos os itens no estoque online (vazia com duas marcas: cada loja vende só a sua)
              */
             lojas_retirada: components["schemas"]["LojaRetirada"][];
+            /**
+             * Marcas
+             * @description Uma linha por marca do carrinho: cada uma vira um pedido
+             */
+            marcas: components["schemas"]["ResumoMarca"][];
+        };
+        /** ResumoMarca */
+        ResumoMarca: {
+            /**
+             * Marca
+             * @enum {string}
+             */
+            marca: "lorenzi" | "vulto";
+            /** Valor Itens */
+            valor_itens: string;
+            /**
+             * Frete Entrega
+             * @description Frete do pedido desta marca; grátis a partir do valor mínimo
+             */
+            frete_entrega: string;
+            /**
+             * Entrega Disponivel
+             * @description Algum CD ou loja que despacha desta marca tem todos os itens dela
+             */
+            entrega_disponivel: boolean;
         };
         /** SaldoPontosSaida */
         SaldoPontosSaida: {
@@ -9368,6 +9589,311 @@ export interface operations {
                 content?: never;
             };
             /** @description Cobrança já respondida ou compra já reivindicada */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Dados inválidos ou regra da venda (ex.: sem estoque, reserva vencida) */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    fazer_compra_compras_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CheckoutCompra"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CompraSaida"];
+                };
+            };
+            /** @description Sem login válido */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Só para contas de cliente */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Compra, endereço, loja ou variante não encontrado */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Cobrança já respondida */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Dados inválidos ou regra da venda (ex.: sem estoque, reserva vencida) */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    minha_compra_compras__id_compra__get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string;
+            };
+            path: {
+                id_compra: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CompraSaida"];
+                };
+            };
+            /** @description Sem login válido */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Só para contas de cliente */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Compra, endereço, loja ou variante não encontrado */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Cobrança já respondida */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Dados inválidos ou regra da venda (ex.: sem estoque, reserva vencida) */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    pagar_compras__id_compra__pagamentos_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string;
+            };
+            path: {
+                id_compra: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CobrancaCriar"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CompraSaida"];
+                };
+            };
+            /** @description Sem login válido */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Só para contas de cliente */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Compra, endereço, loja ou variante não encontrado */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Cobrança já respondida */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Dados inválidos ou regra da venda (ex.: sem estoque, reserva vencida) */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    simular_gateway_compras__id_compra__simular_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string;
+            };
+            path: {
+                id_compra: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RespostaGateway"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CompraSaida"];
+                };
+            };
+            /** @description Sem login válido */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Só para contas de cliente */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Compra, endereço, loja ou variante não encontrado */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Cobrança já respondida */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Dados inválidos ou regra da venda (ex.: sem estoque, reserva vencida) */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    cancelar_compras__id_compra__cancelar_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string;
+            };
+            path: {
+                id_compra: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CompraSaida"];
+                };
+            };
+            /** @description Sem login válido */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Só para contas de cliente */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Compra, endereço, loja ou variante não encontrado */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Cobrança já respondida */
             409: {
                 headers: {
                     [name: string]: unknown;
