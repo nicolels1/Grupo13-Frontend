@@ -119,33 +119,24 @@ export function ItensCarrinho({ resumo, aoNavegar }: { resumo: ResumoCarrinho | 
   )
 }
 
-// "Faltam R$ 40 para o frete grátis" com barra; o valor mínimo vem da API. Com as duas marcas, cada pedido
-// tem o seu frete: uma barra por marca
+// "Faltam R$ 40 para o frete grátis" com barra; o valor mínimo vem da API. O frete é um só para o carrinho,
+// mesmo com as duas marcas: a barra conta todas as peças (ADR 0017 do backend)
 export function BarraFreteGratis({ resumo }: { resumo: ResumoCarrinho }) {
   const minimo = Number(resumo.frete_gratis_a_partir_de)
-  const barras = resumo.marcas.length > 1
-    ? resumo.marcas.map((m) => ({ marca: m.marca as Marca | null, itens: Number(m.valor_itens) }))
-    : [{ marca: null, itens: Number(resumo.valor_itens) }]
+  const itens = Number(resumo.valor_itens)
+  const falta = Math.max(0, minimo - itens)
   return (
-    <div className="space-y-3">
-      {barras.map(({ marca, itens }) => {
-        const falta = Math.max(0, minimo - itens)
-        const daMarca = marca ? `${MARCAS[marca]}: ` : ''
-        return (
-          <div key={marca ?? 'todas'} className="space-y-2">
-            <p className="text-sm">
-              {falta > 0 ? (
-                <>{daMarca}Faltam <span className="font-medium tabular-nums">{moeda(falta)}</span> para o frete grátis na entrega.</>
-              ) : (
-                <span className="font-medium text-terracota">{daMarca}Frete grátis na entrega garantido.</span>
-              )}
-            </p>
-            <div className="h-1.5 bg-superficie" aria-hidden="true">
-              <div className="h-full bg-terracota" style={{ width: `${Math.min(100, (itens / minimo) * 100)}%` }} />
-            </div>
-          </div>
-        )
-      })}
+    <div className="space-y-2">
+      <p className="text-sm">
+        {falta > 0 ? (
+          <>Faltam <span className="font-medium tabular-nums">{moeda(falta)}</span> para o frete grátis na entrega.</>
+        ) : (
+          <span className="font-medium text-terracota">Frete grátis na entrega garantido.</span>
+        )}
+      </p>
+      <div className="h-1.5 bg-superficie" aria-hidden="true">
+        <div className="h-full bg-terracota" style={{ width: `${Math.min(100, (itens / minimo) * 100)}%` }} />
+      </div>
     </div>
   )
 }
