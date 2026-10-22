@@ -12,7 +12,7 @@ import { Status } from '@/components/Status'
 import { Button } from '@/components/ui/button'
 import { Campo, Input, Label, Select } from '@/components/ui/input'
 import { useUnidadeEscolhida } from '@/layouts/unidadeEscolhida'
-import { api, type Esquema } from '@/lib/api'
+import { api, todasAsPaginas, type Esquema } from '@/lib/api'
 import { CANAIS, codigoTransferencia, dataCurta, hora, plural, rotuloCanal } from '@/lib/formato'
 import { nomeUnidade, useVariantes } from '@/lib/listas'
 import { useCarregar, useEnviar } from '@/lib/useCarregar'
@@ -41,15 +41,21 @@ export function Transferencias() {
   const idUnidade = unidade ? Number(unidade) : null
 
   const filtroMarca = useFiltroDeMarca()
-  const lista = useCarregar(
-    () => api<Esquema<'Pagina_TransferenciaSaida_'>>('/transferencias', { params: { id_unidade: unidade, marca: filtroMarca.marca, limit: 200 } }),
-    [unidade, filtroMarca.marca],
-  )
-  const todas = lista.dados?.items ?? []
-  const chegando = todas.filter((t) => t.status === 'enviada' && (!idUnidade || t.id_unidade_destino === idUnidade))
-  const paraEnviar = todas.filter((t) => t.status === 'solicitada' && (!idUnidade || t.id_unidade_origem === idUnidade))
+  // "Todas" mostra as 200 mais recentes; as pendentes vêm inteiras pelo status (são poucas). Tiradas das
+  // recentes, uma enviada há semanas (ex.: em trânsito na migração da Vulto) sumia de "Chegando"
+  const lista = useCarregar(async () => {
+    const [recentes, enviadas, solicitadas] = await Promise.all([
+      api<Esquema<'Pagina_TransferenciaSaida_'>>('/transferencias', { params: { id_unidade: unidade, marca: filtroMarca.marca, limit: 200 } }),
+      todasAsPaginas<Transferencia>('/transferencias', { id_unidade: unidade, marca: filtroMarca.marca, status: 'enviada' }),
+      todasAsPaginas<Transferencia>('/transferencias', { id_unidade: unidade, marca: filtroMarca.marca, status: 'solicitada' }),
+    ])
+    return { recentes, enviadas, solicitadas }
+  }, [unidade, filtroMarca.marca])
+  const todas = lista.dados?.recentes.items ?? []
+  const chegando = (lista.dados?.enviadas ?? []).filter((t) => !idUnidade || t.id_unidade_destino === idUnidade)
+  const paraEnviar = (lista.dados?.solicitadas ?? []).filter((t) => !idUnidade || t.id_unidade_origem === idUnidade)
   const visiveis = { chegando, enviar: paraEnviar, todas }[aba]
-  const escolhida = todas.find((t) => String(t.id_transferencia) === idVer) ?? (!nova ? visiveis[0] : null)
+  const escolhida = [...todas, ...chegando, ...paraEnviar].find((t) => String(t.id_transferencia) === idVer) ?? (!nova ? visiveis[0] : null)
 
   function ver(id: number) {
     setParams({ ver: String(id) }, { replace: true })
@@ -93,7 +99,7 @@ export function Transferencias() {
           {lista.erro && <Aviso mensagem={lista.erro} />}
           {lista.carregando && !lista.dados && <Carregando />}
           {lista.dados && visiveis.length === 0 && <p className="py-8 text-sm text-muted-foreground">Nenhuma transferência aqui.</p>}
-          {lista.dados && <ListaCortada mostrados={todas.length} total={lista.dados.total} dica="Aparecem as mais recentes." />}
+          {lista.dados && aba === 'todas' && <ListaCortada mostrados={todas.length} total={lista.dados.recentes.total} dica="Aparecem as mais recentes." />}
           <ul>
             {visiveis.map((t) => (
               <li key={t.id_transferencia}>
