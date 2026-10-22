@@ -8,7 +8,7 @@ import { api, type Esquema } from '@/lib/api'
 import { moeda, soDigitos } from '@/lib/formato'
 import { useEnviar } from '@/lib/useCarregar'
 
-type Pedido = Esquema<'PedidoSaida'>
+type Compra = Esquema<'CompraSaida'>
 type Metodo = 'pix' | 'cartao_credito' | 'cartao_debito'
 
 const METODOS: { valor: Metodo; rotulo: string }[] = [
@@ -21,23 +21,17 @@ const METODOS: { valor: Metodo; rotulo: string }[] = [
 const CARTAO_QUE_RECUSA = '4000000000000002'
 const PIX_APROVA_EM_MS = 4000
 
-function cobrancaPendente(pedido: Pedido) {
-  return [...pedido.pagamentos]
-    .filter((p) => p.tipo === 'pagamento' && p.status === 'pendente')
-    .sort((a, b) => b.id_pagamento - a.id_pagamento)[0]
+// a compra tem uma cobrança só, pelo total, mesmo com peças das duas marcas (ADR 0017 do backend)
+function pixPendente(compra: Compra) {
+  return compra.status_cobranca === 'pendente' && compra.metodo === 'pix'
 }
 
-function faltaPagar(pedido: Pedido) {
-  return Math.max(0, Number(pedido.valor_total) - Number(pedido.valor_pago))
-}
-
-export function Pagamento({ pedido, aoAtualizar }: { pedido: Pedido; aoAtualizar: (pedido: Pedido) => void }) {
+export function Pagamento({ compra, aoAtualizar }: { compra: Compra; aoAtualizar: (compra: Compra) => void }) {
   const [metodo, setMetodo] = useState<Metodo>('pix')
-  const pixPendente = cobrancaPendente(pedido)?.metodo === 'pix'
 
   return (
     <div className="space-y-5">
-      <fieldset disabled={pixPendente}>
+      <fieldset disabled={pixPendente(compra)}>
         <legend className="sr-only">Forma de pagamento</legend>
         <div className="grid gap-2 sm:grid-cols-3">
           {METODOS.map((m) => (
@@ -64,61 +58,61 @@ export function Pagamento({ pedido, aoAtualizar }: { pedido: Pedido; aoAtualizar
       </fieldset>
 
       {metodo === 'pix' ? (
-        <PagarComPix pedido={pedido} aoAtualizar={aoAtualizar} />
+        <PagarComPix compra={compra} aoAtualizar={aoAtualizar} />
       ) : (
-        <PagarComCartao key={metodo} pedido={pedido} metodo={metodo} aoAtualizar={aoAtualizar} />
+        <PagarComCartao key={metodo} compra={compra} metodo={metodo} aoAtualizar={aoAtualizar} />
       )}
     </div>
   )
 }
 
 // Pix: gera a cobrança, mostra QR e "copia e cola" de mentira e o gateway simulado aprova sozinho
-function PagarComPix({ pedido, aoAtualizar }: { pedido: Pedido; aoAtualizar: (pedido: Pedido) => void }) {
+function PagarComPix({ compra, aoAtualizar }: { compra: Compra; aoAtualizar: (compra: Compra) => void }) {
   const { enviar, enviando, erro } = useEnviar()
   const [copiado, setCopiado] = useState(false)
-  const pendente = cobrancaPendente(pedido)
-  const cobranca = pendente?.metodo === 'pix' ? pendente : undefined
-  const idCobranca = cobranca?.id_pagamento
+  const transacao = pixPendente(compra) ? compra.id_transacao_gateway : null
+  const idCompra = compra.id_compra
 
-  // o "banco" aprova o Pix alguns segundos depois de gerado; uma vez por cobrança
+  // o "banco" aprova o Pix alguns segundos depois de gerado; uma vez por cobrança (o backend recusa a segunda)
   useEffect(() => {
-    if (!idCobranca) return
+    if (!transacao) return
     const relogio = window.setTimeout(() => {
       void enviar(() =>
-        api<Pedido>(`/pagamentos/${idCobranca}/simular`, { metodo: 'POST', corpo: { aprovado: true } }),
-      ).then((atualizado) => {
-        if (atualizado) aoAtualizar(atualizado)
+        api<Compra>(`/compras/${idCompra}/simular`, { metodo: 'POST', corpo: { aprovado: true } }),
+      ).then((atualizada) => {
+        if (atualizada) aoAtualizar(atualizada)
       })
     }, PIX_APROVA_EM_MS)
     return () => window.clearTimeout(relogio)
-  }, [idCobranca, enviar, aoAtualizar])
+  }, [transacao, idCompra, enviar, aoAtualizar])
 
   async function gerar() {
-    const atualizado = await enviar(() =>
-      api<Pedido>(`/pedidos/${pedido.id_pedido}/pagamentos`, { metodo: 'POST', corpo: { metodo: 'pix' } }),
+    const atualizada = await enviar(() =>
+      api<Compra>(`/compras/${idCompra}/pagamentos`, { metodo: 'POST', corpo: { metodo: 'pix' } }),
     )
-    if (atualizado) aoAtualizar(atualizado)
+    if (atualizada) aoAtualizar(atualizada)
   }
 
-  if (!cobranca) {
+  if (!transacao) {
     return (
       <div className="space-y-3">
         <p className="text-sm text-muted-foreground">O código Pix vale enquanto a reserva estiver ativa.</p>
         {erro && <p role="alert" className="text-sm text-ferrugem">{erro}</p>}
         <Button size="loja" className="w-full sm:w-full" onClick={() => void gerar()} disabled={enviando}>
-          {enviando ? 'Gerando o Pix...' : `Pagar ${moeda(faltaPagar(pedido))} com Pix`}
+          {enviando ? 'Gerando o Pix...' : `Pagar ${moeda(compra.valor_total)} com Pix`}
         </Button>
       </div>
     )
   }
 
-  const copiaECola = `00020126580014br.gov.bcb.pix0136${cobranca.id_transacao_gateway ?? cobranca.id_pagamento}520400005303986540${cobranca.valor.length}${cobranca.valor}5802BR5912CASA LORENZI6009SAO PAULO6304SIMU`
+  const valor = compra.valor_total
+  const copiaECola = `00020126580014br.gov.bcb.pix0136${transacao}520400005303986540${valor.length}${valor}5802BR5912CASA LORENZI6009SAO PAULO6304SIMU`
 
   return (
     <div className="grid gap-5 border p-5 sm:grid-cols-[10rem_minmax(0,1fr)]">
-      <QrFalso semente={cobranca.id_transacao_gateway ?? String(cobranca.id_pagamento)} />
+      <QrFalso semente={transacao} />
       <div className="min-w-0 space-y-3">
-        <p className="font-medium">Pix de {moeda(cobranca.valor)} gerado</p>
+        <p className="font-medium">Pix de {moeda(valor)} gerado</p>
         <p className="text-sm text-muted-foreground">
           Leia o QR no app do banco ou use o código abaixo. Nesta demonstração o pagamento é simulado e aprova sozinho em
           alguns segundos.
@@ -188,13 +182,13 @@ function QrFalso({ semente }: { semente: string }) {
 
 // cartão: número, nome, validade e CVV ficam só no navegador; o gateway simulado aprova ou recusa
 function PagarComCartao({
-  pedido,
+  compra,
   metodo,
   aoAtualizar,
 }: {
-  pedido: Pedido
+  compra: Compra
   metodo: Exclude<Metodo, 'pix'>
-  aoAtualizar: (pedido: Pedido) => void
+  aoAtualizar: (compra: Compra) => void
 }) {
   const [cartao, setCartao] = useState({ numero: '', nome: '', validade: '', cvv: '' })
   const [erros, setErros] = useState<Partial<Record<keyof typeof cartao, string>>>({})
@@ -235,14 +229,14 @@ function PagarComCartao({
 
     setRecusado(false)
     const resultado = await enviar(async () => {
-      const comCobranca = await api<Pedido>(`/pedidos/${pedido.id_pedido}/pagamentos`, { metodo: 'POST', corpo: { metodo } })
-      const cobranca = cobrancaPendente(comCobranca)
-      if (!cobranca) return comCobranca
+      // uma cobrança e uma resposta para a compra inteira: ou as duas marcas ficam pagas, ou nenhuma
+      await api<Compra>(`/compras/${compra.id_compra}/pagamentos`, { metodo: 'POST', corpo: { metodo } })
       const aprovado = soDigitos(cartao.numero) !== CARTAO_QUE_RECUSA
-      return api<Pedido>(`/pagamentos/${cobranca.id_pagamento}/simular`, { metodo: 'POST', corpo: { aprovado } })
+      return api<Compra>(`/compras/${compra.id_compra}/simular`, { metodo: 'POST', corpo: { aprovado } })
     })
     if (!resultado) return
-    if (resultado.status !== 'pago') setRecusado(true)
+    // compra cancelada (reserva vencida antes da resposta) não é recusa do banco: o checkout avisa
+    if (resultado.status === 'aguardando_pagamento' && resultado.status_cobranca === 'recusado') setRecusado(true)
     aoAtualizar(resultado)
   }
 
@@ -316,7 +310,7 @@ function PagarComCartao({
 
       {erro && <p role="alert" className="text-sm text-ferrugem">{erro}</p>}
       <Button type="submit" size="loja" className="w-full sm:w-full" disabled={enviando}>
-        {enviando ? 'Processando...' : `Pagar ${moeda(faltaPagar(pedido))}`}
+        {enviando ? 'Processando...' : `Pagar ${moeda(compra.valor_total)}`}
       </Button>
     </form>
   )

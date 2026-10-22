@@ -11,7 +11,7 @@ import { Input } from '@/components/ui/input'
 import { api, type Esquema } from '@/lib/api'
 import { dataCurta, METODOS_PAGAMENTO, moeda, plural } from '@/lib/formato'
 import { useCarregar, useEnviar } from '@/lib/useCarregar'
-import { guardarPedidoEmAberto } from './checkout/pedidoEmAberto'
+import { guardarCompraEmAberto } from './checkout/compraEmAberto'
 import { rotuloTamanho } from './componentes/tamanhos'
 import { EM_ANDAMENTO, pecasParaAvaliar, pedidosDoCliente, resumoDosPedidos } from './conta/pedidosDaConta'
 
@@ -349,9 +349,11 @@ function LinhaPedido({ pedido, aberto, aoAlternar, aoMudar }: {
   const pagamento = pedido.pagamentos.find((p) => p.tipo === 'pagamento' && p.status === 'aprovado')
   const idDetalhes = `detalhes-${pedido.id_pedido}`
 
-  // a reserva tem 15 minutos: o checkout retoma o mesmo pedido em vez de reservar de novo
+  // a reserva tem 15 minutos: o checkout retoma a compra do pedido em vez de reservar de novo. A compra
+  // paga tudo junto, então os pedidos dela levam à mesma cobrança
+  const idCompra = pedido.id_compra
   function continuarPagamento() {
-    guardarPedidoEmAberto(pedido.id_pedido)
+    guardarCompraEmAberto(idCompra)
     navegar('/loja/checkout')
   }
 
@@ -380,7 +382,9 @@ function LinhaPedido({ pedido, aberto, aoAlternar, aoMudar }: {
         </div>
 
         <div className="ml-auto flex flex-wrap items-center justify-end gap-3">
-          {pedido.status === 'aguardando_pagamento' && <Button onClick={continuarPagamento}>Continuar pagamento</Button>}
+          {pedido.status === 'aguardando_pagamento' && idCompra !== null && (
+            <Button onClick={continuarPagamento}>Continuar pagamento</Button>
+          )}
           {paraAvaliar && (
             <Link
               to={`/loja/avaliar/${paraAvaliar.id_item}?pedido=${pedido.id_pedido}`}

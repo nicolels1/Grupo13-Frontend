@@ -28,8 +28,8 @@ Frontend da plataforma da Casa Lorenzi, desenvolvida no Case Tech da Trainee Ins
 
 - vitrine com carrossel (slides editados pelo interno), categorias, busca sem acento e tolerante a erro de digitação, filtros de tamanho e estoque e ordenação;
 - página do produto com fotos por cor, tamanhos esgotados riscados e avaliações com fotos, filtro "Com fotos", voto útil e denúncia;
-- carrinho salvo no navegador (gaveta e página), com barra de frete grátis;
-- checkout em uma página: entrega em casa (CEP preenchido pelo ViaCEP) ou retirada grátis numa loja, reserva de 15 minutos e pagamento simulado por Pix ou cartão de teste;
+- um carrinho só para a Casa Lorenzi e a Vulto, salvo no navegador (gaveta e página), com as peças separadas por marca e a barra de frete grátis de cada uma;
+- checkout em uma página: entrega em casa (CEP preenchido pelo ViaCEP) ou retirada grátis numa loja (só com peças de uma marca), reserva de 15 minutos e um pagamento simulado por Pix ou cartão de teste para a compra inteira; com as duas marcas, o backend faz um pedido por marca; os pontos de cada marca viram desconto nas peças dela;
 - área "Minha conta": pedidos com linha do tempo, avaliação da peça recebida, compra feita na loja ligada à conta pelo código da notinha, chamados com conversa e anexos, e endereços;
 - cadastro, login por e-mail ou CPF e recuperação de senha por e-mail.
 
@@ -136,7 +136,7 @@ Componente usado nas duas plataformas fica em `components/`; o que é de uma pla
 | `/loja` | início da loja | público |
 | `/loja/produtos`, `/loja/produtos/:id` | lista e página do produto | público |
 | `/loja/carrinho`, `/loja/ajuda` | carrinho e central de ajuda | público |
-| `/loja/checkout`, `/loja/pedido-confirmado/:id` | finalizar compra e confirmação | cliente |
+| `/loja/checkout`, `/loja/compra-confirmada/:id` | finalizar compra e confirmação | cliente |
 | `/loja/conta`, `/loja/pedidos`, `/loja/chamados`, `/loja/enderecos` | área "Minha conta" | cliente |
 | `/loja/avaliar/:idItem` | escrever avaliação | cliente |
 | `/interno` | Visão Geral | conta interna |
@@ -189,7 +189,7 @@ Tudo que começa com `VITE_` vai para o navegador: nunca coloque uma chave secre
 
 - funções de formato (datas no horário de Brasília, moeda, CPF, plural e tamanho de arquivo) e a tradução de erros da API;
 - as regras de acesso às áreas internas;
-- as regras das telas: troca, devolução e estorno, variações e fotos do produto, anexos dos chamados, CEP, pedido em aberto no checkout, fotos por cor e os pedidos da conta;
+- as regras das telas: troca, devolução e estorno, variações e fotos do produto, anexos dos chamados, CEP, compra em aberto no checkout, fotos por cor e os pedidos da conta;
 - as listas com cache (unidades e variantes) e os hooks de carregamento, envio e intervalo;
 - as telas de entrar e a proteção das rotas, com o roteador de verdade e o `useAuth()` trocado por um de teste (`src/auth/authDeTeste.ts`): login por e-mail e CPF, credencial errada, volta à página de origem, conta do tipo errado e área sem permissão.
 
