@@ -25,6 +25,8 @@ const GRUPOS: [string, string[]][] = [
   ['Transferência', ['solicitar_transferencia', 'enviar_transferencia', 'receber_transferencia']],
   ['Vendas', ['registrar_venda_fisica', 'preparar_entregar_pedido', 'cancelar_pedido_equipe', 'corrigir_cadastro_cliente']],
   ['Clientes', ['atender_chamado', 'moderar_avaliacoes']],
+  // que marca a pessoa vê nas listas e pode abrir ou mudar; sem nenhuma, as listas da equipe dão 403
+  ['Marcas', ['ver_marca_lorenzi', 'ver_marca_vulto']],
 ]
 
 // grupos na ordem de GRUPOS; permissão nova do banco que não está no mapa cai em "Outras"
