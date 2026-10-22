@@ -65,6 +65,12 @@ export function buscarVariante(idVariante: number): Promise<ItemEstoque | null> 
   return promessa
 }
 
+// o estoque vem filtrado pelas marcas de quem está logado: ao trocar de conta (ou sair), o que a conta
+// anterior viu não vale para a próxima. Chamado pelo AuthProvider
+export function limparVariantes() {
+  for (const id of Object.keys(variantes)) delete variantes[Number(id)]
+}
+
 export function useVariantes(ids: number[]) {
   const chave = [...new Set(ids)].sort((a, b) => a - b).join(',')
   return useCarregar(async () => {

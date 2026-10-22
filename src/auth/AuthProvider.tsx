@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react
 import type { Session } from '@supabase/supabase-js'
 
 import { api, ErroApi, type Esquema } from '@/lib/api'
+import { limparVariantes } from '@/lib/listas'
 import { supabase } from '@/lib/supabaseClient'
 import { AuthContext, type ValorAuth } from './contexto'
 import { erroDaTrocaDeSenha, erroDoLinkDeSenha, erroDoLogin } from './mensagens'
@@ -21,8 +22,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const idUsuario = sessao?.user?.id ?? null
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => setSessao(data.session))
-    const { data } = supabase.auth.onAuthStateChange((_evento, novaSessao) => setSessao(novaSessao))
+    // outra pessoa (ou ninguém) logada: descarta as variantes da anterior antes de as telas verem a sessão
+    // nova. A renovação do token mantém a pessoa e o cache
+    let idAnterior: string | null = null
+    function mudarSessao(novaSessao: Session | null) {
+      const id = novaSessao?.user?.id ?? null
+      if (id !== idAnterior) limparVariantes()
+      idAnterior = id
+      setSessao(novaSessao)
+    }
+    supabase.auth.getSession().then(({ data }) => mudarSessao(data.session))
+    const { data } = supabase.auth.onAuthStateChange((_evento, novaSessao) => mudarSessao(novaSessao))
     return () => data.subscription.unsubscribe()
   }, [])
 
