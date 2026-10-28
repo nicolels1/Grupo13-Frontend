@@ -8,6 +8,8 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 
 const api = vi.fn()
 vi.mock('@/lib/api', async (original) => ({ ...(await original<typeof import('@/lib/api')>()), api }))
+// sem .env (como no GitHub), o cliente de verdade do Supabase quebra ao carregar a API
+vi.mock('@/lib/supabaseClient', () => ({ supabase: { auth: {} } }))
 
 const { ErroApi } = await import('@/lib/api')
 const { useConversaAssistente } = await import('./conversaAssistente')
