@@ -11,7 +11,7 @@ import { CATEGORIAS_CHAMADO, dataHora, dataLonga, hora, tamanhoArquivo } from '@
 import { useCarregar, useEnviar, useIntervalo } from '@/lib/useCarregar'
 import { Prioridade } from './Fila'
 import { PainelDoChamado } from './PainelDoChamado'
-import { comoChamar, nomeDoCanalExterno, quemAbriu, respostaNaoChega, semCadastro } from './regrasChamado'
+import { comoChamar, nomeDoCanalExterno, origemDoChamado, quemAbriu, respostaNaoChega, respostaPorEmail, semCadastro } from './regrasChamado'
 
 type Chamado = Esquema<'ChamadoSaida'>
 type Mensagem = Esquema<'MensagemSaida'>
@@ -55,7 +55,7 @@ export function ChamadoAberto({ idChamado, aoMudar }: { idChamado: string; aoMud
           </p>
           {c.canal_externo && (
             <p className="flex flex-wrap gap-2 pt-1">
-              <Etiqueta>Veio da Vulto pelo {nomeDoCanalExterno(c.canal_externo)}</Etiqueta>
+              <Etiqueta>{origemDoChamado(c)}</Etiqueta>
               {semCadastro(c) && <Etiqueta alerta>Sem cadastro</Etiqueta>}
             </p>
           )}
@@ -240,6 +240,11 @@ function Responder({ chamado: c, aoEnviar }: { chamado: Chamado; aoEnviar: () =>
       </div>
       {(erroArquivo || erro) && <div className="border-t p-3"><Aviso mensagem={erroArquivo || erro} /></div>}
       </form>
+      {!interna && respostaPorEmail(c) && (
+        <p className="text-xs text-muted-foreground">
+          {comoChamar(c)} recebe esta resposta por e-mail: o chat do assistente não recebe mensagens da equipe.
+        </p>
+      )}
     </div>
   )
 }
