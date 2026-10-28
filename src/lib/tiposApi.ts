@@ -89,6 +89,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/estoque/por-produto": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Listar Estoque Por Produto
+         * @description Uma página de produtos: limit, offset e total contam produtos; os itens são todas as linhas (variante, unidade e canal) dos produtos da página.
+         */
+        get: operations["listar_estoque_por_produto_estoque_por_produto_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/estoque/historico": {
         parameters: {
             query?: never;
@@ -98,6 +118,26 @@ export interface paths {
         };
         /** Estoque Em */
         get: operations["estoque_em_estoque_historico_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/estoque/comparacao": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Comparacao
+         * @description Cada peça numa unidade naquele momento e agora (somando os canais do filtro), uma página por vez.
+         */
+        get: operations["comparacao_estoque_comparacao_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2871,6 +2911,27 @@ export interface components {
             /** Validade Minutos */
             validade_minutos: number;
         };
+        /** ComparacaoItem */
+        ComparacaoItem: {
+            /** Id Variante */
+            id_variante: number;
+            /** Sku */
+            sku: string;
+            /** Produto */
+            produto: string;
+            /** Cor */
+            cor: string;
+            /** Tamanho */
+            tamanho: string;
+            /** Id Unidade */
+            id_unidade: number;
+            /** Unidade */
+            unidade: string;
+            /** Naquele */
+            naquele: number;
+            /** Agora */
+            agora: number;
+        };
         /** CompraSaida */
         CompraSaida: {
             /** Id Compra */
@@ -4362,6 +4423,22 @@ export interface components {
              */
             criado_em: string;
         };
+        /** PaginaComparacao */
+        PaginaComparacao: {
+            /** Items */
+            items: components["schemas"]["ComparacaoItem"][];
+            /** Total */
+            total: number;
+            /** Limit */
+            limit: number;
+            /** Offset */
+            offset: number;
+            /**
+             * Mudaram
+             * @description Quantas peças da lista têm saldo diferente naquele momento e agora
+             */
+            mudaram: number;
+        };
         /** PaginaProdutos */
         PaginaProdutos: {
             /** Items */
@@ -5811,6 +5888,62 @@ export interface operations {
             };
         };
     };
+    listar_estoque_por_produto_estoque_por_produto_get: {
+        parameters: {
+            query?: {
+                id_unidade?: number | null;
+                canal?: ("loja_fisica" | "online") | null;
+                /** @description Parte do SKU ou do nome do produto, ou o código de barras (EAN) inteiro */
+                busca?: string | null;
+                /** @description Só os produtos com alguma linha abaixo do mínimo */
+                so_abaixo?: boolean;
+                /** @description lorenzi ou vulto. Vazio: as marcas que a pessoa vê */
+                marca?: ("lorenzi" | "vulto") | null;
+                limit?: number;
+                offset?: number;
+            };
+            header?: {
+                authorization?: string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Pagina_EstoqueItem_"];
+                };
+            };
+            /** @description Sem login válido */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Sem permissão */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     estoque_em_estoque_historico_get: {
         parameters: {
             query: {
@@ -5840,6 +5973,63 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Pagina_EstoqueHistoricoItem_"];
+                };
+            };
+            /** @description Sem login válido */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Sem permissão */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    comparacao_estoque_comparacao_get: {
+        parameters: {
+            query: {
+                /** @description AAAA-MM-DD (fim do dia) ou AAAA-MM-DDTHH:MM, no horário de Brasília */
+                em: string;
+                id_unidade?: number | null;
+                canal?: ("loja_fisica" | "online") | null;
+                busca?: string | null;
+                /** @description Só as peças com saldo diferente naquele momento e agora */
+                so_mudou?: boolean;
+                /** @description lorenzi ou vulto. Vazio: as marcas que a pessoa vê */
+                marca?: ("lorenzi" | "vulto") | null;
+                limit?: number;
+                offset?: number;
+            };
+            header?: {
+                authorization?: string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaginaComparacao"];
                 };
             };
             /** @description Sem login válido */

@@ -5,10 +5,27 @@ type Chamado = Pick<Esquema<'ChamadoSaida'>, 'cliente' | 'id_cliente' | 'id_clie
 // o chamado que veio do atendimento da Vulto (P6): WhatsApp, Instagram ou e-mail, com o contato de quem
 // escreveu. Sem cliente identificado (A5–A7), a API manda o contato no lugar do nome
 
-export const CANAIS_EXTERNOS: Record<string, string> = { whatsapp: 'WhatsApp', instagram: 'Instagram', email: 'e-mail' }
+export const CANAIS_EXTERNOS: Record<string, string> = { whatsapp: 'WhatsApp', instagram: 'Instagram', email: 'e-mail', chat: 'chat' }
 
 export function nomeDoCanalExterno(canal: string) {
   return CANAIS_EXTERNOS[canal] ?? canal
+}
+
+// o chamado aberto pelo assistente do cliente (frente da Nicole). Até existir uma coluna de origem, só o
+// chat (o chat do n8n, usado na banca) é certamente do assistente: whatsapp também aparece nos migrados
+export function veioDoAssistente(c: Chamado) {
+  return c.canal_externo === 'chat'
+}
+
+// etiqueta do chamado com canal externo
+export function origemDoChamado(c: Chamado) {
+  const canal = nomeDoCanalExterno(c.canal_externo ?? '')
+  return veioDoAssistente(c) ? `Aberto pelo assistente no ${canal}` : `Veio da Vulto pelo ${canal}`
+}
+
+// o chat do assistente não recebe mensagem da equipe: a resposta chega ao cliente por e-mail
+export function respostaPorEmail(c: Chamado) {
+  return veioDoAssistente(c) && !respostaNaoChega(c)
 }
 
 // ninguém do cadastro: nem conta nem cliente da Vulto sem conta
