@@ -8,6 +8,7 @@ import { Campo, Input } from '@/components/ui/input'
 import { api, type Esquema } from '@/lib/api'
 import { limparListas } from '@/lib/listas'
 import { useCarregar, useEnviar } from '@/lib/useCarregar'
+import { HorarioDaUnidade } from './HorarioDaUnidade'
 import { PainelLateral, Painel } from './paineis'
 
 type Unidade = Esquema<'UnidadeSaida'>
@@ -180,6 +181,7 @@ function FormularioUnidade({ unidade, aoFechar, aoSalvar }: { unidade?: Unidade;
           <Button type="submit" size="lg" className="h-11 px-5" disabled={enviando}>{enviando ? 'Salvando...' : 'Salvar unidade'}</Button>
         </div>
       </form>
+      {unidade?.tipo === 'loja' && <HorarioDaUnidade idUnidade={unidade.id_unidade} />}
     </Moldura>
   )
 }

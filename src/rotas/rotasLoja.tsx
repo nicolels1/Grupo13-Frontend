@@ -5,7 +5,7 @@ import { LayoutCliente } from '@/layouts/LayoutCliente'
 import { InicioLoja } from '@/pages/loja/Inicio'
 import { tela } from './tela'
 import {
-  AjudaLoja, AreaDaConta, AvaliarPeca, Cadastro, CarrinhoLoja, ChamadosCliente, CheckoutLoja, ConfirmacaoCompra, ConversaCliente, Enderecos,
+  AdicionarAoCarrinho, AjudaLoja, AreaDaConta, AvaliarPeca, Cadastro, CarrinhoLoja, ChamadosCliente, CheckoutLoja, ConfirmacaoCompra, ConversaCliente, Enderecos,
   Entrar, EsqueciSenha, MeusPedidos, MeusPontosLoja, NovoChamadoCliente, ProdutoLoja, ProdutosLoja, RedefinirSenha, SemChamadoEscolhido, VisaoGeralConta,
 } from './telasLoja'
 
@@ -23,6 +23,7 @@ export const rotasLoja: RouteObject[] = [
       { path: 'produtos/:idProduto', element: tela(<ProdutoLoja />) },
       { path: 'ajuda', element: tela(<AjudaLoja />) },
       { path: 'carrinho', element: tela(<CarrinhoLoja />) },
+      { path: 'carrinho/adicionar', element: tela(<AdicionarAoCarrinho />) },
       {
         path: 'checkout',
         element: <ExigeLogin tipo="cliente">{tela(<CheckoutLoja />)}</ExigeLogin>,

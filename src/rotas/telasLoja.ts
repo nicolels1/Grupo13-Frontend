@@ -2,6 +2,7 @@ import { lazy } from 'react'
 
 // as telas da loja e as de conta só baixam quando são abertas: quem chega pela página inicial leva só
 // o código dela e o do layout. A página inicial e o LayoutCliente continuam no pacote principal
+export const AdicionarAoCarrinho = lazy(() => import('@/pages/loja/AdicionarAoCarrinho').then((m) => ({ default: m.AdicionarAoCarrinho })))
 export const AjudaLoja = lazy(() => import('@/pages/loja/Ajuda').then((m) => ({ default: m.AjudaLoja })))
 export const AreaDaConta = lazy(() => import('@/pages/loja/conta/AreaDaConta').then((m) => ({ default: m.AreaDaConta })))
 export const AvaliarPeca = lazy(() => import('@/pages/loja/Avaliar').then((m) => ({ default: m.AvaliarPeca })))
