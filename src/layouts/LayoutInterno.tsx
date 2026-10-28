@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { ChevronDown, Store } from 'lucide-react'
+import { ChevronDown, MessageSquare, Store } from 'lucide-react'
 import { NavLink, Outlet, useNavigate } from 'react-router'
 import { cn } from 'cn'
 
@@ -18,6 +18,8 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { useUnidades } from '@/lib/listas'
+import { useConversaAssistente } from '@/pages/interno/assistente/conversaAssistente'
+import { PainelAssistente } from '@/pages/interno/assistente/PainelAssistente'
 import type { UnidadeEscolhida } from './unidadeEscolhida'
 
 // sublinhado da aba ativa na cor da área. Estoque (marinho) e Transferências (marinho-escuro)
@@ -38,6 +40,9 @@ export function LayoutInterno() {
   // a unidade da conta é só o filtro inicial; dá para olhar qualquer outra
   const [unidade, setUnidade] = useState(perfil?.id_unidade ? String(perfil.id_unidade) : '')
   const contexto: UnidadeEscolhida = { unidade, setUnidade, unidades }
+  // o assistente fica no layout: a conversa continua ao fechar o painel e trocar de tela
+  const conversa = useConversaAssistente()
+  const [assistenteAberto, setAssistenteAberto] = useState(false)
 
   // o filtro que vale precisa aparecer no seletor: sem opção para ele (lista carregando ou com erro, unidade
   // inativa ou de fora), o navegador mostraria "Todas" com outra unidade filtrando as telas
@@ -100,10 +105,20 @@ export function LayoutInterno() {
                 ))}
               </select>
             </label>
+            <button
+              type="button"
+              onClick={() => setAssistenteAberto(true)}
+              className="flex items-center gap-1.5 text-sm whitespace-nowrap outline-none hover:underline focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              <MessageSquare className="size-4" aria-hidden="true" />
+              {/* no celular só o ícone, com o nome para o leitor de tela */}
+              <span className="sr-only sm:not-sr-only">Assistente</span>
+            </button>
             <MenuDaPessoa />
           </div>
         </div>
       </header>
+      <PainelAssistente aberto={assistenteAberto} aoMudar={setAssistenteAberto} conversa={conversa} />
 
       <main className="mx-auto max-w-7xl px-4 py-10 sm:px-6">
         {erroUnidades && (
