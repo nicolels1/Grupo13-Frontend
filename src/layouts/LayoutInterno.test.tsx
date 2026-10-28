@@ -93,6 +93,17 @@ describe('LayoutInterno: unidade em foco', () => {
     expect(screen.queryByRole('alert')).toBeNull()
   })
 
+  it('o botão Assistente do topo abre o painel', async () => {
+    api.mockReturnValue(lista(unidade(3, 'Jardins')))
+    abrir()
+    expect(screen.queryByRole('dialog')).toBeNull()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Assistente' }))
+
+    expect(await screen.findByRole('dialog')).toBeTruthy()
+    expect(screen.getByText('Pergunte sobre vendas. Os números vêm do sistema.')).toBeTruthy()
+  })
+
   it('unidade de uma marca que a conta não vê aparece como indisponível', async () => {
     api.mockReturnValue(lista(unidade(3, 'Vulto Batel', { marca: 'vulto' }), unidade(4, 'Moema')))
     abrir()

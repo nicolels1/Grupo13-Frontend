@@ -19,6 +19,14 @@ export const SUGESTOES = [
   'Quanto o site vendeu este mês?',
 ]
 
+export function semATentativaQueFalhou(falas: Fala[], pergunta: string): Fala[] {
+  const erro = falas.findIndex((f) => f.papel === 'erro' && f.pergunta === pergunta)
+  if (erro === -1) return falas
+  const anterior = falas[erro - 1]
+  const inicio = anterior?.papel === 'usuario' && anterior.texto === pergunta ? erro - 1 : erro
+  return [...falas.slice(0, inicio), ...falas.slice(erro + 1)]
+}
+
 export function falaDaResposta(r: Resposta): Fala {
   return { papel: 'assistente', texto: r.resposta, links: r.links, montada: r.numeros_conferidos === false }
 }
@@ -34,9 +42,8 @@ export function useConversaAssistente() {
   const perguntar = useCallback(async (texto: string) => {
     const pergunta = texto.trim().slice(0, TAMANHO_MAXIMO)
     if (!pergunta || enviando) return
-    // uma pergunta que falhou e é refeita sai da lista: fica só a nova tentativa
-    setFalas((atuais) => [...atuais.filter((f) => !(f.papel === 'erro' && f.pergunta === pergunta)),
-      { papel: 'usuario', texto: pergunta }])
+    // uma pergunta que falhou e é refeita sai da lista (ela e o erro): fica só a nova tentativa
+    setFalas((atuais) => [...semATentativaQueFalhou(atuais, pergunta), { papel: 'usuario', texto: pergunta }])
     setEnviando(true)
     try {
       const r = await api<Resposta>('/assistente/interno/mensagens', {
