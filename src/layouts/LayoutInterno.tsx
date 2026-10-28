@@ -43,6 +43,9 @@ export function LayoutInterno() {
   // o assistente fica no layout: a conversa continua ao fechar o painel e trocar de tela
   const conversa = useConversaAssistente()
   const [assistenteAberto, setAssistenteAberto] = useState(false)
+  // a unidade do topo vai para o assistente; fora da lista (carregando, de outra marca) conta como todas
+  const unidadeDoTopo = unidades.find((u) => String(u.id_unidade) === unidade)
+  const emFoco = unidadeDoTopo ? { id_unidade: unidadeDoTopo.id_unidade, nome: unidadeDoTopo.nome } : null
 
   // o filtro que vale precisa aparecer no seletor: sem opção para ele (lista carregando ou com erro, unidade
   // inativa ou de fora), o navegador mostraria "Todas" com outra unidade filtrando as telas
@@ -118,7 +121,7 @@ export function LayoutInterno() {
           </div>
         </div>
       </header>
-      <PainelAssistente aberto={assistenteAberto} aoMudar={setAssistenteAberto} conversa={conversa} />
+      <PainelAssistente aberto={assistenteAberto} aoMudar={setAssistenteAberto} conversa={conversa} unidadeEmFoco={emFoco} />
 
       <main className="mx-auto max-w-7xl px-4 py-10 sm:px-6">
         {erroUnidades && (

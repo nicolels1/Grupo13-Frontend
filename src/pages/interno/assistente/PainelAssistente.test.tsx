@@ -21,18 +21,20 @@ const resposta = (dados: Record<string, unknown> = {}) => ({
 })
 
 const aoMudar = vi.fn()
-function Painel() {
+type UnidadeEmFoco = { id_unidade: number; nome: string } | null
+
+function Painel({ unidade = null }: { unidade?: UnidadeEmFoco }) {
   const conversa = useConversaAssistente()
   const [aberto, setAberto] = useState(true)
   const mudar = (valor: boolean) => {
     setAberto(valor)
     aoMudar(valor)
   }
-  return <PainelAssistente aberto={aberto} aoMudar={mudar} conversa={conversa} />
+  return <PainelAssistente aberto={aberto} aoMudar={mudar} conversa={conversa} unidadeEmFoco={unidade} />
 }
 
-function abrir() {
-  render(<MemoryRouter><Painel /></MemoryRouter>)
+function abrir(unidade: UnidadeEmFoco = null) {
+  return render(<MemoryRouter><Painel unidade={unidade} /></MemoryRouter>)
 }
 
 const campo = () => screen.getByLabelText('Sua pergunta') as HTMLTextAreaElement
@@ -58,7 +60,7 @@ describe('PainelAssistente', () => {
 
     expect(await screen.findByText('A Savassi vendeu R$ 2.569,00 em 6 pedidos.')).toBeTruthy()
     expect(api).toHaveBeenCalledWith('/assistente/interno/mensagens', {
-      metodo: 'POST', corpo: { texto: 'Quanto a rede vendeu esta semana?', id_conversa: null },
+      metodo: 'POST', corpo: { texto: 'Quanto a rede vendeu esta semana?', id_conversa: null, id_unidade_em_foco: null },
     })
     expect(screen.getByRole('link', { name: /Abrir a Visão geral/ }).getAttribute('href')).toBe('/interno')
     expect(screen.getByText('Ajudou?')).toBeTruthy()
@@ -76,7 +78,7 @@ describe('PainelAssistente', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Enviar' }))
 
     await waitFor(() => expect(api).toHaveBeenCalledTimes(2))
-    expect(corpo(1)).toEqual({ texto: 'e ontem?', id_conversa: 12 })
+    expect(corpo(1)).toEqual({ texto: 'e ontem?', id_conversa: 12, id_unidade_em_foco: null })
   })
 
   it('Enter envia e Shift+Enter não', async () => {
@@ -184,6 +186,36 @@ describe('PainelAssistente', () => {
     } finally {
       Element.prototype.scrollIntoView = original
     }
+  })
+
+  it('mostra a unidade selecionada no topo, manda junto da pergunta e marca cada pergunta', async () => {
+    api.mockResolvedValue(resposta())
+    const tela = abrir({ id_unidade: 45, nome: 'Vulto Savassi' })
+    expect(screen.getByTestId('unidade-em-foco').textContent).toBe(
+      'Unidade selecionada: Vulto Savassi. Perguntas sem unidade usam essa.')
+
+    escrever('quanto vendemos?')
+    fireEvent.click(screen.getByRole('button', { name: 'Enviar' }))
+
+    await screen.findByText('A Savassi vendeu R$ 2.569,00 em 6 pedidos.')
+    expect(corpo(0)).toEqual({ texto: 'quanto vendemos?', id_conversa: null, id_unidade_em_foco: 45 })
+    expect(screen.getByText('com Vulto Savassi selecionada')).toBeTruthy()
+
+    // trocou o topo para todas: o aviso muda, e a pergunta anterior continua marcada com a unidade dela
+    tela.rerender(<MemoryRouter><Painel unidade={null} /></MemoryRouter>)
+    expect(screen.getByTestId('unidade-em-foco').textContent).toBe(
+      'Todas as unidades selecionadas. Perguntas sem unidade valem para a rede.')
+  })
+
+  it('a pergunta refeita depois de um erro usa a unidade de quando foi feita', async () => {
+    api.mockRejectedValueOnce(new ErroApi(503, 'O assistente está fora do ar agora.')).mockResolvedValue(resposta())
+    abrir({ id_unidade: 45, nome: 'Vulto Savassi' })
+    escrever('vendas de hoje')
+    fireEvent.click(screen.getByRole('button', { name: 'Enviar' }))
+    fireEvent.click(await screen.findByRole('button', { name: 'Tentar de novo' }))
+
+    await waitFor(() => expect(api).toHaveBeenCalledTimes(2))
+    expect(corpo(1).id_unidade_em_foco).toBe(45)
   })
 
   it('o link da resposta fecha o painel', async () => {

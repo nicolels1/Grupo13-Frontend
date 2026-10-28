@@ -101,7 +101,9 @@ describe('LayoutInterno: unidade em foco', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Assistente' }))
 
     expect(await screen.findByRole('dialog')).toBeTruthy()
-    expect(screen.getByText('Pergunte sobre vendas. Os números vêm do sistema.')).toBeTruthy()
+    expect(screen.getByText(/Os números vêm do sistema\./)).toBeTruthy()
+    // a unidade do topo (Jardins, a da conta) aparece no painel
+    expect(screen.getByTestId('unidade-em-foco').textContent).toContain('Unidade selecionada: Jardins.')
   })
 
   it('unidade de uma marca que a conta não vê aparece como indisponível', async () => {

@@ -4927,6 +4927,11 @@ export interface components {
              * @description Vazio, ou parada há 30 min: começa uma conversa nova
              */
             id_conversa?: number | null;
+            /**
+             * Id Unidade Em Foco
+             * @description A unidade selecionada no topo da plataforma; vazio = todas. Vale quando a pergunta não diz a unidade
+             */
+            id_unidade_em_foco?: number | null;
         };
         /** PermissaoSaida */
         PermissaoSaida: {
@@ -5227,6 +5232,8 @@ export interface components {
              * @description A resposta passou na conferência dos números (falso: veio o texto fixo da ferramenta); vazio quando não houve resposta do modelo para conferir
              */
             numeros_conferidos: boolean | null;
+            /** @description A unidade do topo que valeu nesta pergunta; vazio = todas (ou uma que a pessoa não vê) */
+            unidade_em_foco: components["schemas"]["UnidadeEmFoco"] | null;
         };
         /** RespostaGateway */
         RespostaGateway: {
@@ -5568,6 +5575,13 @@ export interface components {
              * @description Com ou sem traço: 01000-000 ou 01000000
              */
             cep: string;
+        };
+        /** UnidadeEmFoco */
+        UnidadeEmFoco: {
+            /** Id Unidade */
+            id_unidade: number;
+            /** Nome */
+            nome: string;
         };
         /** UnidadeSaida */
         UnidadeSaida: {
