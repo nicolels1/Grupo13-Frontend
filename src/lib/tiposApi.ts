@@ -2269,6 +2269,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/assistente/conversa/resumo": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Registrar No Resumo
+         * @description Anota no resumo anônimo da conversa o 👍/👎 do cliente e se ele falou de algo fora do tema.
+         */
+        patch: operations["registrar_no_resumo_assistente_conversa_resumo_patch"];
+        trace?: never;
+    };
     "/assistente/verificacao/cpf": {
         parameters: {
             query?: never;
@@ -5160,6 +5180,27 @@ export interface components {
              * @description Uma linha por marca do carrinho: cada uma vira um pedido
              */
             marcas: components["schemas"]["ResumoMarca"][];
+        };
+        /** ResumoDoN8nEntrada */
+        ResumoDoN8nEntrada: {
+            /**
+             * Canal
+             * @enum {string}
+             */
+            canal: "whatsapp" | "chat";
+            /** Id Externo */
+            id_externo: string;
+            /**
+             * Avaliacao
+             * @description 👍 ou 👎 do cliente
+             */
+            avaliacao?: ("positiva" | "negativa") | null;
+            /**
+             * Fora Do Tema
+             * @description O cliente falou de algo fora do que o assistente atende
+             * @default false
+             */
+            fora_do_tema: boolean;
         };
         /** ResumoMarca */
         ResumoMarca: {
@@ -13104,6 +13145,10 @@ export interface operations {
             };
             header?: {
                 "x-assistente-chave"?: string | null;
+                /** @description whatsapp ou chat */
+                "x-canal"?: string | null;
+                /** @description Telefone ou sessão do chat */
+                "x-id-externo"?: string | null;
             };
             path?: never;
             cookie?: never;
@@ -13153,6 +13198,10 @@ export interface operations {
             };
             header?: {
                 "x-assistente-chave"?: string | null;
+                /** @description whatsapp ou chat */
+                "x-canal"?: string | null;
+                /** @description Telefone ou sessão do chat */
+                "x-id-externo"?: string | null;
             };
             path?: never;
             cookie?: never;
@@ -13207,6 +13256,10 @@ export interface operations {
             };
             header?: {
                 "x-assistente-chave"?: string | null;
+                /** @description whatsapp ou chat */
+                "x-canal"?: string | null;
+                /** @description Telefone ou sessão do chat */
+                "x-id-externo"?: string | null;
             };
             path?: never;
             cookie?: never;
@@ -13257,6 +13310,10 @@ export interface operations {
             query?: never;
             header?: {
                 "x-assistente-chave"?: string | null;
+                /** @description whatsapp ou chat */
+                "x-canal"?: string | null;
+                /** @description Telefone ou sessão do chat */
+                "x-id-externo"?: string | null;
             };
             path?: never;
             cookie?: never;
@@ -13414,6 +13471,60 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["EstadoConversa"];
                 };
+            };
+            /** @description Chave do assistente inválida */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Conversa não registrada */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+            /** @description Assistente indisponível */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    registrar_no_resumo_assistente_conversa_resumo_patch: {
+        parameters: {
+            query?: never;
+            header?: {
+                "x-assistente-chave"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ResumoDoN8nEntrada"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Chave do assistente inválida */
             401: {
