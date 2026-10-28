@@ -15,6 +15,7 @@ import { CANAIS_VENDA, CATEGORIAS_CHAMADO, dataCurta, dataLonga, mascaraCpf, moe
 import { lojaDaMarca } from '@/lib/lojaEscolhida'
 import { useCarregar } from '@/lib/useCarregar'
 import { nomeDaCategoria, rotuloMovimentoPontos, saldosPorLoja } from '@/pages/loja/conta/pontosDaConta'
+import { nomeDoCanalExterno } from '../atendimento/regrasChamado'
 import {
   caminhoDaFicha, filtroDoCliente, nomeDoCliente, rotuloConsentimento, telefoneFormatado,
   type ClienteComConta, type TipoCliente,
@@ -268,7 +269,7 @@ function Chamados({ filtro }: { filtro: Filtro }) {
                 <span className="font-medium">{ch.assunto}</span>
                 <span className="block text-xs text-muted-foreground">
                   {CATEGORIAS_CHAMADO[ch.categoria] ?? ch.categoria}, {dataCurta(ch.criado_em)}
-                  {ch.canal_externo && `, pelo ${ch.canal_externo === 'email' ? 'e-mail' : ch.canal_externo === 'whatsapp' ? 'WhatsApp' : 'Instagram'}`}
+                  {ch.canal_externo && `, pelo ${nomeDoCanalExterno(ch.canal_externo)}`}
                 </span>
               </Link>
               <Status tipo="chamado" valor={ch.status} />

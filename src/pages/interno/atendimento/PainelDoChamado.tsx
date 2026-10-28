@@ -19,7 +19,7 @@ import { estornaveis, prazoTroca, type ModoTroca, type TrocaFeita } from '../tro
 import { type Carga, useCarregar, useEnviar } from '@/lib/useCarregar'
 import { AtenderPedido } from '../troca/TrocaDevolucao'
 import { caminhoDaFicha } from '../clientes/regrasCliente'
-import { nomeDoCanalExterno, quemAbriu, semCadastro } from './regrasChamado'
+import { nomeDoCanalExterno, quemAbriu, semCadastro, veioDoAssistente } from './regrasChamado'
 
 type Chamado = Esquema<'ChamadoSaida'>
 type Pedido = Esquema<'PedidoSaida'>
@@ -212,7 +212,7 @@ export function PainelDoChamado({ chamado: c, historico, aoMudar }: { chamado: C
       </section>
 
       {/* só no chamado que veio do atendimento da Vulto: a linha da conversa, a categoria e quem atendeu lá */}
-      {c.canal_externo && (
+      {c.canal_externo && !veioDoAssistente(c) && (
         <div className="border-t pt-4">
           <OrigemMigracao tabela="chamado" idRegistro={c.id_chamado} titulo="Origem na Vulto" semDecisoes />
         </div>
