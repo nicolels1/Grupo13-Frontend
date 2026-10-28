@@ -11,7 +11,7 @@ import { Miniatura, NomePeca } from '@/components/Peca'
 import { Button, buttonVariants } from '@/components/ui/button'
 import { Input, Label, Select } from '@/components/ui/input'
 import { useUnidadeEscolhida } from '@/layouts/unidadeEscolhida'
-import { api, todasAsPaginas, type Esquema } from '@/lib/api'
+import { api, type Esquema } from '@/lib/api'
 import { ordenarTamanhos } from '@/lib/cores'
 import { CANAIS, dataCurta, hora, plural, TIPOS_MOVIMENTACAO } from '@/lib/formato'
 import { useAdiado, useCarregar, useEnviar } from '@/lib/useCarregar'
@@ -91,13 +91,18 @@ export function Estoque() {
   const buscaAplicada = useAdiado(busca.trim())
   const filtroMarca = useFiltroDeMarca(() => setOffset(0))
 
+  // o backend escolhe os produtos da página (com o filtro de abaixo do mínimo) e manda só as linhas deles
   const lista = useCarregar(
-    () => todasAsPaginas<ItemEstoque>('/estoque', { id_unidade: unidade, canal, busca: buscaAplicada, marca: filtroMarca.marca }),
-    [unidade, canal, buscaAplicada, filtroMarca.marca],
+    () => api<Esquema<'Pagina_EstoqueItem_'>>('/estoque/por-produto', {
+      params: {
+        id_unidade: unidade, canal, busca: buscaAplicada, marca: filtroMarca.marca, so_abaixo: soAbaixo,
+        limit: PRODUTOS_POR_PAGINA, offset,
+      },
+    }),
+    [unidade, canal, buscaAplicada, filtroMarca.marca, soAbaixo, offset],
   )
-  const todos = porProduto(lista.dados ?? [])
-  const produtos = soAbaixo ? todos.filter((p) => p.abaixo > 0) : todos
-  const pagina = produtos.slice(offset, offset + PRODUTOS_POR_PAGINA)
+  const pagina = porProduto(lista.dados?.items ?? [])
+  const total = lista.dados?.total ?? 0
   const filtro = <T,>(setter: (valor: T) => void) => (e: ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const alvo = e.target
     setter((alvo instanceof HTMLInputElement && alvo.type === 'checkbox' ? alvo.checked : alvo.value) as T)
@@ -130,7 +135,7 @@ export function Estoque() {
 
       {lista.erro && <Aviso mensagem={lista.erro}>Recarregue a página para tentar de novo.</Aviso>}
       {lista.carregando && <Carregando texto="Somando o estoque..." />}
-      {lista.dados && !lista.carregando && produtos.length === 0 && (
+      {lista.dados && !lista.carregando && total === 0 && (
         <Vazio>{soAbaixo ? 'Nenhum produto com peça abaixo do mínimo com esses filtros.' : 'Nenhuma peça com esses filtros. Confira a busca ou troque a unidade no topo.'}</Vazio>
       )}
       {!lista.carregando && pagina.length > 0 && (
@@ -193,7 +198,7 @@ export function Estoque() {
         </div>
       )}
       {!lista.carregando && (
-        <Paginacao pagina={{ total: produtos.length, limit: PRODUTOS_POR_PAGINA, offset }} aoMudar={setOffset} rotulo="produtos" />
+        <Paginacao pagina={{ total, limit: PRODUTOS_POR_PAGINA, offset }} aoMudar={setOffset} rotulo="produtos" />
       )}
     </>
   )

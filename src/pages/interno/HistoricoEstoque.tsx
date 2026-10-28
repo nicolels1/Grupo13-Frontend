@@ -8,18 +8,15 @@ import { Cabecalho, Paginacao } from '@/components/Navegacao'
 import { Etiqueta, NomePeca } from '@/components/Peca'
 import { Input, Label, Select } from '@/components/ui/input'
 import { useUnidadeEscolhida } from '@/layouts/unidadeEscolhida'
-import { api, todasAsPaginas, type Esquema } from '@/lib/api'
-import { ordenarTamanhos } from '@/lib/cores'
+import { api, type Esquema } from '@/lib/api'
 import { CANAIS, codigoTransferencia, dataCurta, dataLonga, diasAtras, hojeIso, hora, paraApi, plural, TIPOS_MOVIMENTACAO } from '@/lib/formato'
 import { useAdiado, useCarregar } from '@/lib/useCarregar'
 import { AbasEstoque, AcoesEstoque } from './Estoque'
 import { GraficoEvolucao } from './componentes/GraficoEvolucao'
 
-type ItemHistorico = Esquema<'EstoqueHistoricoItem'>
-type ItemEstoque = Esquema<'EstoqueItem'>
 type Evolucao = Esquema<'Evolucao'>
 // uma peça numa unidade: o saldo naquele momento e agora (somando os canais do filtro)
-type Linha = ItemHistorico & { chave: string; naquele: number; agora: number }
+type Linha = Esquema<'ComparacaoItem'> & { chave: string }
 
 const POR_PAGINA = 50
 const DIAS_NA_REGUA = 31
@@ -28,26 +25,6 @@ const PERIODOS = [['7', '7 dias'], ['30', '30 dias'], ['90', '90 dias'], ['inter
 const GRANULARIDADES = [['', 'Automático'], ['hora', 'Por hora'], ['dia', 'Por dia'], ['semana', 'Por semana']] as const
 
 const sinal = (n: number) => (n > 0 ? `+${n}` : n < 0 ? `−${Math.abs(n)}` : '0')
-
-// junta "naquele momento" e "agora" por variante e unidade (somando os canais do filtro)
-function comparar(naquele: ItemHistorico[], agora: ItemEstoque[]): Linha[] {
-  const linhas = new Map<string, Linha>()
-  const juntar = (lista: ItemHistorico[], campo: 'naquele' | 'agora') => {
-    for (const l of lista) {
-      const chave = `${l.id_variante}-${l.id_unidade}`
-      const linha = linhas.get(chave) ?? { chave, ...l, naquele: 0, agora: 0 }
-      linha[campo] += l.quantidade
-      linhas.set(chave, linha)
-    }
-  }
-  juntar(naquele, 'naquele')
-  juntar(agora, 'agora')
-  return [...linhas.values()].sort((a, b) =>
-    a.produto.localeCompare(b.produto, 'pt-BR')
-    || a.cor.localeCompare(b.cor, 'pt-BR')
-    || ordenarTamanhos([a.tamanho, b.tamanho]).indexOf(a.tamanho) - ordenarTamanhos([a.tamanho, b.tamanho]).indexOf(b.tamanho)
-    || a.unidade.localeCompare(b.unidade, 'pt-BR'))
-}
 
 const DATA = /^\d{4}-\d{2}-\d{2}$/
 const HORA = /^\d{2}:\d{2}$/
@@ -74,23 +51,20 @@ export function HistoricoEstoque() {
   const buscaAplicada = useAdiado(busca.trim())
   const em = paraApi(data, horaEscolhida)
 
-  const comparacao = useCarregar(async () => {
-    const filtros = { id_unidade: unidade, canal, busca: buscaAplicada }
-    const [naquele, agora] = await Promise.all([
-      todasAsPaginas<ItemHistorico>('/estoque/historico', { ...filtros, em }),
-      todasAsPaginas<ItemEstoque>('/estoque', filtros),
-    ])
-    return comparar(naquele, agora)
-  }, [unidade, canal, buscaAplicada, em])
+  // o backend compara e ordena tudo e devolve só a página da tela, com o total e quantas mudaram
+  const comparacao = useCarregar(
+    () => api<Esquema<'PaginaComparacao'>>('/estoque/comparacao', {
+      params: { em, id_unidade: unidade, canal, busca: buscaAplicada, so_mudou: soMudou, limit: POR_PAGINA, offset },
+    }),
+    [unidade, canal, buscaAplicada, em, soMudou, offset],
+  )
   const transito = useCarregar(
     () => api<Esquema<'Lista_EmTransitoItem_'>>('/estoque/em-transito', { params: { em, id_unidade: unidade, busca: buscaAplicada } }),
     [unidade, buscaAplicada, em],
   )
 
-  const todas = comparacao.dados ?? []
-  const visiveis = soMudou ? todas.filter((l) => l.naquele !== l.agora) : todas
-  const pagina = visiveis.slice(offset, offset + POR_PAGINA)
-  const mudaram = todas.filter((l) => l.naquele !== l.agora).length
+  const pagina: Linha[] = (comparacao.dados?.items ?? []).map((l) => ({ ...l, chave: `${l.id_variante}-${l.id_unidade}` }))
+  const total = comparacao.dados?.total ?? 0
   const emTransito = transito.dados?.items ?? []
   const escolhida = unidades.find((u) => String(u.id_unidade) === unidade)
   const reiniciar = <T,>(setter: (valor: T) => void) => (valor: T) => {
@@ -152,13 +126,13 @@ export function HistoricoEstoque() {
         </Select>
         <label className="flex h-9 items-center gap-2 border border-input px-3 text-sm">
           <input type="checkbox" checked={soMudou} onChange={(e) => reiniciar(setSoMudou)(e.target.checked)} className="size-4 accent-marinho" />
-          Só o que mudou{comparacao.dados && ` (${mudaram})`}
+          Só o que mudou{comparacao.dados && ` (${comparacao.dados.mudaram})`}
         </label>
       </div>
 
       {comparacao.erro && <Aviso mensagem={comparacao.erro}>Confira a data e a hora e tente de novo.</Aviso>}
       {comparacao.carregando && <Carregando texto="Montando o estoque daquele momento..." />}
-      {comparacao.dados && !comparacao.carregando && visiveis.length === 0 && (
+      {comparacao.dados && !comparacao.carregando && total === 0 && (
         <Vazio>{soMudou ? 'Nada mudou entre aquele momento e agora com esses filtros.' : 'Nenhuma peça com esses filtros. Confira a busca ou troque a unidade.'}</Vazio>
       )}
       {!comparacao.carregando && pagina.length > 0 && (
@@ -212,7 +186,7 @@ export function HistoricoEstoque() {
         </div>
       )}
       {!comparacao.carregando && (
-        <Paginacao pagina={{ total: visiveis.length, limit: POR_PAGINA, offset }} aoMudar={setOffset} rotulo="peças" />
+        <Paginacao pagina={{ total, limit: POR_PAGINA, offset }} aoMudar={setOffset} rotulo="peças" />
       )}
 
       <section aria-labelledby="titulo-transito" className="mt-12 space-y-3">
