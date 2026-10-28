@@ -517,6 +517,48 @@ export interface paths {
         patch: operations["alterar_unidade_unidades__id_unidade__patch"];
         trace?: never;
     };
+    "/unidades/{id_unidade}/horario": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Ver Horario */
+        get: operations["ver_horario_unidades__id_unidade__horario_get"];
+        /**
+         * Salvar Semana
+         * @description Troca o horário da semana inteiro. O dia que não vier fica fechado.
+         */
+        put: operations["salvar_semana_unidades__id_unidade__horario_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/unidades/{id_unidade}/excecoes/{data}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Salvar Excecao
+         * @description Feriado ou horário especial de uma data; cria ou troca. Sem abre e fecha, a loja fica fechada.
+         */
+        put: operations["salvar_excecao_unidades__id_unidade__excecoes__data__put"];
+        post?: never;
+        /** Remover Excecao */
+        delete: operations["remover_excecao_unidades__id_unidade__excecoes__data__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/transferencias": {
         parameters: {
             query?: never;
@@ -2047,6 +2089,106 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/assistente/pecas": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Buscar Pecas
+         * @description Até 5 peças das duas marcas para uma descrição do cliente (ex.: camisa de botão). resultado diz se achou o que foi pedido (exato) ou se mostra peças parecidas ou novidades.
+         */
+        get: operations["buscar_pecas_assistente_pecas_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/assistente/estoque": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Ver Estoque
+         * @description Se a peça tem no site e em quais lojas, já sem o reservado. A quantidade só vem quando são até 3 peças (está acabando).
+         */
+        get: operations["ver_estoque_assistente_estoque_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/assistente/link-carrinho": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Link Carrinho
+         * @description Link que abre o site com a peça no carrinho. Só sai com estoque para o site.
+         */
+        get: operations["link_carrinho_assistente_link_carrinho_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/assistente/lojas": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Lojas
+         * @description Lojas por marca, com endereço, o horário de hoje em texto pronto e o da semana.
+         */
+        get: operations["lojas_assistente_lojas_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/assistente/vocabulario": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Vocabulario
+         * @description Categorias e cores que existem no catálogo, para buscar peças com as palavras certas.
+         */
+        get: operations["vocabulario_assistente_vocabulario_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -2201,6 +2343,16 @@ export interface components {
         Body_trocar_imagem_destaque_destaques__id_destaque__imagem_post: {
             /** Arquivo */
             arquivo: string;
+        };
+        /** BuscaPecasSaida */
+        BuscaPecasSaida: {
+            /** Items */
+            items: components["schemas"]["PecaSaida"][];
+            /**
+             * Resultado
+             * @enum {string}
+             */
+            resultado: "exato" | "parecidas" | "novidades";
         };
         /** CadastroCliente */
         CadastroCliente: {
@@ -2787,6 +2939,24 @@ export interface components {
             /** Estornos */
             estornos: components["schemas"]["EstornoPedido"][];
         };
+        /** DiaDeAtendimento */
+        DiaDeAtendimento: {
+            /**
+             * Dia Semana
+             * @description 0 = segunda ... 6 = domingo
+             */
+            dia_semana: number;
+            /**
+             * Abre
+             * Format: time
+             */
+            abre: string;
+            /**
+             * Fecha
+             * Format: time
+             */
+            fecha: string;
+        };
         /** Divergencia */
         Divergencia: {
             /** Id Variante */
@@ -2987,6 +3157,39 @@ export interface components {
             /** Abaixo Minimo */
             abaixo_minimo: boolean;
         };
+        /** EstoqueNaLoja */
+        EstoqueNaLoja: {
+            /** Tem */
+            tem: boolean;
+            /** Quantidade */
+            quantidade: number | null;
+            /** Acabando */
+            acabando: boolean;
+            /** Id Unidade */
+            id_unidade: number;
+            /** Nome */
+            nome: string;
+            /** Endereco */
+            endereco: string;
+        };
+        /** EstoqueSaida */
+        EstoqueSaida: {
+            /** Id Variante */
+            id_variante: number;
+            /** Produto */
+            produto: string;
+            /** Marca */
+            marca: string;
+            /** Cor */
+            cor: string;
+            /** Tamanho */
+            tamanho: string;
+            /** Preco */
+            preco: string;
+            site: components["schemas"]["FaixaEstoque"];
+            /** Lojas */
+            lojas: components["schemas"]["EstoqueNaLoja"][];
+        };
         /** EstornoPedido */
         EstornoPedido: {
             /**
@@ -3022,6 +3225,32 @@ export interface components {
              */
             efeito: "acrescentar" | "retirar";
         };
+        /** ExcecaoHorarioSaida */
+        ExcecaoHorarioSaida: {
+            /**
+             * Data
+             * Format: date
+             */
+            data: string;
+            /** Abre */
+            abre: string | null;
+            /** Fecha */
+            fecha: string | null;
+            /** Motivo */
+            motivo: string;
+        };
+        /** ExcecaoHorarioSalvar */
+        ExcecaoHorarioSalvar: {
+            /** Abre */
+            abre?: string | null;
+            /** Fecha */
+            fecha?: string | null;
+            /**
+             * Motivo
+             * @description Ex.: Natal, horário do shopping, reforma
+             */
+            motivo: string;
+        };
         /** ExcecaoSaida */
         ExcecaoSaida: {
             /**
@@ -3034,6 +3263,15 @@ export interface components {
              * @enum {string}
              */
             efeito: "acrescentar" | "retirar";
+        };
+        /** FaixaEstoque */
+        FaixaEstoque: {
+            /** Tem */
+            tem: boolean;
+            /** Quantidade */
+            quantidade: number | null;
+            /** Acabando */
+            acabando: boolean;
         };
         /** Faturamento */
         Faturamento: {
@@ -3115,6 +3353,32 @@ export interface components {
              * Format: date-time
              */
             criado_em: string;
+        };
+        /** HorarioDoDia */
+        HorarioDoDia: {
+            /** Dia */
+            dia: string;
+            /** Horario */
+            horario: string;
+        };
+        /** HorarioHoje */
+        HorarioHoje: {
+            /** Aberta Agora */
+            aberta_agora: boolean;
+            /** Texto */
+            texto: string;
+        };
+        /** HorarioSaida */
+        HorarioSaida: {
+            /** Semana */
+            semana: components["schemas"]["DiaDeAtendimento"][];
+            /** Excecoes */
+            excecoes: components["schemas"]["ExcecaoHorarioSaida"][];
+        };
+        /** HorarioSemana */
+        HorarioSemana: {
+            /** Semana */
+            semana: components["schemas"]["DiaDeAtendimento"][];
         };
         /** ImagemAlterar */
         ImagemAlterar: {
@@ -3324,6 +3588,19 @@ export interface components {
              */
             frete: string;
         };
+        /** LinkCarrinhoSaida */
+        LinkCarrinhoSaida: {
+            /** Id Variante */
+            id_variante: number;
+            /** Produto */
+            produto: string;
+            /** Cor */
+            cor: string;
+            /** Tamanho */
+            tamanho: string;
+            /** Link */
+            link: string;
+        };
         /** Lista[CategoriaSaida] */
         Lista_CategoriaSaida_: {
             /** Items */
@@ -3353,6 +3630,11 @@ export interface components {
         Lista_HistoricoSaida_: {
             /** Items */
             items: components["schemas"]["HistoricoSaida"][];
+        };
+        /** Lista[LojasDaMarca] */
+        Lista_LojasDaMarca_: {
+            /** Items */
+            items: components["schemas"]["LojasDaMarca"][];
         };
         /** Lista[MensagemSaida] */
         Lista_MensagemSaida_: {
@@ -3421,6 +3703,25 @@ export interface components {
             cidade: string;
             /** Uf */
             uf: string;
+        };
+        /** LojaSaida */
+        LojaSaida: {
+            /** Id Unidade */
+            id_unidade: number;
+            /** Nome */
+            nome: string;
+            /** Endereco */
+            endereco: string;
+            hoje: components["schemas"]["HorarioHoje"];
+            /** Semana */
+            semana: components["schemas"]["HorarioDoDia"][];
+        };
+        /** LojasDaMarca */
+        LojasDaMarca: {
+            /** Marca */
+            marca: string;
+            /** Lojas */
+            lojas: components["schemas"]["LojaSaida"][];
         };
         /** MaisVendida */
         MaisVendida: {
@@ -3978,6 +4279,27 @@ export interface components {
             reais: string;
             /** Por Valor */
             por_valor: components["schemas"]["PassivoPorValor"][];
+        };
+        /** PecaSaida */
+        PecaSaida: {
+            /** Id Produto */
+            id_produto: number;
+            /** Nome */
+            nome: string;
+            /** Marca */
+            marca: string;
+            /** Descricao */
+            descricao: string;
+            /** Preco A Partir */
+            preco_a_partir: string;
+            /** Cores */
+            cores: string[];
+            /** Tamanhos No Site */
+            tamanhos_no_site: string[];
+            /** Foto */
+            foto: string | null;
+            /** Link */
+            link: string;
         };
         /** PedidoSaida */
         PedidoSaida: {
@@ -4900,6 +5222,13 @@ export interface components {
             /** @description Só quando o período tem venda pelo app, que existe só no histórico da Vulto */
             app?: components["schemas"]["VolumeComVariacao"] | null;
             total: components["schemas"]["VolumeComVariacao"];
+        };
+        /** VocabularioSaida */
+        VocabularioSaida: {
+            /** Categorias */
+            categorias: string[];
+            /** Cores */
+            cores: string[];
         };
         /** Volume */
         Volume: {
@@ -6658,6 +6987,164 @@ export interface operations {
                 content?: never;
             };
             /** @description Dados inválidos ou regra do CD */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    ver_horario_unidades__id_unidade__horario_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id_unidade: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HorarioSaida"];
+                };
+            };
+            /** @description Unidade não encontrada */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Dados inválidos, unidade que não é loja ou data que já passou */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    salvar_semana_unidades__id_unidade__horario_put: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string;
+            };
+            path: {
+                id_unidade: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["HorarioSemana"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HorarioSaida"];
+                };
+            };
+            /** @description Unidade não encontrada */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Dados inválidos, unidade que não é loja ou data que já passou */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    salvar_excecao_unidades__id_unidade__excecoes__data__put: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string;
+            };
+            path: {
+                id_unidade: number;
+                data: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ExcecaoHorarioSalvar"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HorarioSaida"];
+                };
+            };
+            /** @description Unidade não encontrada */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Dados inválidos, unidade que não é loja ou data que já passou */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    remover_excecao_unidades__id_unidade__excecoes__data__delete: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string;
+            };
+            path: {
+                id_unidade: number;
+                data: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Unidade não encontrada ou sem exceção nessa data */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Dados inválidos, unidade que não é loja ou data que já passou */
             422: {
                 headers: {
                     [name: string]: unknown;
@@ -12068,6 +12555,258 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
                 };
+            };
+        };
+    };
+    buscar_pecas_assistente_pecas_get: {
+        parameters: {
+            query: {
+                /** @description O que o cliente procura, em palavras do catálogo */
+                descricao: string;
+                cor?: string | null;
+                /** @description Só peças com esse tamanho à venda */
+                tamanho?: string | null;
+                /** @description Só quando o cliente falar a marca */
+                marca?: ("lorenzi" | "vulto") | null;
+                categoria?: string | null;
+            };
+            header?: {
+                "x-assistente-chave"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BuscaPecasSaida"];
+                };
+            };
+            /** @description Chave do assistente inválida */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+            /** @description Assistente indisponível */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    ver_estoque_assistente_estoque_get: {
+        parameters: {
+            query: {
+                id_produto: number;
+                cor: string;
+                tamanho: string;
+            };
+            header?: {
+                "x-assistente-chave"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EstoqueSaida"];
+                };
+            };
+            /** @description Chave do assistente inválida */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Peça não encontrada ou sem essa cor e tamanho (a mensagem traz as opções) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+            /** @description Assistente indisponível */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    link_carrinho_assistente_link_carrinho_get: {
+        parameters: {
+            query: {
+                id_variante: number;
+            };
+            header?: {
+                "x-assistente-chave"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LinkCarrinhoSaida"];
+                };
+            };
+            /** @description Chave do assistente inválida */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Peça não encontrada */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Sem estoque para o site (a mensagem diz em quais lojas tem) */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Assistente indisponível */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    lojas_assistente_lojas_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                "x-assistente-chave"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Lista_LojasDaMarca_"];
+                };
+            };
+            /** @description Chave do assistente inválida */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+            /** @description Assistente indisponível */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    vocabulario_assistente_vocabulario_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                "x-assistente-chave"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VocabularioSaida"];
+                };
+            };
+            /** @description Chave do assistente inválida */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+            /** @description Assistente indisponível */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
