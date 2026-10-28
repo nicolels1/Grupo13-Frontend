@@ -2129,6 +2129,66 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/assistente/interno/mensagens": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Perguntar
+         * @description Uma pergunta ao assistente. Os números vêm das ferramentas do backend e passam pela conferência dos números antes de voltar.
+         */
+        post: operations["perguntar_assistente_interno_mensagens_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/assistente/interno/conversas/{id_conversa}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Ver Conversa
+         * @description Perguntas e respostas de uma conversa: a própria pessoa, ou o Admin para revisar.
+         */
+        get: operations["ver_conversa_assistente_interno_conversas__id_conversa__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/assistente/interno/conversas/{id_conversa}/avaliacao": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Avaliar
+         * @description 👍 ou 👎 da pessoa ao fim da conversa (opcional).
+         */
+        put: operations["avaliar_assistente_interno_conversas__id_conversa__avaliacao_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/assistente/pecas": {
         parameters: {
             query?: never;
@@ -2410,6 +2470,14 @@ export interface components {
             nota: number;
             /** Texto */
             texto?: string | null;
+        };
+        /** AvaliacaoEntrada */
+        AvaliacaoEntrada: {
+            /**
+             * Avaliacao
+             * @enum {string}
+             */
+            avaliacao: "positiva" | "negativa";
         };
         /** AvaliacaoSaida */
         AvaliacaoSaida: {
@@ -3061,6 +3129,20 @@ export interface components {
             canal: "whatsapp" | "chat";
             /** Id Externo */
             id_externo: string;
+        };
+        /** ConversaSaida */
+        ConversaSaida: {
+            /** Id Conversa */
+            id_conversa: number;
+            /**
+             * Iniciada Em
+             * Format: date-time
+             */
+            iniciada_em: string;
+            /** Avaliacao */
+            avaliacao: ("positiva" | "negativa") | null;
+            /** Mensagens */
+            mensagens: components["schemas"]["MensagemConversa"][];
         };
         /** CpfEntrada */
         CpfEntrada: {
@@ -3902,6 +3984,13 @@ export interface components {
              */
             frete: string;
         };
+        /** Link */
+        Link: {
+            /** Rotulo */
+            rotulo: string;
+            /** Url */
+            url: string;
+        };
         /** LinkCarrinhoSaida */
         LinkCarrinhoSaida: {
             /** Id Variante */
@@ -4063,6 +4152,24 @@ export interface components {
         MensagemClienteCriar: {
             /** Conteudo */
             conteudo: string;
+        };
+        /** MensagemConversa */
+        MensagemConversa: {
+            /**
+             * Papel
+             * @enum {string}
+             */
+            papel: "usuario" | "assistente";
+            /**
+             * Texto
+             * @description Vazio depois de 90 dias
+             */
+            texto: string | null;
+            /**
+             * Criado Em
+             * Format: date-time
+             */
+            criado_em: string;
         };
         /** MensagemEquipeCriar */
         MensagemEquipeCriar: {
@@ -4811,6 +4918,16 @@ export interface components {
             /** Permissoes */
             permissoes: ("gerenciar_contas" | "gerenciar_modelos_acesso" | "gerenciar_catalogo" | "gerenciar_unidades" | "movimentar_estoque" | "definir_estoque_minimo" | "solicitar_transferencia" | "enviar_transferencia" | "receber_transferencia" | "registrar_venda_fisica" | "registrar_troca_devolucao" | "preparar_entregar_pedido" | "cancelar_pedido_equipe" | "corrigir_cadastro_cliente" | "atender_chamado" | "moderar_avaliacoes" | "gerenciar_fidelidade" | "ver_marca_lorenzi" | "ver_marca_vulto")[];
         };
+        /** PerguntaEntrada */
+        PerguntaEntrada: {
+            /** Texto */
+            texto: string;
+            /**
+             * Id Conversa
+             * @description Vazio, ou parada há 30 min: começa uma conversa nova
+             */
+            id_conversa?: number | null;
+        };
         /** PermissaoSaida */
         PermissaoSaida: {
             /**
@@ -5088,6 +5205,28 @@ export interface components {
             saldo: number;
             /** Resgate Minimo */
             resgate_minimo: number;
+        };
+        /** RespostaAssistente */
+        RespostaAssistente: {
+            /**
+             * Id Conversa
+             * @description Mande de volta na próxima pergunta para continuar a conversa
+             */
+            id_conversa: number;
+            /** Resposta */
+            resposta: string;
+            /** Links */
+            links: components["schemas"]["Link"][];
+            /**
+             * Ferramentas
+             * @description Ferramentas usadas, na ordem
+             */
+            ferramentas: string[];
+            /**
+             * Numeros Conferidos
+             * @description A resposta passou na conferência dos números (falso: veio o texto fixo da ferramenta); vazio quando não houve resposta do modelo para conferir
+             */
+            numeros_conferidos: boolean | null;
         };
         /** RespostaGateway */
         RespostaGateway: {
@@ -13119,6 +13258,179 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["Lista_PassivoSaida_"];
                 };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    perguntar_assistente_interno_mensagens_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PerguntaEntrada"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RespostaAssistente"];
+                };
+            };
+            /** @description Sem login válido */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Só para contas internas */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Conversa não encontrada */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+            /** @description Assistente fora do ar */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    ver_conversa_assistente_interno_conversas__id_conversa__get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string;
+            };
+            path: {
+                id_conversa: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConversaSaida"];
+                };
+            };
+            /** @description Sem login válido */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Só para contas internas */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Conversa não encontrada */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    avaliar_assistente_interno_conversas__id_conversa__avaliacao_put: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string;
+            };
+            path: {
+                id_conversa: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AvaliacaoEntrada"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Sem login válido */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Só para contas internas */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Conversa não encontrada */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Validation Error */
             422: {
