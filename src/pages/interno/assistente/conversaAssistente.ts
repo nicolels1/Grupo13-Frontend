@@ -7,10 +7,15 @@ export type Avaliacao = Esquema<'AvaliacaoEntrada'>['avaliacao']
 
 // uma fala da conversa na tela. "montada" = a conferência dos números barrou o texto do modelo e veio a
 // resposta fixa do backend; "erro" = a pergunta não teve resposta (assistente fora do ar, sem conexão)
-export type Fala =
+// O id só serve para a tela (chave da lista e a resposta que já apareceu animada)
+export type Fala = { id: number } & (
   | { papel: 'usuario'; texto: string }
   | { papel: 'assistente'; texto: string; links: Resposta['links']; montada: boolean }
   | { papel: 'erro'; texto: string; pergunta: string }
+)
+
+let ultimoId = 0
+const novoId = () => ++ultimoId
 
 export const TAMANHO_MAXIMO = 1000
 export const SUGESTOES = [
@@ -28,7 +33,7 @@ export function semATentativaQueFalhou(falas: Fala[], pergunta: string): Fala[] 
 }
 
 export function falaDaResposta(r: Resposta): Fala {
-  return { papel: 'assistente', texto: r.resposta, links: r.links, montada: r.numeros_conferidos === false }
+  return { id: novoId(), papel: 'assistente', texto: r.resposta, links: r.links, montada: r.numeros_conferidos === false }
 }
 
 // a conversa com o assistente interno (POST /assistente/interno/mensagens). Fica no layout, então continua
@@ -43,7 +48,7 @@ export function useConversaAssistente() {
     const pergunta = texto.trim().slice(0, TAMANHO_MAXIMO)
     if (!pergunta || enviando) return
     // uma pergunta que falhou e é refeita sai da lista (ela e o erro): fica só a nova tentativa
-    setFalas((atuais) => [...semATentativaQueFalhou(atuais, pergunta), { papel: 'usuario', texto: pergunta }])
+    setFalas((atuais) => [...semATentativaQueFalhou(atuais, pergunta), { id: novoId(), papel: 'usuario', texto: pergunta }])
     setEnviando(true)
     try {
       const r = await api<Resposta>('/assistente/interno/mensagens', {
@@ -55,7 +60,7 @@ export function useConversaAssistente() {
       setFalas((atuais) => [...atuais, falaDaResposta(r)])
     } catch (falha) {
       const motivo = falha instanceof ErroApi ? falha.message : 'Não foi possível falar com o assistente.'
-      setFalas((atuais) => [...atuais, { papel: 'erro', texto: motivo, pergunta }])
+      setFalas((atuais) => [...atuais, { id: novoId(), papel: 'erro', texto: motivo, pergunta }])
     } finally {
       setEnviando(false)
     }

@@ -147,6 +147,43 @@ describe('PainelAssistente', () => {
     expect(corpo(1).id_conversa).toBeNull()
   })
 
+  it('com animação, a resposta aparece aos poucos e o link só no fim', async () => {
+    vi.stubGlobal('matchMedia', () => ({ matches: false }))
+    try {
+      api.mockResolvedValue(resposta())
+      abrir()
+      fireEvent.click(screen.getByRole('button', { name: 'Quanto a rede vendeu esta semana?' }))
+
+      // o leitor de tela recebe o texto inteiro; o que se vê ainda está pela metade, e o link não entrou
+      const inteiro = await screen.findByText('A Savassi vendeu R$ 2.569,00 em 6 pedidos.')
+      expect(inteiro.className).toContain('sr-only')
+      expect(screen.queryByRole('link')).toBeNull()
+
+      expect(await screen.findByRole('link', { name: /Abrir a Visão geral/ }, { timeout: 3000 })).toBeTruthy()
+      expect(screen.getAllByText('A Savassi vendeu R$ 2.569,00 em 6 pedidos.')).toHaveLength(1)
+    } finally {
+      vi.unstubAllGlobals()
+    }
+  })
+
+  // no Chrome novo o scrollIntoView devolve uma Promise: o painel não pode tratar isso como limpeza do efeito
+  it('rolar até o fim com o scrollIntoView do Chrome novo não quebra a tela', async () => {
+    const original = Element.prototype.scrollIntoView
+    Element.prototype.scrollIntoView = (() => Promise.resolve()) as unknown as typeof original
+    try {
+      api.mockResolvedValue(resposta())
+      abrir()
+      fireEvent.click(screen.getByRole('button', { name: 'Quanto a rede vendeu esta semana?' }))
+      expect(await screen.findByText('A Savassi vendeu R$ 2.569,00 em 6 pedidos.')).toBeTruthy()
+
+      escrever('e ontem?')
+      fireEvent.click(screen.getByRole('button', { name: 'Enviar' }))
+      await waitFor(() => expect(screen.getAllByText('A Savassi vendeu R$ 2.569,00 em 6 pedidos.')).toHaveLength(2))
+    } finally {
+      Element.prototype.scrollIntoView = original
+    }
+  })
+
   it('o link da resposta fecha o painel', async () => {
     api.mockResolvedValue(resposta())
     abrir()
