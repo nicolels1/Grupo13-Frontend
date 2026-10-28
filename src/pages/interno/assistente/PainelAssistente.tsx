@@ -1,18 +1,20 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent, type KeyboardEvent } from 'react'
-import { ArrowRight, RotateCcw, Send, ThumbsDown, ThumbsUp } from 'lucide-react'
+import { ArrowRight, RotateCcw, Send, Store, ThumbsDown, ThumbsUp } from 'lucide-react'
 import { Link } from 'react-router'
 import { cn } from 'cn'
 
 import { Button } from '@/components/ui/button'
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet'
-import { SUGESTOES, TAMANHO_MAXIMO, type ConversaAssistente, type Fala } from './conversaAssistente'
+import { SUGESTOES, TAMANHO_MAXIMO, type ConversaAssistente, type Fala, type UnidadeEmFoco } from './conversaAssistente'
 
 // painel lateral do assistente interno (Entrega 4, ideia A): abre por cima de qualquer tela da plataforma.
 // A conversa vem de fora (useConversaAssistente no layout), então continua ao fechar e trocar de tela
-export function PainelAssistente({ aberto, aoMudar, conversa }: {
+export function PainelAssistente({ aberto, aoMudar, conversa, unidadeEmFoco }: {
   aberto: boolean
   aoMudar: (aberto: boolean) => void
   conversa: ConversaAssistente
+  // a unidade selecionada no topo: vale quando a pergunta não diz a unidade; null = todas
+  unidadeEmFoco: UnidadeEmFoco | null
 }) {
   const { falas, enviando, avaliacao, respondeu, perguntar, avaliar, novaConversa } = conversa
   const [texto, setTexto] = useState('')
@@ -36,7 +38,7 @@ export function PainelAssistente({ aberto, aoMudar, conversa }: {
   function enviar(evento?: FormEvent) {
     evento?.preventDefault()
     if (!texto.trim() || enviando) return
-    void perguntar(texto)
+    void perguntar(texto, unidadeEmFoco)
     setTexto('')
   }
 
@@ -53,7 +55,15 @@ export function PainelAssistente({ aberto, aoMudar, conversa }: {
       <SheetContent className="w-full! gap-0 sm:max-w-md!">
         <SheetHeader className="border-b pr-24">
           <SheetTitle className="text-lg">Assistente</SheetTitle>
-          <SheetDescription>Pergunte sobre vendas. Os números vêm do sistema.</SheetDescription>
+          <SheetDescription>Pergunte sobre vendas, estoque, peças paradas, pontos e a equipe. Os números vêm do sistema.</SheetDescription>
+          <p className="flex items-start gap-1.5 pt-1 text-sm" data-testid="unidade-em-foco">
+            <Store className="mt-0.5 size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+            {unidadeEmFoco ? (
+              <span>Unidade selecionada: <strong className="font-medium">{unidadeEmFoco.nome}</strong>. Perguntas sem unidade usam essa.</span>
+            ) : (
+              <span><strong className="font-medium">Todas as unidades</strong> selecionadas. Perguntas sem unidade valem para a rede.</span>
+            )}
+          </p>
           {falas.length > 0 && (
             <Button variant="ghost" size="sm" className="absolute top-3 right-12" onClick={novaConversa} disabled={enviando}>
               <RotateCcw aria-hidden="true" /> Nova
@@ -70,7 +80,7 @@ export function PainelAssistente({ aberto, aoMudar, conversa }: {
                   <li key={s}>
                     <button
                       type="button"
-                      onClick={() => void perguntar(s)}
+                      onClick={() => void perguntar(s, unidadeEmFoco)}
                       className="w-full border border-border px-3 py-2 text-left text-sm hover:border-foreground"
                     >
                       {s}
@@ -227,17 +237,23 @@ function FalaNaTela({ fala, animar, aoTerminar, aoCrescer, aoAbrirLink, aoRefaze
   aoTerminar: () => void
   aoCrescer: () => void
   aoAbrirLink: () => void
-  aoRefazer: (pergunta: string) => Promise<void>
+  aoRefazer: (pergunta: string, unidade: UnidadeEmFoco | null) => Promise<void>
   enviando: boolean
 }) {
   if (fala.papel === 'usuario') {
-    return <p className="ml-10 bg-superficie px-3 py-2 text-sm whitespace-pre-line">{fala.texto}</p>
+    return (
+      <div className="ml-10 space-y-1">
+        <p className="bg-superficie px-3 py-2 text-sm whitespace-pre-line">{fala.texto}</p>
+        {/* a unidade do topo quando a pergunta foi feita: a resposta usa essa se a pergunta não disse outra */}
+        <p className="text-right text-xs text-muted-foreground">{fala.unidade ? `com ${fala.unidade.nome} selecionada` : 'com todas as unidades'}</p>
+      </div>
+    )
   }
   if (fala.papel === 'erro') {
     return (
       <div role="alert" className="mr-10 space-y-2 border-l-4 border-terracota bg-terracota/10 px-3 py-2 text-sm">
         <p>{fala.texto}</p>
-        <Button variant="outline" size="sm" onClick={() => void aoRefazer(fala.pergunta)} disabled={enviando}>
+        <Button variant="outline" size="sm" onClick={() => void aoRefazer(fala.pergunta, fala.unidade)} disabled={enviando}>
           Tentar de novo
         </Button>
       </div>
