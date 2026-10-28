@@ -2189,6 +2189,126 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/assistente/conversa": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Registrar Mensagem
+         * @description Registra a mensagem do cliente: chamada no começo de toda mensagem. Diz a etapa, se a conta está confirmada, se a conversa é nova (30 min parada: apagar a memória curta) e o limite do dia.
+         */
+        post: operations["registrar_mensagem_assistente_conversa_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/assistente/conversa/etapa": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Mudar Etapa
+         * @description Põe a conversa esperando o CPF (o cliente pediu pontos ou pedidos) ou a devolve para a IA.
+         */
+        put: operations["mudar_etapa_assistente_conversa_etapa_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/assistente/verificacao/cpf": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Pedir Codigo
+         * @description Manda o código de 6 números ao e-mail do cadastro. A resposta é a mesma para CPF com e sem cadastro. O CPF não fica guardado.
+         */
+        post: operations["pedir_codigo_assistente_verificacao_cpf_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/assistente/verificacao/codigo": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Conferir Codigo
+         * @description Confere o código; certo, liga a conversa à conta até ela terminar (30 min sem mensagem).
+         */
+        post: operations["conferir_codigo_assistente_verificacao_codigo_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/assistente/meus-pontos": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Meus Pontos
+         * @description Pontos por marca: saldo, valor, categoria, vencimento e quanto falta para subir. Fica registrado o que foi entregue (auditoria).
+         */
+        post: operations["meus_pontos_assistente_meus_pontos_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/assistente/meus-pedidos": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Meus Pedidos
+         * @description Últimos 5 pedidos (ou um): status, onde e até quando retirar. Fica registrado o que foi entregue (auditoria).
+         */
+        post: operations["meus_pedidos_assistente_meus_pedidos_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -2532,7 +2652,7 @@ export interface components {
             concluido_em: string | null;
             /**
              * Canal Externo
-             * @description Atendimento migrado da Vulto: whatsapp, instagram ou email
+             * @description Atendimento migrado da Vulto (whatsapp, instagram ou email) ou aberto pelo assistente (whatsapp ou chat)
              */
             canal_externo: string | null;
             /**
@@ -2729,6 +2849,28 @@ export interface components {
              */
             metodo: "pix" | "cartao_credito" | "cartao_debito";
         };
+        /** CodigoEntrada */
+        CodigoEntrada: {
+            /**
+             * Canal
+             * @enum {string}
+             */
+            canal: "whatsapp" | "chat";
+            /** Id Externo */
+            id_externo: string;
+            /** Codigo */
+            codigo: string;
+        };
+        /** CodigoEnviado */
+        CodigoEnviado: {
+            /**
+             * Mensagem
+             * @description Igual para CPF com e sem cadastro
+             */
+            mensagem: string;
+            /** Validade Minutos */
+            validade_minutos: number;
+        };
         /** CompraSaida */
         CompraSaida: {
             /** Id Compra */
@@ -2790,6 +2932,16 @@ export interface components {
              */
             pedidos: components["schemas"]["PedidoSaida"][];
         };
+        /** ConfirmacaoSaida */
+        ConfirmacaoSaida: {
+            /** Confirmado */
+            confirmado: boolean;
+            /**
+             * Nome
+             * @description Primeiro nome, para cumprimentar
+             */
+            nome: string | null;
+        };
         /** ContaInternaCriar */
         ContaInternaCriar: {
             /** Nome */
@@ -2818,6 +2970,31 @@ export interface components {
             nota: number;
             /** Quantidade */
             quantidade: number;
+        };
+        /** ConversaEntrada */
+        ConversaEntrada: {
+            /**
+             * Canal
+             * @enum {string}
+             */
+            canal: "whatsapp" | "chat";
+            /** Id Externo */
+            id_externo: string;
+        };
+        /** CpfEntrada */
+        CpfEntrada: {
+            /**
+             * Canal
+             * @enum {string}
+             */
+            canal: "whatsapp" | "chat";
+            /** Id Externo */
+            id_externo: string;
+            /**
+             * Cpf
+             * @description Com ou sem pontos e traço
+             */
+            cpf: string;
         };
         /** DenunciaCriar */
         DenunciaCriar: {
@@ -3089,6 +3266,36 @@ export interface components {
              */
             codigo_venda?: string | null;
         };
+        /** EstadoConversa */
+        EstadoConversa: {
+            /** Etapa */
+            etapa: string;
+            /**
+             * Confirmado
+             * @description Conta confirmada pelo código nesta conversa
+             */
+            confirmado: boolean;
+            /**
+             * Conversa Nova
+             * @description Passou 30 min da última mensagem: apagar a memória curta
+             */
+            conversa_nova: boolean;
+            /**
+             * Limite Atingido
+             * @description Passou das 100 mensagens hoje: não responder
+             */
+            limite_atingido: boolean;
+            /**
+             * Avisar Limite
+             * @description Primeira mensagem acima do limite: mandar o aviso uma vez
+             */
+            avisar_limite: boolean;
+            /**
+             * Bloqueado Ate
+             * @description Confirmação pausada por código errado
+             */
+            bloqueado_ate: string | null;
+        };
         /** EstoqueHistoricoItem */
         EstoqueHistoricoItem: {
             /** Id Variante */
@@ -3199,6 +3406,21 @@ export interface components {
             id_pagamento: number;
             /** Valor */
             valor: number | string;
+        };
+        /** EtapaEntrada */
+        EtapaEntrada: {
+            /**
+             * Canal
+             * @enum {string}
+             */
+            canal: "whatsapp" | "chat";
+            /** Id Externo */
+            id_externo: string;
+            /**
+             * Etapa
+             * @enum {string}
+             */
+            etapa: "livre" | "esperando_cpf";
         };
         /** Evolucao */
         Evolucao: {
@@ -3417,6 +3639,17 @@ export interface components {
         ItemDevolvido: {
             /** Id Variante */
             id_variante: number;
+            /** Quantidade */
+            quantidade: number;
+        };
+        /** ItemDoPedido */
+        ItemDoPedido: {
+            /** Produto */
+            produto: string;
+            /** Cor */
+            cor: string;
+            /** Tamanho */
+            tamanho: string;
             /** Quantidade */
             quantidade: number;
         };
@@ -3794,6 +4027,26 @@ export interface components {
              * Format: date-time
              */
             criado_em: string;
+        };
+        /** MeusPedidosSaida */
+        MeusPedidosSaida: {
+            /** Items */
+            items: components["schemas"]["PedidoDoCliente"][];
+            /**
+             * Texto
+             * @description Resposta pronta, para quando a da IA não bater com os números
+             */
+            texto: string;
+        };
+        /** MeusPontosSaida */
+        MeusPontosSaida: {
+            /** Marcas */
+            marcas: components["schemas"]["PontosDaMarca"][];
+            /**
+             * Texto
+             * @description Resposta pronta, para quando a da IA não bater com os números
+             */
+            texto: string;
         };
         /** ModeloAcessoSaida */
         ModeloAcessoSaida: {
@@ -4301,6 +4554,35 @@ export interface components {
             /** Link */
             link: string;
         };
+        /** PedidoDoCliente */
+        PedidoDoCliente: {
+            /** Id Pedido */
+            id_pedido: number;
+            /** Codigo Venda */
+            codigo_venda: string;
+            /** Marca */
+            marca: string;
+            /**
+             * Feito Em
+             * Format: date
+             */
+            feito_em: string;
+            /** Na Loja */
+            na_loja: boolean;
+            /** Modalidade */
+            modalidade: string | null;
+            /** Status */
+            status: string;
+            /** Valor Total */
+            valor_total: string;
+            /** Itens */
+            itens: components["schemas"]["ItemDoPedido"][];
+            retirada: components["schemas"]["RetiradaDoPedido"] | null;
+            /** Pagar Ate */
+            pagar_ate: string | null;
+            /** Texto */
+            texto: string;
+        };
         /** PedidoSaida */
         PedidoSaida: {
             /** Id Pedido */
@@ -4396,6 +4678,21 @@ export interface components {
             pagamentos: components["schemas"]["PagamentoSaida"][];
             endereco_entrega: components["schemas"]["EnderecoEntregaSaida"] | null;
         };
+        /** PedidosEntrada */
+        PedidosEntrada: {
+            /**
+             * Canal
+             * @enum {string}
+             */
+            canal: "whatsapp" | "chat";
+            /** Id Externo */
+            id_externo: string;
+            /**
+             * Id Pedido
+             * @description Um pedido só; vazio traz os últimos 5
+             */
+            id_pedido?: number | null;
+        };
         /** Perfil */
         Perfil: {
             /**
@@ -4452,6 +4749,29 @@ export interface components {
             loja_fisica: number;
             /** Online */
             online: number;
+        };
+        /** PontosDaMarca */
+        PontosDaMarca: {
+            /** Marca */
+            marca: string;
+            /** Saldo */
+            saldo: number;
+            /** Valor Em Reais */
+            valor_em_reais: string;
+            /** Categoria */
+            categoria: string;
+            /** Proxima Categoria */
+            proxima_categoria: string | null;
+            /**
+             * Faltam Para Subir
+             * @description Pontos a ganhar no ano para subir de categoria
+             */
+            faltam_para_subir: number | null;
+            proximo_vencimento: components["schemas"]["Vencimento"] | null;
+            /** Pontos Sem Vencimento */
+            pontos_sem_vencimento: number;
+            /** Texto */
+            texto: string;
         };
         /** PontosDoCliente */
         PontosDoCliente: {
@@ -4778,6 +5098,18 @@ export interface components {
              * @description Algum CD ou loja que despacha desta marca tem todos os itens dela
              */
             entrega_disponivel: boolean;
+        };
+        /** RetiradaDoPedido */
+        RetiradaDoPedido: {
+            /** Loja */
+            loja: string;
+            /** Endereco */
+            endereco: string;
+            /**
+             * Retirar Ate
+             * @description Só quando já está pronto: 7 dias depois
+             */
+            retirar_ate: string | null;
         };
         /** SaldoPontosSaida */
         SaldoPontosSaida: {
@@ -5172,6 +5504,16 @@ export interface components {
              * @description Tem peça para vender online (sem a quantidade). Vem na lista e no detalhe do produto
              */
             disponivel?: boolean | null;
+        };
+        /** Vencimento */
+        Vencimento: {
+            /**
+             * Data
+             * Format: date
+             */
+            data: string;
+            /** Pontos */
+            pontos: number;
         };
         /** VendaFisica */
         VendaFisica: {
@@ -12787,6 +13129,338 @@ export interface operations {
             };
             /** @description Chave do assistente inválida */
             401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+            /** @description Assistente indisponível */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    registrar_mensagem_assistente_conversa_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                "x-assistente-chave"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ConversaEntrada"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EstadoConversa"];
+                };
+            };
+            /** @description Chave do assistente inválida */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+            /** @description Assistente indisponível */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    mudar_etapa_assistente_conversa_etapa_put: {
+        parameters: {
+            query?: never;
+            header?: {
+                "x-assistente-chave"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EtapaEntrada"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EstadoConversa"];
+                };
+            };
+            /** @description Chave do assistente inválida */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Conversa não registrada */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+            /** @description Assistente indisponível */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    pedir_codigo_assistente_verificacao_cpf_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                "x-assistente-chave"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CpfEntrada"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CodigoEnviado"];
+                };
+            };
+            /** @description Chave do assistente inválida */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Conversa não registrada */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description CPF inválido */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Confirmação pausada ou 3 códigos no dia */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Assistente indisponível */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    conferir_codigo_assistente_verificacao_codigo_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                "x-assistente-chave"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CodigoEntrada"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConfirmacaoSaida"];
+                };
+            };
+            /** @description Chave do assistente inválida */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Conversa não registrada */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Código incorreto (diz quantas tentativas restam) ou expirado */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description 5 erros: confirmação pausada por 30 min */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Assistente indisponível */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    meus_pontos_assistente_meus_pontos_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                "x-assistente-chave"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ConversaEntrada"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MeusPontosSaida"];
+                };
+            };
+            /** @description Conta não confirmada nesta conversa: pedir o CPF */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+            /** @description Assistente indisponível */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    meus_pedidos_assistente_meus_pedidos_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                "x-assistente-chave"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PedidosEntrada"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MeusPedidosSaida"];
+                };
+            };
+            /** @description Conta não confirmada nesta conversa: pedir o CPF */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Pedido não encontrado */
+            404: {
                 headers: {
                     [name: string]: unknown;
                 };
