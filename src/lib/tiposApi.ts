@@ -4313,6 +4313,16 @@ export interface components {
              */
             mensagem: string;
         };
+        /** LinhaDaTabela */
+        LinhaDaTabela: {
+            /** Celulas */
+            celulas: string[];
+            /**
+             * Url
+             * @description A ficha ou o registro da linha
+             */
+            url?: string | null;
+        };
         /** LinhaDaUnidade */
         LinhaDaUnidade: {
             /** Id Unidade */
@@ -5702,6 +5712,11 @@ export interface components {
             /** Links */
             links: components["schemas"]["Link"][];
             /**
+             * Tabelas
+             * @description Montadas pelo sistema com o resultado das ferramentas, para mostrar abaixo da resposta. Podem trazer dado pessoal (o nome do cliente), que não passa pelo modelo nem fica no histórico
+             */
+            tabelas?: components["schemas"]["Tabela"][];
+            /**
              * Ferramentas
              * @description Ferramentas usadas, na ordem
              */
@@ -5895,6 +5910,15 @@ export interface components {
             expires_in: number;
             /** Token Type */
             token_type: string;
+        };
+        /** Tabela */
+        Tabela: {
+            /** Titulo */
+            titulo: string;
+            /** Colunas */
+            colunas: string[];
+            /** Linhas */
+            linhas: components["schemas"]["LinhaDaTabela"][];
         };
         /** TextoDaConversaEntrada */
         TextoDaConversaEntrada: {

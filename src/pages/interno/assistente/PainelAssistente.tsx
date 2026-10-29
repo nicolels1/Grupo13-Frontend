@@ -5,7 +5,7 @@ import { cn } from 'cn'
 
 import { Button } from '@/components/ui/button'
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet'
-import { SUGESTOES, TAMANHO_MAXIMO, type ConversaAssistente, type Fala, type UnidadeEmFoco } from './conversaAssistente'
+import { SUGESTOES, TAMANHO_MAXIMO, type ConversaAssistente, type Fala, type Tabela, type UnidadeEmFoco } from './conversaAssistente'
 
 // painel lateral do assistente interno (Entrega 4, ideia A): abre por cima de qualquer tela da plataforma.
 // A conversa vem de fora (useConversaAssistente no layout), então continua ao fechar e trocar de tela
@@ -59,7 +59,7 @@ export function PainelAssistente({ aberto, aoMudar, conversa, unidadeEmFoco, uni
 
   return (
     <Sheet open={aberto} onOpenChange={aoMudar}>
-      <SheetContent className="w-full! gap-0 sm:max-w-md!">
+      <SheetContent className="w-full! gap-0 sm:max-w-lg!">
         <SheetHeader className="border-b pr-24">
           <SheetTitle className="text-lg">Assistente</SheetTitle>
           <SheetDescription>Pergunte sobre vendas, estoque, peças paradas, pontos e a equipe. Os números vêm do sistema.</SheetDescription>
@@ -91,7 +91,7 @@ export function PainelAssistente({ aberto, aoMudar, conversa, unidadeEmFoco, uni
           )}
         </SheetHeader>
 
-        <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4" aria-live="polite">
+        <div className="min-h-0 flex-1 overflow-y-auto bg-superficie px-4 py-4" aria-live="polite">
           {falas.length === 0 && (
             <div className="space-y-3">
               <p className="text-sm text-muted-foreground">Por exemplo:</p>
@@ -101,7 +101,7 @@ export function PainelAssistente({ aberto, aoMudar, conversa, unidadeEmFoco, uni
                     <button
                       type="button"
                       onClick={() => void perguntar(s, unidadeEmFoco)}
-                      className="w-full border border-border px-3 py-2 text-left text-sm hover:border-foreground"
+                      className="w-full rounded-2xl border border-border bg-background px-3 py-2 text-left text-sm shadow-xs hover:border-foreground"
                     >
                       {s}
                     </button>
@@ -110,7 +110,7 @@ export function PainelAssistente({ aberto, aoMudar, conversa, unidadeEmFoco, uni
               </ul>
             </div>
           )}
-          <ul className="space-y-4">
+          <ul className="space-y-3">
             {falas.map((fala) => (
               <li key={fala.id} className="animate-in fade-in slide-in-from-bottom-2 duration-300 motion-reduce:animate-none">
                 <FalaNaTela
@@ -168,7 +168,7 @@ export function PainelAssistente({ aberto, aoMudar, conversa, unidadeEmFoco, uni
 // três pontinhos enquanto o assistente consulta (o leitor de tela ouve "Consultando...")
 function Consultando() {
   return (
-    <div role="status" className="mt-4 mr-10 flex h-8 items-center gap-1 border-l-4 border-marinho px-3">
+    <div role="status" className="mt-3 flex h-9 w-fit items-center gap-1 rounded-2xl rounded-bl-sm bg-background px-4 shadow-xs">
       <span className="sr-only">Consultando...</span>
       {[0, 150, 300].map((atraso) => (
         <span
@@ -218,6 +218,40 @@ function useTextoAparecendo(texto: string, animar: boolean, aoCrescer: () => voi
   return { terminou, parcial: terminou ? texto : pedacos.slice(0, mostrados).join('') }
 }
 
+// tabela montada pelo backend com o resultado da consulta (o nome do cliente vem daqui, não do texto do modelo).
+// A segunda coluna é o nome do registro: com url, vira o link da ficha; da terceira em diante são números
+function TabelaDaResposta({ tabela, aoAbrirLink }: { tabela: Tabela; aoAbrirLink: () => void }) {
+  return (
+    <div className="overflow-x-auto rounded-md border">
+      <table className="w-full text-sm">
+        <caption className="border-b px-3 py-2 text-left font-medium">{tabela.titulo}</caption>
+        <thead className="bg-muted/50 text-muted-foreground">
+          <tr>
+            {tabela.colunas.map((coluna, i) => (
+              <th key={coluna} scope="col" className={cn('px-3 py-2 font-medium', i >= 2 ? 'text-right' : 'text-left')}>
+                {coluna}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {tabela.linhas.map((linha) => (
+            <tr key={linha.celulas.join('|')} className="border-t">
+              {linha.celulas.map((celula, i) => (
+                <td key={i} className={cn('px-3 py-2', i >= 2 && 'text-right whitespace-nowrap tabular-nums')}>
+                  {i === 1 && linha.url ? (
+                    <Link to={linha.url} onClick={aoAbrirLink} className="text-aco underline underline-offset-2">{celula}</Link>
+                  ) : celula}
+                </td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  )
+}
+
 function RespostaNaTela({ fala, animar, aoTerminar, aoCrescer, aoAbrirLink }: {
   fala: Extract<Fala, { papel: 'assistente' }>
   animar: boolean
@@ -227,7 +261,8 @@ function RespostaNaTela({ fala, animar, aoTerminar, aoCrescer, aoAbrirLink }: {
 }) {
   const { terminou, parcial } = useTextoAparecendo(fala.texto, animar, aoCrescer, aoTerminar)
   return (
-    <div className="mr-10 space-y-2 border-l-4 border-marinho px-3 py-1 text-sm">
+    // balão do assistente: à esquerda, branco, como a mensagem recebida num app de conversa
+    <div className="mr-8 w-fit max-w-full space-y-2 rounded-2xl rounded-bl-sm bg-background px-3 py-2 text-sm shadow-xs">
       {terminou ? (
         <p className="whitespace-pre-line">{fala.texto}</p>
       ) : (
@@ -239,6 +274,9 @@ function RespostaNaTela({ fala, animar, aoTerminar, aoCrescer, aoAbrirLink }: {
       {/* o link e a nota entram quando o texto termina */}
       {terminou && (
         <div className="animate-in fade-in space-y-2 duration-300 motion-reduce:animate-none">
+          {fala.tabelas.map((tabela) => (
+            <TabelaDaResposta key={tabela.titulo} tabela={tabela} aoAbrirLink={aoAbrirLink} />
+          ))}
           {fala.links.map((link) => (
             <Link key={link.url} to={link.url} onClick={aoAbrirLink} className="flex items-center gap-1 text-aco underline underline-offset-2">
               {link.rotulo} <ArrowRight className="size-3.5" aria-hidden="true" />
@@ -247,8 +285,13 @@ function RespostaNaTela({ fala, animar, aoTerminar, aoCrescer, aoAbrirLink }: {
           {fala.montada && <p className="text-xs text-muted-foreground">Resposta montada direto pelo sistema.</p>}
         </div>
       )}
+      <Hora hora={fala.hora} />
     </div>
   )
+}
+
+function Hora({ hora, clara = false }: { hora: string; clara?: boolean }) {
+  return <p className={cn('text-right text-[11px] leading-none', clara ? 'text-white/70' : 'text-muted-foreground')}>{hora}</p>
 }
 
 function FalaNaTela({ fala, animar, aoTerminar, aoCrescer, aoAbrirLink, aoRefazer, enviando }: {
@@ -262,16 +305,19 @@ function FalaNaTela({ fala, animar, aoTerminar, aoCrescer, aoAbrirLink, aoRefaze
 }) {
   if (fala.papel === 'usuario') {
     return (
-      <div className="ml-10 space-y-1">
-        <p className="bg-superficie px-3 py-2 text-sm whitespace-pre-line">{fala.texto}</p>
-        {/* a unidade do topo quando a pergunta foi feita: a resposta usa essa se a pergunta não disse outra */}
-        <p className="text-right text-xs text-muted-foreground">{fala.unidade ? `com ${fala.unidade.nome} selecionada` : 'com todas as unidades'}</p>
+      // balão de quem pergunta: à direita, na cor da marca, como a mensagem enviada
+      // a unidade selecionada aparece só no topo do painel (a resposta diz qual usou)
+      <div className="ml-8 flex flex-col items-end">
+        <div className="max-w-full rounded-2xl rounded-br-sm bg-marinho px-3 py-2 text-sm text-white shadow-xs">
+          <p className="whitespace-pre-line">{fala.texto}</p>
+          <Hora hora={fala.hora} clara />
+        </div>
       </div>
     )
   }
   if (fala.papel === 'erro') {
     return (
-      <div role="alert" className="mr-10 space-y-2 border-l-4 border-terracota bg-terracota/10 px-3 py-2 text-sm">
+      <div role="alert" className="mr-8 w-fit space-y-2 rounded-2xl rounded-bl-sm border border-terracota/40 bg-terracota-fundo px-3 py-2 text-sm">
         <p>{fala.texto}</p>
         <Button variant="outline" size="sm" onClick={() => void aoRefazer(fala.pergunta, fala.unidade)} disabled={enviando}>
           Tentar de novo
