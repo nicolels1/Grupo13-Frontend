@@ -2069,6 +2069,30 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/fidelidade/meus-pontos/lembrete": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Meu Lembrete
+         * @description Se o cliente logado recebe o e-mail antes de os pontos vencerem.
+         */
+        get: operations["meu_lembrete_fidelidade_meus_pontos_lembrete_get"];
+        /**
+         * Mudar Meu Lembrete
+         * @description Liga ou desliga o e-mail antes de os pontos vencerem. O assistente não oferece de novo.
+         */
+        put: operations["mudar_meu_lembrete_fidelidade_meus_pontos_lembrete_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/fidelidade/clientes/pontos": {
         parameters: {
             query?: never;
@@ -2238,7 +2262,7 @@ export interface paths {
         };
         /**
          * Link Carrinho
-         * @description Link que abre o site com a peça no carrinho. Só sai com estoque para o site.
+         * @description Link que abre o site com as peças escolhidas na conversa já no carrinho (repita id_variante para cada peça). Só entra peça com estoque para o site; as outras vêm em fora_do_link, com o motivo.
          */
         get: operations["link_carrinho_assistente_link_carrinho_get"];
         put?: never;
@@ -2300,7 +2324,7 @@ export interface paths {
         put?: never;
         /**
          * Registrar Mensagem
-         * @description Registra a mensagem do cliente: chamada no começo de toda mensagem. Diz a etapa, se a conta está confirmada, se a conversa é nova (30 min parada: apagar a memória curta) e o limite do dia.
+         * @description Registra a mensagem do cliente: chamada no começo de toda mensagem. Diz a etapa, se a conta está confirmada, se a conversa é nova (30 min parada: apagar a memória curta), o limite do dia e, fora do horário da equipe, quando ela volta.
          */
         post: operations["registrar_mensagem_assistente_conversa_post"];
         delete?: never;
@@ -2347,6 +2371,26 @@ export interface paths {
          * @description Anota no resumo anônimo da conversa o 👍/👎 do cliente e se ele falou de algo fora do tema.
          */
         patch: operations["registrar_no_resumo_assistente_conversa_resumo_patch"];
+        trace?: never;
+    };
+    "/assistente/conversa/mensagens": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Guardar Texto
+         * @description Guarda, depois de cada resposta, a mensagem do cliente e a resposta do assistente, por 90 dias. CPF e código saem mascarados; o texto passa para a conta quando o cliente se confirma.
+         */
+        post: operations["guardar_texto_assistente_conversa_mensagens_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
     "/assistente/verificacao/cpf": {
@@ -2400,9 +2444,49 @@ export interface paths {
         put?: never;
         /**
          * Meus Pontos
-         * @description Pontos por marca: saldo, valor, categoria, vencimento e quanto falta para subir. Fica registrado o que foi entregue (auditoria).
+         * @description Pontos por marca: saldo, valor, categoria, vencimento e quanto falta para subir. Fica registrado o que foi entregue (auditoria). oferecer_lembrete diz se o assistente oferece o e-mail antes de os pontos vencerem (uma vez por conta).
          */
         post: operations["meus_pontos_assistente_meus_pontos_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/assistente/lembrete-pontos": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Responder Lembrete
+         * @description Guarda o aceite (ou a recusa) do e-mail antes de os pontos vencerem. Recusar desliga um aceite anterior.
+         */
+        put: operations["responder_lembrete_assistente_lembrete_pontos_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/assistente/avisos/pontos-vencendo": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Avisar Pontos Vencendo
+         * @description Manda o e-mail de pontos vencendo nos próximos 14 dias a quem aceitou o lembrete, um aviso por lote. Chamada uma vez por dia pelo pg_cron do banco.
+         */
+        post: operations["avisar_pontos_vencendo_assistente_avisos_pontos_vencendo_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -2483,6 +2567,30 @@ export interface paths {
          * @description Grava no chamado aberto a mensagem do cliente, para o atendente ver a conversa inteira.
          */
         post: operations["mensagem_no_chamado_assistente_chamado_mensagem_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/lembrete-pontos/parar": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Confirmar Parada
+         * @description Página com o botão para parar o lembrete.
+         */
+        get: operations["confirmar_parada_lembrete_pontos_parar_get"];
+        put?: never;
+        /**
+         * Parar
+         * @description Desliga o lembrete da conta do link.
+         */
+        post: operations["parar_lembrete_pontos_parar_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -2609,6 +2717,16 @@ export interface components {
              */
             contagem_por_nota: components["schemas"]["ContagemPorNota"][];
         };
+        /** AvisoPontosSaida */
+        AvisoPontosSaida: {
+            /** Clientes Avisados */
+            clientes_avisados: number;
+            /**
+             * Clientes Com Falha
+             * @description O e-mail não saiu: os lotes voltam no aviso do dia seguinte
+             */
+            clientes_com_falha: number;
+        };
         /** Body_adicionar_foto_avaliacoes__id_avaliacao__fotos_post */
         Body_adicionar_foto_avaliacoes__id_avaliacao__fotos_post: {
             /** Arquivo */
@@ -2675,6 +2793,12 @@ export interface components {
             cpf: string;
             /** Senha */
             senha: string;
+            /**
+             * Aceita Lembrete Pontos
+             * @description Caixinha desmarcada no cadastro: e-mail antes de os pontos vencerem
+             * @default false
+             */
+            aceita_lembrete_pontos: boolean;
         };
         /** CadastroSaida */
         CadastroSaida: {
@@ -3648,6 +3772,21 @@ export interface components {
              * @description Chamado aberto pela conversa: a mensagem também vai para ele
              */
             id_chamado: number | null;
+            /**
+             * Equipe Disponivel
+             * @description A equipe de atendimento está no horário agora
+             */
+            equipe_disponivel: boolean;
+            /**
+             * Equipe Volta Em
+             * @description Quando a equipe volta; vazio se ela está atendendo
+             */
+            equipe_volta_em: string | null;
+            /**
+             * Aviso Equipe
+             * @description Fora do horário: texto pronto dizendo quando a equipe volta
+             */
+            aviso_equipe: string | null;
         };
         /** EstoqueHistoricoItem */
         EstoqueHistoricoItem: {
@@ -4141,6 +4280,39 @@ export interface components {
              */
             id_variante_nova: number;
         };
+        /** LembreteEntrada */
+        LembreteEntrada: {
+            /**
+             * Canal
+             * @enum {string}
+             */
+            canal: "whatsapp" | "telegram";
+            /** Id Externo */
+            id_externo: string;
+            /**
+             * Aceita
+             * @description Aceitou (true) ou recusou (false) o lembrete antes de os pontos vencerem
+             */
+            aceita: boolean;
+        };
+        /** LembretePontos */
+        LembretePontos: {
+            /**
+             * Aceita
+             * @description Recebe (true) ou não (false) o e-mail antes de os pontos vencerem
+             */
+            aceita: boolean;
+        };
+        /** LembreteSaida */
+        LembreteSaida: {
+            /** Aceita */
+            aceita: boolean;
+            /**
+             * Mensagem
+             * @description Texto pronto para o cliente
+             */
+            mensagem: string;
+        };
         /** LinhaDaUnidade */
         LinhaDaUnidade: {
             /** Id Unidade */
@@ -4211,14 +4383,16 @@ export interface components {
         };
         /** LinkCarrinhoSaida */
         LinkCarrinhoSaida: {
-            /** Id Variante */
-            id_variante: number;
-            /** Produto */
-            produto: string;
-            /** Cor */
-            cor: string;
-            /** Tamanho */
-            tamanho: string;
+            /**
+             * Items
+             * @description As peças que o link põe no carrinho
+             */
+            items: components["schemas"]["PecaDoLink"][];
+            /**
+             * Fora Do Link
+             * @description As peças que não deu para pôr no carrinho
+             */
+            fora_do_link: components["schemas"]["PecaForaDoLink"][];
             /** Link */
             link: string;
         };
@@ -4468,6 +4642,11 @@ export interface components {
              * @description Resposta pronta, para quando a da IA não bater com os números
              */
             texto: string;
+            /**
+             * Oferecer Lembrete
+             * @description Oferecer o e-mail antes de os pontos vencerem (uma vez por conta)
+             */
+            oferecer_lembrete: boolean;
         };
         /** ModeloAcessoSaida */
         ModeloAcessoSaida: {
@@ -4980,6 +5159,27 @@ export interface components {
             reais: string;
             /** Por Valor */
             por_valor: components["schemas"]["PassivoPorValor"][];
+        };
+        /** PecaDoLink */
+        PecaDoLink: {
+            /** Id Variante */
+            id_variante: number;
+            /** Produto */
+            produto: string;
+            /** Cor */
+            cor: string;
+            /** Tamanho */
+            tamanho: string;
+        };
+        /** PecaForaDoLink */
+        PecaForaDoLink: {
+            /** Id Variante */
+            id_variante: number;
+            /**
+             * Motivo
+             * @description Sem estoque para o site (diz as lojas que têm) ou peça não encontrada
+             */
+            motivo: string;
         };
         /** PecaSaida */
         PecaSaida: {
@@ -5695,6 +5895,23 @@ export interface components {
             expires_in: number;
             /** Token Type */
             token_type: string;
+        };
+        /** TextoDaConversaEntrada */
+        TextoDaConversaEntrada: {
+            /**
+             * Canal
+             * @enum {string}
+             */
+            canal: "whatsapp" | "telegram";
+            /** Id Externo */
+            id_externo: string;
+            /** Cliente */
+            cliente: string;
+            /**
+             * Assistente
+             * @description Vazio quando não houve resposta (ex.: limite do dia)
+             */
+            assistente?: string | null;
         };
         /** TicketPorCanal */
         TicketPorCanal: {
@@ -13458,6 +13675,72 @@ export interface operations {
             };
         };
     };
+    meu_lembrete_fidelidade_meus_pontos_lembrete_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LembretePontos"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    mudar_meu_lembrete_fidelidade_meus_pontos_lembrete_put: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LembretePontos"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LembretePontos"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     pontos_de_um_cliente_fidelidade_clientes_pontos_get: {
         parameters: {
             query?: {
@@ -13858,7 +14141,8 @@ export interface operations {
     link_carrinho_assistente_link_carrinho_get: {
         parameters: {
             query: {
-                id_variante: number;
+                /** @description Uma ou mais peças, até 10 */
+                id_variante: number[];
             };
             header?: {
                 "x-assistente-chave"?: string | null;
@@ -13888,14 +14172,14 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description Peça não encontrada */
+            /** @description Peça não encontrada (pedido de uma peça só) */
             404: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content?: never;
             };
-            /** @description Sem estoque para o site (a mensagem diz em quais lojas tem) */
+            /** @description Nenhuma peça com estoque para o site (a mensagem diz em quais lojas tem) */
             422: {
                 headers: {
                     [name: string]: unknown;
@@ -14164,6 +14448,60 @@ export interface operations {
             };
         };
     };
+    guardar_texto_assistente_conversa_mensagens_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                "x-assistente-chave"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TextoDaConversaEntrada"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Chave do assistente inválida */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Conversa não registrada */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+            /** @description Assistente indisponível */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     pedir_codigo_assistente_verificacao_cpf_post: {
         parameters: {
             query?: never;
@@ -14311,6 +14649,98 @@ export interface operations {
                 };
             };
             /** @description Conta não confirmada nesta conversa: pedir o CPF */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+            /** @description Assistente indisponível */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    responder_lembrete_assistente_lembrete_pontos_put: {
+        parameters: {
+            query?: never;
+            header?: {
+                "x-assistente-chave"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LembreteEntrada"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LembreteSaida"];
+                };
+            };
+            /** @description Conta não confirmada nesta conversa: pedir o CPF */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Cliente sem conta no site (a mensagem traz o link de cadastro) */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Assistente indisponível */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    avisar_pontos_vencendo_assistente_avisos_pontos_vencendo_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                "x-assistente-chave"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AvisoPontosSaida"];
+                };
+            };
+            /** @description Chave do assistente inválida */
             401: {
                 headers: {
                     [name: string]: unknown;
@@ -14557,6 +14987,68 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+        };
+    };
+    confirmar_parada_lembrete_pontos_parar_get: {
+        parameters: {
+            query: {
+                token: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/html": string;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    parar_lembrete_pontos_parar_post: {
+        parameters: {
+            query: {
+                token: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/html": string;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
             };
         };
     };
