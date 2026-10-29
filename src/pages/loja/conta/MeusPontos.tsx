@@ -1,7 +1,9 @@
 import { useState } from 'react'
+import { BellRing } from 'lucide-react'
 import { cn } from 'cn'
 
 import { Aviso, Carregando, Vazio } from '@/components/Estados'
+import { Button } from '@/components/ui/button'
 import { Abas, Paginacao } from '@/components/Navegacao'
 import { api, type Esquema } from '@/lib/api'
 import { dataCurta, dataLonga, MARCAS, numero } from '@/lib/formato'
@@ -9,6 +11,7 @@ import type { Loja } from '@/lib/lojaEscolhida'
 import { useCarregar } from '@/lib/useCarregar'
 import { CartoesDePontos } from './CartoesDePontos'
 import { LOJAS_DOS_PONTOS, rotuloMovimentoPontos } from './pontosDaConta'
+import { useLembreteDePontos } from './useLembreteDePontos'
 
 const POR_PAGINA = 20
 
@@ -38,6 +41,8 @@ export function MeusPontos() {
         {saldos.carregando && !saldos.dados && <Carregando />}
         {saldos.dados && <CartoesDePontos saldos={saldos.dados.saldos} />}
       </section>
+
+      <LembreteDePontos />
 
       <section aria-labelledby="titulo-extrato" className="rounded-xl border bg-background p-6 shadow-xs">
         <h2 id="titulo-extrato" className="mb-4 font-titulo text-2xl">Extrato</h2>
@@ -88,5 +93,39 @@ export function MeusPontos() {
         <Paginacao pagina={extrato.dados} aoMudar={setOffset} rotulo="movimentos" />
       </section>
     </div>
+  )
+}
+
+// cartão do lembrete por e-mail antes de os pontos vencerem
+function LembreteDePontos() {
+  const { aceita, ocupado, erro, mudar } = useLembreteDePontos()
+
+  return (
+    <section aria-labelledby="titulo-lembrete" className="rounded-xl border bg-background p-6 shadow-xs">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex gap-3">
+          <BellRing className="mt-1 size-5 shrink-0 text-aco" aria-hidden="true" />
+          <div className="space-y-1">
+            <h2 id="titulo-lembrete" className="font-titulo text-xl">Lembrete de pontos</h2>
+            <p className="text-sm text-muted-foreground">
+              {aceita
+                ? 'Você recebe um e-mail duas semanas antes de os seus pontos vencerem.'
+                : 'Receba um e-mail duas semanas antes de os seus pontos vencerem, para usar antes de perder.'}
+            </p>
+          </div>
+        </div>
+        {aceita !== undefined && (
+          <Button
+            variant={aceita ? 'outline' : 'default'}
+            className="shrink-0"
+            disabled={ocupado}
+            onClick={() => void mudar(!aceita)}
+          >
+            {aceita ? 'Parar de receber' : 'Quero receber'}
+          </Button>
+        )}
+      </div>
+      {erro && <div className="mt-4"><Aviso mensagem={erro} /></div>}
+    </section>
   )
 }

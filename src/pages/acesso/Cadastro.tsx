@@ -3,6 +3,7 @@ import { Link, Navigate, useLocation, useNavigate } from 'react-router'
 
 import { useAuth } from '@/auth/contexto'
 import { Button } from '@/components/ui/button'
+import { Checkbox } from '@/components/ui/checkbox'
 import { Input, Label } from '@/components/ui/input'
 import { api, type Esquema } from '@/lib/api'
 import { mascaraCpf, soDigitos } from '@/lib/formato'
@@ -12,13 +13,15 @@ import type { Destino } from './Entrar'
 import { SENHA_MINIMA, validarCampo, type CamposCadastro } from './validacao'
 
 // cadastro de cliente: o backend cria o login e a conta (POST /clientes) e liga as compras feitas em
-// lojas com este CPF na nota; depois entra direto. Com compras ligadas, abre Meus pedidos com o aviso
+// lojas com este CPF na nota; depois entra direto. Com compras ligadas, abre Meus pedidos com o aviso.
+// O lembrete de pontos vencendo vem desmarcado: só recebe quem marcar (dá para mudar depois em Meus pontos)
 export function Cadastro() {
   const { sessao, entrarComEmail } = useAuth()
   const navegar = useNavigate()
   const local = useLocation()
   const destino = local.state as Destino
   const [form, setForm] = useState<CamposCadastro>({ nome: '', email: '', cpf: '', senha: '' })
+  const [aceitaLembrete, setAceitaLembrete] = useState(false)
   const [erros, setErros] = useState<Partial<Record<keyof CamposCadastro, string | null>>>({})
   const [erro, setErro] = useState<string | null>(null)
   const [enviando, setEnviando] = useState(false)
@@ -49,7 +52,10 @@ export function Cadastro() {
     try {
       const criado = await api<Esquema<'CadastroSaida'>>('/clientes', {
         metodo: 'POST',
-        corpo: { ...form, nome: form.nome.trim(), email: form.email.trim(), cpf: soDigitos(form.cpf) },
+        corpo: {
+          ...form, nome: form.nome.trim(), email: form.email.trim(), cpf: soDigitos(form.cpf),
+          aceita_lembrete_pontos: aceitaLembrete,
+        },
         autenticado: false,
       })
       await entrarComEmail(form.email.trim(), form.senha)
@@ -139,11 +145,20 @@ export function Cadastro() {
           <ErroDoCampo id="erro-senha" texto={erros.senha} />
         </div>
 
+        <label className="flex items-start gap-3 text-sm">
+          <Checkbox checked={aceitaLembrete} onCheckedChange={(marcado) => setAceitaLembrete(Boolean(marcado))} className="mt-0.5" />
+          Quero receber um e-mail antes de os meus pontos vencerem.
+        </label>
+
         {erro && <p role="alert" className="border-l-4 border-ferrugem bg-ferrugem-fundo p-3 text-sm text-ferrugem">{erro}</p>}
 
         <Button type="submit" size="loja" className="w-full sm:w-full" disabled={enviando}>
           {enviando ? 'Criando a conta...' : 'Criar conta'}
         </Button>
+        <p className="text-center text-xs text-muted-foreground">
+          Saiba como usamos seus dados na{' '}
+          <Link to="/loja/privacidade" className="underline underline-offset-2">política de privacidade</Link>.
+        </p>
         <p className="text-center text-sm">
           Já tem conta? <Link to="/entrar" state={local.state} className="underline underline-offset-2">Entrar</Link>
         </p>
