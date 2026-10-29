@@ -279,6 +279,7 @@ export function chamadoVultoDeTeste(dados: Partial<Esquema<'ChamadoSaida'>> = {}
     concluido_em: '2026-06-02T16:40:00Z',
     canal_externo: 'whatsapp',
     contato_externo: '+5541999990000',
+    aberto_pelo_assistente: false,
     mensagens_nao_lidas: 0,
     ...dados,
   }

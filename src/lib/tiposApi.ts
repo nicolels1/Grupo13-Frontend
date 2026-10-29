@@ -2429,6 +2429,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/assistente/chamado": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Abrir Chamado
+         * @description Abre o chamado depois do botão [Enviar], com o resumo confirmado e a conversa. Daqui em diante a conversa fica em_chamado: cada mensagem do cliente vai também para o chamado.
+         */
+        post: operations["abrir_chamado_assistente_chamado_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/assistente/chamado/mensagem": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Mensagem No Chamado
+         * @description Grava no chamado aberto a mensagem do cliente, para o atendente ver a conversa inteira.
+         */
+        post: operations["mensagem_no_chamado_assistente_chamado_mensagem_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -2673,6 +2713,16 @@ export interface components {
              */
             imagem_url?: string | null;
         };
+        /** ChamadoAbertoSaida */
+        ChamadoAbertoSaida: {
+            /** Id Chamado */
+            id_chamado: number;
+            /**
+             * Mensagem
+             * @description Texto pronto para o cliente
+             */
+            mensagem: string;
+        };
         /** ChamadoAlterar */
         ChamadoAlterar: {
             /** Prioridade */
@@ -2715,6 +2765,38 @@ export interface components {
             id_unidade?: number | null;
             /** Id Chamado Anterior */
             id_chamado_anterior?: number | null;
+        };
+        /** ChamadoDoAssistenteEntrada */
+        ChamadoDoAssistenteEntrada: {
+            /**
+             * Canal
+             * @enum {string}
+             */
+            canal: "whatsapp" | "telegram";
+            /** Id Externo */
+            id_externo: string;
+            /**
+             * Categoria
+             * @enum {string}
+             */
+            categoria: "entrega" | "troca_devolucao" | "estorno" | "duvida" | "pagamento" | "outros";
+            /** Assunto */
+            assunto: string;
+            /**
+             * Resumo
+             * @description O resumo que o cliente confirmou
+             */
+            resumo: string;
+            /**
+             * Id Pedido
+             * @description Pedido do próprio cliente de que o chamado trata
+             */
+            id_pedido?: number | null;
+            /**
+             * Conversa
+             * @description As últimas mensagens, da mais antiga para a mais nova
+             */
+            conversa?: components["schemas"]["FalaDaConversa"][];
         };
         /** ChamadoEquipe */
         ChamadoEquipe: {
@@ -2788,6 +2870,11 @@ export interface components {
              * @description Atendimento migrado da Vulto: telefone, e-mail ou @ de quem escreveu
              */
             contato_externo: string | null;
+            /**
+             * Aberto Pelo Assistente
+             * @description Aberto pelo assistente virtual: a resposta da equipe também chega na conversa com ele
+             */
+            aberto_pelo_assistente: boolean;
             /**
              * Mensagens Nao Lidas
              * @description Mensagens do outro lado (cliente ou equipe) ainda não lidas
@@ -2878,6 +2965,11 @@ export interface components {
              * @description Atendimento migrado da Vulto: telefone, e-mail ou @ de quem escreveu
              */
             contato_externo: string | null;
+            /**
+             * Aberto Pelo Assistente
+             * @description Aberto pelo assistente virtual: a resposta da equipe também chega na conversa com ele
+             */
+            aberto_pelo_assistente: boolean;
             /**
              * Mensagens Nao Lidas
              * @description Mensagens do outro lado (cliente ou equipe) ainda não lidas
@@ -3548,6 +3640,11 @@ export interface components {
              * @description Confirmação pausada por código errado
              */
             bloqueado_ate: string | null;
+            /**
+             * Id Chamado
+             * @description Chamado aberto pela conversa: a mensagem também vai para ele
+             */
+            id_chamado: number | null;
         };
         /** EstoqueHistoricoItem */
         EstoqueHistoricoItem: {
@@ -3747,6 +3844,16 @@ export interface components {
             quantidade: number | null;
             /** Acabando */
             acabando: boolean;
+        };
+        /** FalaDaConversa */
+        FalaDaConversa: {
+            /**
+             * De
+             * @enum {string}
+             */
+            de: "cliente" | "assistente";
+            /** Texto */
+            texto: string;
         };
         /** Faturamento */
         Faturamento: {
@@ -4292,6 +4399,18 @@ export interface components {
              * @default false
              */
             interna: boolean;
+        };
+        /** MensagemNoChamadoEntrada */
+        MensagemNoChamadoEntrada: {
+            /**
+             * Canal
+             * @enum {string}
+             */
+            canal: "whatsapp" | "telegram";
+            /** Id Externo */
+            id_externo: string;
+            /** Texto */
+            texto: string;
         };
         /** MensagemSaida */
         MensagemSaida: {
@@ -14224,6 +14343,121 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
                 };
+            };
+            /** @description Assistente indisponível */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    abrir_chamado_assistente_chamado_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                "x-assistente-chave"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ChamadoDoAssistenteEntrada"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ChamadoAbertoSaida"];
+                };
+            };
+            /** @description Conta não confirmada nesta conversa: pedir o CPF */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Pedido não encontrado */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description A conversa já tem um chamado aberto */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Cliente sem conta no site (a mensagem traz o link de cadastro) */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Assistente indisponível */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    mensagem_no_chamado_assistente_chamado_mensagem_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                "x-assistente-chave"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MensagemNoChamadoEntrada"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MensagemSaida"];
+                };
+            };
+            /** @description Chave do assistente inválida */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Conversa não registrada */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description A conversa não tem chamado aberto (foi concluído: a etapa volta a livre) */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Assistente indisponível */
             503: {

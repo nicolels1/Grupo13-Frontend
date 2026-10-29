@@ -1,6 +1,6 @@
 import type { Esquema } from '@/lib/api'
 
-type Chamado = Pick<Esquema<'ChamadoSaida'>, 'cliente' | 'id_cliente' | 'id_cliente_sem_conta' | 'canal_externo' | 'contato_externo'>
+type Chamado = Pick<Esquema<'ChamadoSaida'>, 'cliente' | 'id_cliente' | 'id_cliente_sem_conta' | 'canal_externo' | 'contato_externo' | 'aberto_pelo_assistente'>
 
 // o chamado que veio do atendimento da Vulto (P6): WhatsApp, Instagram ou e-mail, com o contato de quem
 // escreveu. Sem cliente identificado (A5–A7), a API manda o contato no lugar do nome
@@ -13,22 +13,19 @@ export function nomeDoCanalExterno(canal: string) {
   return CANAIS_EXTERNOS[canal] ?? canal
 }
 
-// o chamado aberto pelo assistente do cliente (frente da Nicole). Até existir uma coluna de origem, só o
-// Telegram (usado na banca) é certamente do assistente: whatsapp também aparece nos migrados
-const CANAIS_DO_ASSISTENTE = ['telegram']
-
+// o chamado aberto pelo assistente virtual do cliente (frente da Nicole). Pela coluna, não pelo canal:
+// whatsapp também é o canal dos chamados migrados da Vulto
 export function veioDoAssistente(c: Chamado) {
-  return CANAIS_DO_ASSISTENTE.includes(c.canal_externo ?? '')
+  return c.aberto_pelo_assistente
 }
 
-// etiqueta do chamado com canal externo
+// etiqueta do chamado com canal externo. O do assistente não diz o canal: o mesmo vale para o WhatsApp
 export function origemDoChamado(c: Chamado) {
-  const canal = nomeDoCanalExterno(c.canal_externo ?? '')
-  return veioDoAssistente(c) ? `Aberto pelo assistente no ${canal}` : `Veio da Vulto pelo ${canal}`
+  return veioDoAssistente(c) ? 'Aberto pelo assistente virtual' : `Veio da Vulto pelo ${nomeDoCanalExterno(c.canal_externo ?? '')}`
 }
 
-// a conversa do assistente (Telegram) não recebe mensagem da equipe: a resposta chega ao cliente por e-mail
-export function respostaPorEmail(c: Chamado) {
+// a resposta da equipe também chega na conversa do cliente com o assistente, com o nome de quem atendeu
+export function respostaNaConversa(c: Chamado) {
   return veioDoAssistente(c) && !respostaNaoChega(c)
 }
 
