@@ -12,7 +12,7 @@ vi.mock('@/lib/api', async (original) => ({ ...(await original<typeof import('@/
 vi.mock('@/lib/supabaseClient', () => ({ supabase: { auth: {} } }))
 
 const { ErroApi } = await import('@/lib/api')
-const { useConversaAssistente } = await import('./conversaAssistente')
+const { useConversaAssistente, VALIDADE_MS } = await import('./conversaAssistente')
 const { PainelAssistente } = await import('./PainelAssistente')
 
 const resposta = (dados: Record<string, unknown> = {}) => ({
@@ -57,6 +57,51 @@ describe('PainelAssistente', () => {
     cleanup()
     api.mockReset()
     aoMudar.mockReset()
+    sessionStorage.clear()
+    vi.useRealTimers()
+  })
+
+  it('a conversa volta depois de recarregar a página, inteira e sem animar de novo', async () => {
+    api.mockResolvedValue(resposta())
+    abrir()
+    escrever('quanto vendemos?')
+    fireEvent.click(screen.getByRole('button', { name: 'Enviar' }))
+    await screen.findByText('A Savassi vendeu R$ 2.569,00 em 6 pedidos.')
+
+    // recarregar = montar tudo de novo; a sessão da aba continua
+    cleanup()
+    abrir()
+    expect(screen.getByText('quanto vendemos?')).toBeTruthy()
+    const resposta_ = screen.getByText('A Savassi vendeu R$ 2.569,00 em 6 pedidos.')
+    expect(resposta_.className).not.toContain('sr-only')
+    expect(screen.getByRole('link', { name: /Abrir a Visão geral/ })).toBeTruthy()
+
+    // a próxima pergunta continua a mesma conversa no backend
+    escrever('e o Batel?')
+    fireEvent.click(screen.getByRole('button', { name: 'Enviar' }))
+    await waitFor(() => expect(corpo(1)).toMatchObject({ texto: 'e o Batel?', id_conversa: 12 }))
+  })
+
+  it('"Nova" apaga a conversa guardada na aba', async () => {
+    api.mockResolvedValue(resposta())
+    abrir()
+    escrever('quanto vendemos?')
+    fireEvent.click(screen.getByRole('button', { name: 'Enviar' }))
+    await screen.findByText('A Savassi vendeu R$ 2.569,00 em 6 pedidos.')
+
+    fireEvent.click(screen.getByRole('button', { name: /Nova/ }))
+    cleanup()
+    abrir()
+    expect(screen.queryByText('quanto vendemos?')).toBeNull()
+  })
+
+  it('conversa parada há 30 minutos não volta (o backend já começou outra)', () => {
+    sessionStorage.setItem('conversa-assistente-interno', JSON.stringify({
+      falas: [{ id: 1, hora: '10:00', papel: 'usuario', texto: 'pergunta antiga', unidade: null }],
+      idConversa: 7, avaliacao: null, salvaEm: Date.now() - VALIDADE_MS,
+    }))
+    abrir()
+    expect(screen.queryByText('pergunta antiga')).toBeNull()
   })
 
   it('sugestão vira pergunta, e a resposta vem com o link e o "Ajudou?"', async () => {

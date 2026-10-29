@@ -48,6 +48,7 @@ describe('LayoutInterno: unidade em foco', () => {
     cleanup()
     api.mockReset()
     limparListas('unidades')
+    sessionStorage.clear()
   })
 
   it('unidade ativa aparece pelo nome, sem aviso', async () => {
