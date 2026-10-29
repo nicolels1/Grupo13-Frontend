@@ -186,6 +186,7 @@ Use sempre a porta **5173**: a API só aceita chamadas dos endereços liberados 
 | `VITE_API_URL` | URL da API, sem `/` no final. Produção: `https://grupo13-backend-megw.onrender.com`; local: `http://127.0.0.1:8000` |
 | `VITE_SUPABASE_URL` | URL do projeto Supabase (`https://<project-ref>.supabase.co`) |
 | `VITE_SUPABASE_PUBLISHABLE_KEY` | chave pública (publishable/anon) do Supabase |
+| `VITE_LINK_ASSISTENTE` | opcional: link da conversa com o assistente (`https://t.me/<bot>` ou `https://wa.me/<numero>`); vazio, a bolinha da loja não aparece |
 
 Tudo que começa com `VITE_` vai para o navegador: nunca coloque uma chave secreta (como a `service_role`) aqui.
 
