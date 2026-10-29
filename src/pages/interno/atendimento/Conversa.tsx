@@ -242,7 +242,8 @@ function Responder({ chamado: c, aoEnviar }: { chamado: Chamado; aoEnviar: () =>
       </form>
       {!interna && respostaPorEmail(c) && (
         <p className="text-xs text-muted-foreground">
-          {comoChamar(c)} recebe esta resposta por e-mail: o chat do assistente não recebe mensagens da equipe.
+          {comoChamar(c)} recebe esta resposta por e-mail: a conversa do assistente no {nomeDoCanalExterno(c.canal_externo ?? '')} não
+          recebe mensagens da equipe.
         </p>
       )}
     </div>

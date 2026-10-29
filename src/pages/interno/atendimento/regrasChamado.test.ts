@@ -41,6 +41,20 @@ describe('nomeDoCanalExterno', () => {
     expect(nomeDoCanalExterno('whatsapp')).toBe('WhatsApp')
     expect(nomeDoCanalExterno('email')).toBe('e-mail')
     expect(nomeDoCanalExterno('chat')).toBe('chat')
+    expect(nomeDoCanalExterno('telegram')).toBe('Telegram')
+  })
+})
+
+describe('chamado aberto pelo assistente no Telegram', () => {
+  const c = chamadoVultoDeTeste({ id_cliente: 'b5d1c0de', cliente: 'Bruna Teixeira', canal_externo: 'telegram', contato_externo: null })
+
+  it('não aparece como vindo da Vulto', () => {
+    expect(veioDoAssistente(c)).toBe(true)
+    expect(origemDoChamado(c)).toBe('Aberto pelo assistente no Telegram')
+  })
+
+  it('a resposta chega por e-mail', () => {
+    expect(respostaPorEmail(c)).toBe(true)
   })
 })
 
