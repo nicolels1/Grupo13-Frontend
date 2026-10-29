@@ -9,13 +9,20 @@ import { SUGESTOES, TAMANHO_MAXIMO, type ConversaAssistente, type Fala, type Uni
 
 // painel lateral do assistente interno (Entrega 4, ideia A): abre por cima de qualquer tela da plataforma.
 // A conversa vem de fora (useConversaAssistente no layout), então continua ao fechar e trocar de tela
-export function PainelAssistente({ aberto, aoMudar, conversa, unidadeEmFoco }: {
+export function PainelAssistente({ aberto, aoMudar, conversa, unidadeEmFoco, unidades, aoTrocarUnidade }: {
   aberto: boolean
   aoMudar: (aberto: boolean) => void
   conversa: ConversaAssistente
   // a unidade selecionada no topo: vale quando a pergunta não diz a unidade; null = todas
   unidadeEmFoco: UnidadeEmFoco | null
+  // as unidades do seletor do topo: trocar aqui troca lá (uma unidade selecionada só)
+  unidades: UnidadeEmFoco[]
+  aoTrocarUnidade: (id_unidade: number | null) => void
 }) {
+  // a selecionada sempre tem opção (inativa, por exemplo, não está na lista)
+  const opcoes = unidadeEmFoco && !unidades.some((u) => u.id_unidade === unidadeEmFoco.id_unidade)
+    ? [unidadeEmFoco, ...unidades]
+    : unidades
   const { falas, enviando, avaliacao, respondeu, perguntar, avaliar, novaConversa } = conversa
   const [texto, setTexto] = useState('')
   const fim = useRef<HTMLDivElement>(null)
@@ -56,14 +63,27 @@ export function PainelAssistente({ aberto, aoMudar, conversa, unidadeEmFoco }: {
         <SheetHeader className="border-b pr-24">
           <SheetTitle className="text-lg">Assistente</SheetTitle>
           <SheetDescription>Pergunte sobre vendas, estoque, peças paradas, pontos e a equipe. Os números vêm do sistema.</SheetDescription>
-          <p className="flex items-start gap-1.5 pt-1 text-sm" data-testid="unidade-em-foco">
-            <Store className="mt-0.5 size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
-            {unidadeEmFoco ? (
-              <span>Unidade selecionada: <strong className="font-medium">{unidadeEmFoco.nome}</strong>. Perguntas sem unidade usam essa.</span>
-            ) : (
-              <span><strong className="font-medium">Todas as unidades</strong> selecionadas. Perguntas sem unidade valem para a rede.</span>
-            )}
-          </p>
+          <div className="space-y-1 pt-1 text-sm">
+            <label className="flex items-center gap-1.5">
+              <Store className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+              <span className="sr-only">Unidade selecionada</span>
+              <select
+                value={unidadeEmFoco ? String(unidadeEmFoco.id_unidade) : ''}
+                onChange={(e) => aoTrocarUnidade(e.target.value ? Number(e.target.value) : null)}
+                className="min-w-0 flex-1 rounded-md border bg-background px-2 py-1 text-sm font-medium outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                <option value="">Todas as unidades</option>
+                {opcoes.map((u) => (
+                  <option key={u.id_unidade} value={u.id_unidade}>{u.nome}</option>
+                ))}
+              </select>
+            </label>
+            <p className="text-muted-foreground" data-testid="unidade-em-foco">
+              {unidadeEmFoco
+                ? `Perguntas sem unidade usam ${unidadeEmFoco.nome}.`
+                : 'Perguntas sem unidade valem para a rede inteira.'}
+            </p>
+          </div>
           {falas.length > 0 && (
             <Button variant="ghost" size="sm" className="absolute top-3 right-12" onClick={novaConversa} disabled={enviando}>
               <RotateCcw aria-hidden="true" /> Nova
