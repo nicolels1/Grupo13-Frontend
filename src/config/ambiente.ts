@@ -9,3 +9,7 @@ export const API_URL = semBarraNoFim(import.meta.env.VITE_API_URL)
 // projeto do Supabase, usado só para o login
 export const SUPABASE_URL = semBarraNoFim(import.meta.env.VITE_SUPABASE_URL)
 export const SUPABASE_CHAVE_PUBLICA = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY
+
+// conversa com o assistente do cliente, fora do site: o bot do Telegram (t.me) enquanto a Meta não libera
+// o WhatsApp (wa.me). Vazio, a bolinha não aparece
+export const LINK_ASSISTENTE = (import.meta.env.VITE_LINK_ASSISTENTE ?? '').trim()

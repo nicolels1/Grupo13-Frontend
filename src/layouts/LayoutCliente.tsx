@@ -1,11 +1,12 @@
 import { useLayoutEffect, useRef, useState, useSyncExternalStore, type ReactNode, type SubmitEvent } from 'react'
-import { ChevronDown, ChevronLeft, ChevronRight, Package, Search, ShoppingBag, User } from 'lucide-react'
+import { ChevronDown, ChevronLeft, ChevronRight, MessageCircle, Package, Search, ShoppingBag, User } from 'lucide-react'
 import { Link, Outlet, useLocation, useNavigate, useSearchParams } from 'react-router'
 import { cn } from 'cn'
 
 import { useAuth } from '@/auth/contexto'
 import { Logo, NomeDaLoja } from '@/components/Logo'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
+import { LINK_ASSISTENTE } from '@/config/ambiente'
 import type { Esquema } from '@/lib/api'
 import { useCategorias } from '@/lib/listas'
 import { escolherLoja, useLojaEscolhida, type Loja } from '@/lib/lojaEscolhida'
@@ -48,6 +49,7 @@ export function LayoutCliente() {
         </main>
 
         <Rodape categorias={ativas} />
+        <BolinhaDoAssistente />
         <GavetaCarrinho />
       </div>
     </CarrinhoProvider>
@@ -83,6 +85,25 @@ function AbasDasLojas({ loja }: { loja: Loja }) {
         ))}
       </ul>
     </nav>
+  )
+}
+
+// a conversa com o assistente sai do site e abre no app de mensagem, como o atendimento da Vulto fazia.
+// Fica abaixo da gaveta do carrinho (z-50), que a cobre quando aberta
+function BolinhaDoAssistente() {
+  if (!LINK_ASSISTENTE) return null
+  const canal = LINK_ASSISTENTE.includes('t.me/') ? 'Telegram' : 'WhatsApp'
+  return (
+    <a
+      href={LINK_ASSISTENTE}
+      target="_blank"
+      rel="noopener noreferrer"
+      aria-label={`Tirar dúvidas com o assistente no ${canal} (abre fora do site)`}
+      className="fixed right-4 bottom-4 z-40 flex items-center gap-2 rounded-full bg-marinho p-3.5 text-white shadow-lg transition-colors hover:bg-marinho-escuro focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-none sm:right-6 sm:bottom-6 sm:px-5"
+    >
+      <MessageCircle className="size-6 sm:size-5" aria-hidden="true" />
+      <span className="hidden text-sm font-medium sm:inline" aria-hidden="true">Tire suas dúvidas</span>
+    </a>
   )
 }
 
