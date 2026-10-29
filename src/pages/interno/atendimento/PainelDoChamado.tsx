@@ -1,4 +1,5 @@
 import { useState, type FormEvent } from 'react'
+import { Sparkles } from 'lucide-react'
 import { Link } from 'react-router'
 import { cn } from 'cn'
 
@@ -21,11 +22,17 @@ import { AtenderPedido } from '../troca/TrocaDevolucao'
 import { caminhoDaFicha } from '../clientes/regrasCliente'
 import { nomeDoCanalExterno, quemAbriu, semCadastro, veioDoAssistente } from './regrasChamado'
 
-type Chamado = Esquema<'ChamadoSaida'>
+type Chamado = Esquema<'ChamadoEquipe'>
 type Pedido = Esquema<'PedidoSaida'>
 type Historico = Esquema<'Lista_HistoricoSaida_'>
 
 const AREA_CLIENTES = AREAS.find((a) => a.caminho === 'clientes')
+// a etiqueta da prioridade sugerida: alta em terracota, como o marcador da fila
+const COR_DA_SUGERIDA: Record<string, string> = {
+  alta: 'bg-terracota text-white',
+  media: 'bg-aco text-white',
+  baixa: 'bg-background text-foreground border border-border',
+}
 // a ficha do cliente do chamado, com conta ou da Vulto sem conta
 const fichaDoCliente = (c: Chamado) => (c.id_cliente ? caminhoDaFicha('conta', c.id_cliente)
   : c.id_cliente_sem_conta ? caminhoDaFicha('sem-conta', c.id_cliente_sem_conta) : null)
@@ -120,6 +127,31 @@ export function PainelDoChamado({ chamado: c, historico, aoMudar }: { chamado: C
             )}
           </dd>
         </div>
+        {/* a sugestão da IA ao abrir o chamado: o responsável confirma com um clique (vai para o histórico como
+            decisão dele) ou escolhe outra no campo acima */}
+        {c.prioridade_sugerida && (
+          <div className="space-y-2 border-l-4 border-aco bg-aco-fundo p-3" data-testid="prioridade-sugerida">
+            <dt className="flex items-center gap-1.5 text-xs font-medium tracking-wide text-aco uppercase">
+              <Sparkles className="size-3.5" aria-hidden="true" /> Prioridade sugerida pela IA
+            </dt>
+            <dd className="flex flex-wrap items-baseline gap-2">
+              <span className={cn('px-2 py-0.5 text-xs font-semibold', COR_DA_SUGERIDA[c.prioridade_sugerida])}>
+                {PRIORIDADES[c.prioridade_sugerida]}
+              </span>
+              {c.motivo_sugerido && <span className="text-sm text-foreground">{c.motivo_sugerido}</span>}
+            </dd>
+            {souResponsavel && !concluido && !c.prioridade && (
+              <dd>
+                <Button size="sm" variant="aco" onClick={() => acao('', { prioridade: c.prioridade_sugerida }, 'PATCH')} disabled={enviando}>
+                  Confirmar {PRIORIDADES[c.prioridade_sugerida]?.toLowerCase()}
+                </Button>
+              </dd>
+            )}
+            {!c.prioridade && !(souResponsavel && !concluido) && (
+              <dd className="text-xs text-muted-foreground">Quem assumir o chamado confirma ou escolhe outra.</dd>
+            )}
+          </div>
+        )}
         <div className="flex items-center justify-between gap-3">
           <dt className="text-muted-foreground">Responsável</dt>
           <dd className="flex items-center gap-2">
