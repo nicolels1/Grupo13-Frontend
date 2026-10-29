@@ -8,7 +8,7 @@ import { Abas, Cabecalho, Paginacao } from '@/components/Navegacao'
 import { Select } from '@/components/ui/input'
 import { useUnidadeEscolhida } from '@/layouts/unidadeEscolhida'
 import { api, type Esquema } from '@/lib/api'
-import { CATEGORIAS_CHAMADO } from '@/lib/formato'
+import { CATEGORIAS_CHAMADO, PRIORIDADES } from '@/lib/formato'
 import { useCarregar } from '@/lib/useCarregar'
 import { ChamadoAberto } from './atendimento/Conversa'
 import { ItemDaFila } from './atendimento/Fila'
@@ -39,14 +39,16 @@ export function Atendimento() {
   const { unidade } = useUnidadeEscolhida()
   const [fila, setFila] = useState<Fila>('sem')
   const [categoria, setCategoria] = useState('')
+  // a prioridade que vale: a definida por quem assumiu ou, sem ela, a sugerida pela IA
+  const [prioridade, setPrioridade] = useState('')
   const [offset, setOffset] = useState(0)
   const filtros = FILTROS_DA_FILA[fila]
   const filtroMarca = useFiltroDeMarca(() => setOffset(0))
   const marca = filtroMarca.marca
 
   const lista = useCarregar(
-    () => api<Esquema<'Pagina_ChamadoEquipe_'>>('/atendimento/chamados', { params: { ...filtros, categoria, id_unidade: unidade, marca, limit: POR_PAGINA, offset } }),
-    [filtros, categoria, unidade, marca, offset],
+    () => api<Esquema<'Pagina_ChamadoEquipe_'>>('/atendimento/chamados', { params: { ...filtros, categoria, prioridade, id_unidade: unidade, marca, limit: POR_PAGINA, offset } }),
+    [filtros, categoria, prioridade, unidade, marca, offset],
   )
   // contagem de cada fila (só o total, uma linha por consulta)
   const contagens = useCarregar(
@@ -96,6 +98,11 @@ export function Atendimento() {
           <Select aria-label="Categoria" value={categoria} onChange={(e) => { setCategoria(e.target.value); setOffset(0) }} className="mb-2">
             <option value="">Todas as categorias</option>
             {Object.entries(CATEGORIAS_CHAMADO).map(([v, r]) => <option key={v} value={v}>{r}</option>)}
+          </Select>
+          <Select aria-label="Prioridade" value={prioridade} onChange={(e) => { setPrioridade(e.target.value); setOffset(0) }} className="mb-2">
+            <option value="">Todas as prioridades</option>
+            {Object.entries(PRIORIDADES).reverse().map(([v, r]) => <option key={v} value={v}>{r} (definida ou sugerida)</option>)}
+            <option value="sem">Sem prioridade</option>
           </Select>
           <SeletorDeMarca filtro={filtroMarca} className="mb-2" />
           {lista.erro && <Aviso mensagem={lista.erro} />}
