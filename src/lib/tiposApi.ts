@@ -2258,7 +2258,7 @@ export interface paths {
         };
         /**
          * Lojas
-         * @description Lojas por marca, com endereço, o horário de hoje em texto pronto e o da semana.
+         * @description Lojas por marca, com endereço, o horário de hoje em texto pronto e o dos próximos 7 dias, já com as exceções cadastradas e os feriados nacionais.
          */
         get: operations["lojas_assistente_lojas_get"];
         put?: never;
@@ -2780,7 +2780,7 @@ export interface components {
             concluido_em: string | null;
             /**
              * Canal Externo
-             * @description Atendimento migrado da Vulto (whatsapp, instagram ou email) ou aberto pelo assistente (whatsapp ou chat)
+             * @description Atendimento migrado da Vulto (whatsapp, instagram ou email) ou aberto pelo assistente (whatsapp, telegram ou chat)
              */
             canal_externo: string | null;
             /**
@@ -2870,7 +2870,7 @@ export interface components {
             concluido_em: string | null;
             /**
              * Canal Externo
-             * @description Atendimento migrado da Vulto (whatsapp, instagram ou email) ou aberto pelo assistente (whatsapp ou chat)
+             * @description Atendimento migrado da Vulto (whatsapp, instagram ou email) ou aberto pelo assistente (whatsapp, telegram ou chat)
              */
             canal_externo: string | null;
             /**
@@ -3073,7 +3073,7 @@ export interface components {
              * Canal
              * @enum {string}
              */
-            canal: "whatsapp" | "chat";
+            canal: "whatsapp" | "telegram" | "chat";
             /** Id Externo */
             id_externo: string;
             /** Codigo */
@@ -3216,7 +3216,7 @@ export interface components {
              * Canal
              * @enum {string}
              */
-            canal: "whatsapp" | "chat";
+            canal: "whatsapp" | "telegram" | "chat";
             /** Id Externo */
             id_externo: string;
         };
@@ -3240,7 +3240,7 @@ export interface components {
              * Canal
              * @enum {string}
              */
-            canal: "whatsapp" | "chat";
+            canal: "whatsapp" | "telegram" | "chat";
             /** Id Externo */
             id_externo: string;
             /**
@@ -3666,7 +3666,7 @@ export interface components {
              * Canal
              * @enum {string}
              */
-            canal: "whatsapp" | "chat";
+            canal: "whatsapp" | "telegram" | "chat";
             /** Id Externo */
             id_externo: string;
             /**
@@ -3831,10 +3831,28 @@ export interface components {
         };
         /** HorarioDoDia */
         HorarioDoDia: {
+            /**
+             * Data
+             * Format: date
+             */
+            data: string;
             /** Dia */
             dia: string;
-            /** Horario */
+            /**
+             * Horario
+             * @description "10h às 20h" ou "fechada"
+             */
             horario: string;
+            /**
+             * Motivo
+             * @description Exceção cadastrada pela loja (ex.: Natal) ou o feriado nacional
+             */
+            motivo: string | null;
+            /**
+             * Aviso
+             * @description Feriado sem exceção cadastrada: o horário pode mudar
+             */
+            aviso: string | null;
         };
         /** HorarioHoje */
         HorarioHoje: {
@@ -4206,8 +4224,11 @@ export interface components {
             /** Endereco */
             endereco: string;
             hoje: components["schemas"]["HorarioHoje"];
-            /** Semana */
-            semana: components["schemas"]["HorarioDoDia"][];
+            /**
+             * Proximos Dias
+             * @description Hoje e os 6 dias seguintes
+             */
+            proximos_dias: components["schemas"]["HorarioDoDia"][];
         };
         /** LojasDaMarca */
         LojasDaMarca: {
@@ -4989,7 +5010,7 @@ export interface components {
              * Canal
              * @enum {string}
              */
-            canal: "whatsapp" | "chat";
+            canal: "whatsapp" | "telegram" | "chat";
             /** Id Externo */
             id_externo: string;
             /**
@@ -5434,7 +5455,7 @@ export interface components {
              * Canal
              * @enum {string}
              */
-            canal: "whatsapp" | "chat";
+            canal: "whatsapp" | "telegram" | "chat";
             /** Id Externo */
             id_externo: string;
             /**
@@ -8908,7 +8929,8 @@ export interface operations {
                 /** @description Com mensagem do cliente ainda não lida */
                 com_mensagem_nova?: boolean | null;
                 categoria?: ("entrega" | "troca_devolucao" | "estorno" | "duvida" | "pagamento" | "outros") | null;
-                prioridade?: ("baixa" | "media" | "alta") | null;
+                /** @description A que vale: a definida por quem assumiu ou, sem ela, a sugerida pela IA. sem: nenhuma das duas */
+                prioridade?: ("baixa" | "media" | "alta") | "sem" | null;
                 id_unidade?: number | null;
                 /** @description Chamados de um cliente com conta */
                 id_cliente?: string | null;
@@ -13572,9 +13594,9 @@ export interface operations {
             };
             header?: {
                 "x-assistente-chave"?: string | null;
-                /** @description whatsapp ou chat */
+                /** @description whatsapp, telegram ou chat */
                 "x-canal"?: string | null;
-                /** @description Telefone ou sessão do chat */
+                /** @description Telefone, chat_id do Telegram ou sessão do chat */
                 "x-id-externo"?: string | null;
             };
             path?: never;
@@ -13625,9 +13647,9 @@ export interface operations {
             };
             header?: {
                 "x-assistente-chave"?: string | null;
-                /** @description whatsapp ou chat */
+                /** @description whatsapp, telegram ou chat */
                 "x-canal"?: string | null;
-                /** @description Telefone ou sessão do chat */
+                /** @description Telefone, chat_id do Telegram ou sessão do chat */
                 "x-id-externo"?: string | null;
             };
             path?: never;
@@ -13683,9 +13705,9 @@ export interface operations {
             };
             header?: {
                 "x-assistente-chave"?: string | null;
-                /** @description whatsapp ou chat */
+                /** @description whatsapp, telegram ou chat */
                 "x-canal"?: string | null;
-                /** @description Telefone ou sessão do chat */
+                /** @description Telefone, chat_id do Telegram ou sessão do chat */
                 "x-id-externo"?: string | null;
             };
             path?: never;
@@ -13737,9 +13759,9 @@ export interface operations {
             query?: never;
             header?: {
                 "x-assistente-chave"?: string | null;
-                /** @description whatsapp ou chat */
+                /** @description whatsapp, telegram ou chat */
                 "x-canal"?: string | null;
-                /** @description Telefone ou sessão do chat */
+                /** @description Telefone, chat_id do Telegram ou sessão do chat */
                 "x-id-externo"?: string | null;
             };
             path?: never;
