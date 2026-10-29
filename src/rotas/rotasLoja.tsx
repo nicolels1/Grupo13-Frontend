@@ -6,7 +6,7 @@ import { InicioLoja } from '@/pages/loja/Inicio'
 import { tela } from './tela'
 import {
   AdicionarAoCarrinho, AjudaLoja, AreaDaConta, AvaliarPeca, Cadastro, CarrinhoLoja, ChamadosCliente, CheckoutLoja, ConfirmacaoCompra, ConversaCliente, Enderecos,
-  Entrar, EsqueciSenha, MeusPedidos, MeusPontosLoja, NovoChamadoCliente, ProdutoLoja, ProdutosLoja, RedefinirSenha, SemChamadoEscolhido, VisaoGeralConta,
+  Entrar, EsqueciSenha, MeusPedidos, MeusPontosLoja, NovoChamadoCliente, Privacidade, ProdutoLoja, ProdutosLoja, RedefinirSenha, SemChamadoEscolhido, VisaoGeralConta,
 } from './telasLoja'
 
 export const rotasLoja: RouteObject[] = [
@@ -22,6 +22,7 @@ export const rotasLoja: RouteObject[] = [
       { path: 'produtos', element: tela(<ProdutosLoja />) },
       { path: 'produtos/:idProduto', element: tela(<ProdutoLoja />) },
       { path: 'ajuda', element: tela(<AjudaLoja />) },
+      { path: 'privacidade', element: tela(<Privacidade />) },
       { path: 'carrinho', element: tela(<CarrinhoLoja />) },
       { path: 'carrinho/adicionar', element: tela(<AdicionarAoCarrinho />) },
       {
