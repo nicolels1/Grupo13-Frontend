@@ -26,8 +26,9 @@ export function PainelAssistente({ aberto, aoMudar, conversa, unidadeEmFoco, uni
   const { falas, enviando, avaliacao, respondeu, perguntar, avaliar, novaConversa } = conversa
   const [texto, setTexto] = useState('')
   const fim = useRef<HTMLDivElement>(null)
-  // respostas que já apareceram animadas: ao reabrir o painel, elas vêm inteiras
-  const [animadas, setAnimadas] = useState<ReadonlySet<number>>(() => new Set())
+  // respostas que já apareceram animadas: ao reabrir o painel, elas vêm inteiras (e as que voltaram da sessão
+  // da aba, depois de recarregar a página, também)
+  const [animadas, setAnimadas] = useState<ReadonlySet<number>>(() => new Set(falas.map((f) => f.id)))
   const marcarAnimada = useCallback((id: number) => {
     setAnimadas((atuais) => (atuais.has(id) ? atuais : new Set(atuais).add(id)))
   }, [])

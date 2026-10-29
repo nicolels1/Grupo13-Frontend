@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 
 import { api, ErroApi, type Esquema } from '@/lib/api'
 
@@ -45,13 +45,45 @@ export function falaDaResposta(r: Resposta): Fala {
     montada: r.numeros_conferidos === false }
 }
 
+// a conversa fica na sessão da aba: volta ao recarregar a página e some ao fechar a aba. Parada há 30 min, o
+// backend já começou outra, então a guardada é descartada
+const CHAVE = 'conversa-assistente-interno'
+export const VALIDADE_MS = 30 * 60 * 1000
+type Guardada = { falas: Fala[]; idConversa: number | null; avaliacao: Avaliacao | null; salvaEm: number }
+
+export function lerConversaGuardada(agora = Date.now()): Guardada | null {
+  try {
+    const guardada = JSON.parse(sessionStorage.getItem(CHAVE) ?? 'null') as Guardada | null
+    if (!guardada || !Array.isArray(guardada.falas) || agora - guardada.salvaEm >= VALIDADE_MS) return null
+    // os ids novos continuam depois dos guardados (são a chave da lista na tela)
+    ultimoId = Math.max(ultimoId, ...guardada.falas.map((f) => f.id))
+    return guardada
+  } catch {
+    return null
+  }
+}
+
+function guardarConversa(conversa: Omit<Guardada, 'salvaEm'>) {
+  try {
+    if (conversa.falas.length === 0) sessionStorage.removeItem(CHAVE)
+    else sessionStorage.setItem(CHAVE, JSON.stringify({ ...conversa, salvaEm: Date.now() }))
+  } catch {
+    // navegador sem armazenamento (aba anônima): a conversa vale até recarregar a página
+  }
+}
+
 // a conversa com o assistente interno (POST /assistente/interno/mensagens). Fica no layout, então continua
 // ao trocar de tela; o backend começa outra sozinho se ela ficou 30 min parada
 export function useConversaAssistente() {
-  const [falas, setFalas] = useState<Fala[]>([])
-  const [idConversa, setIdConversa] = useState<number | null>(null)
+  const [guardada] = useState(() => lerConversaGuardada())
+  const [falas, setFalas] = useState<Fala[]>(guardada?.falas ?? [])
+  const [idConversa, setIdConversa] = useState<number | null>(guardada?.idConversa ?? null)
   const [enviando, setEnviando] = useState(false)
-  const [avaliacao, setAvaliacao] = useState<Avaliacao | null>(null)
+  const [avaliacao, setAvaliacao] = useState<Avaliacao | null>(guardada?.avaliacao ?? null)
+
+  useEffect(() => {
+    guardarConversa({ falas, idConversa, avaliacao })
+  }, [falas, idConversa, avaliacao])
 
   // sem unidade na pergunta, o backend usa a do topo (e a resposta diz que usou)
   const perguntar = useCallback(async (texto: string, unidade: UnidadeEmFoco | null = null) => {
