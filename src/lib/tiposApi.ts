@@ -2716,6 +2716,96 @@ export interface components {
             /** Id Chamado Anterior */
             id_chamado_anterior?: number | null;
         };
+        /** ChamadoEquipe */
+        ChamadoEquipe: {
+            /** Id Chamado */
+            id_chamado: number;
+            /**
+             * Categoria
+             * @enum {string}
+             */
+            categoria: "entrega" | "troca_devolucao" | "estorno" | "duvida" | "pagamento" | "outros";
+            /** Assunto */
+            assunto: string;
+            /** Descricao */
+            descricao: string;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "aberto" | "em_andamento" | "concluido";
+            /** Prioridade */
+            prioridade: ("baixa" | "media" | "alta") | null;
+            /** Motivo Encerramento */
+            motivo_encerramento: ("resolvido" | "desistencia" | "sem_resposta") | null;
+            /** Id Cliente */
+            id_cliente: string | null;
+            /**
+             * Id Cliente Sem Conta
+             * @description Cliente do atendimento migrado que ainda não criou conta
+             */
+            id_cliente_sem_conta: number | null;
+            /**
+             * Cliente
+             * @description Vazio: atendimento migrado sem cliente nem contato
+             */
+            cliente: string | null;
+            /** Id Responsavel */
+            id_responsavel: string | null;
+            /** Responsavel */
+            responsavel: string | null;
+            /** Id Pedido */
+            id_pedido: number | null;
+            /** Id Item Pedido */
+            id_item_pedido: number | null;
+            /** Id Variante */
+            id_variante: number | null;
+            /** Id Unidade */
+            id_unidade: number | null;
+            /** Id Chamado Anterior */
+            id_chamado_anterior: number | null;
+            /**
+             * Criado Em
+             * Format: date-time
+             */
+            criado_em: string;
+            /**
+             * Atualizado Em
+             * Format: date-time
+             */
+            atualizado_em: string;
+            /** Assumido Em */
+            assumido_em: string | null;
+            /** Concluido Em */
+            concluido_em: string | null;
+            /**
+             * Canal Externo
+             * @description Atendimento migrado da Vulto (whatsapp, instagram ou email) ou aberto pelo assistente (whatsapp ou chat)
+             */
+            canal_externo: string | null;
+            /**
+             * Contato Externo
+             * @description Atendimento migrado da Vulto: telefone, e-mail ou @ de quem escreveu
+             */
+            contato_externo: string | null;
+            /**
+             * Mensagens Nao Lidas
+             * @description Mensagens do outro lado (cliente ou equipe) ainda não lidas
+             */
+            mensagens_nao_lidas: number;
+            /**
+             * Prioridade Sugerida
+             * @description Sugerida pela IA ao abrir; quem assume confirma ou troca na prioridade
+             */
+            prioridade_sugerida?: ("baixa" | "media" | "alta") | null;
+            /**
+             * Motivo Sugerido
+             * @description O fato que decidiu a sugestão, em poucas palavras
+             */
+            motivo_sugerido?: string | null;
+            /** Sugerida Em */
+            sugerida_em?: string | null;
+        };
         /** ChamadoSaida */
         ChamadoSaida: {
             /** Id Chamado */
@@ -4586,6 +4676,17 @@ export interface components {
         Pagina_AvaliacaoSaida_: {
             /** Items */
             items: components["schemas"]["AvaliacaoSaida"][];
+            /** Total */
+            total: number;
+            /** Limit */
+            limit: number;
+            /** Offset */
+            offset: number;
+        };
+        /** Pagina[ChamadoEquipe] */
+        Pagina_ChamadoEquipe_: {
+            /** Items */
+            items: components["schemas"]["ChamadoEquipe"][];
             /** Total */
             total: number;
             /** Limit */
@@ -8832,7 +8933,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["Pagina_ChamadoSaida_"];
+                    "application/json": components["schemas"]["Pagina_ChamadoEquipe_"];
                 };
             };
             /** @description Sem login válido */
@@ -8931,7 +9032,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ChamadoSaida"];
+                    "application/json": components["schemas"]["ChamadoEquipe"];
                 };
             };
             /** @description Sem login válido */
@@ -8989,7 +9090,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ChamadoSaida"];
+                    "application/json": components["schemas"]["ChamadoEquipe"];
                 };
             };
             /** @description Sem login válido */
@@ -9048,7 +9149,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ChamadoSaida"];
+                    "application/json": components["schemas"]["ChamadoEquipe"];
                 };
             };
             /** @description Sem login válido */
@@ -9111,7 +9212,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ChamadoSaida"];
+                    "application/json": components["schemas"]["ChamadoEquipe"];
                 };
             };
             /** @description Sem login válido */

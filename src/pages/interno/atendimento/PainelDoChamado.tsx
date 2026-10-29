@@ -21,7 +21,7 @@ import { AtenderPedido } from '../troca/TrocaDevolucao'
 import { caminhoDaFicha } from '../clientes/regrasCliente'
 import { nomeDoCanalExterno, quemAbriu, semCadastro, veioDoAssistente } from './regrasChamado'
 
-type Chamado = Esquema<'ChamadoSaida'>
+type Chamado = Esquema<'ChamadoEquipe'>
 type Pedido = Esquema<'PedidoSaida'>
 type Historico = Esquema<'Lista_HistoricoSaida_'>
 
@@ -120,6 +120,24 @@ export function PainelDoChamado({ chamado: c, historico, aoMudar }: { chamado: C
             )}
           </dd>
         </div>
+        {/* a sugestão da IA ao abrir o chamado: o responsável confirma com um clique (vai para o histórico como
+            decisão dele) ou escolhe outra no campo acima */}
+        {c.prioridade_sugerida && (
+          <div className="space-y-1.5 border-l-2 border-aco pl-3 text-xs" data-testid="prioridade-sugerida">
+            <dt className="text-muted-foreground">Sugerida pela IA</dt>
+            <dd>
+              <span className="font-medium">{PRIORIDADES[c.prioridade_sugerida]}</span>
+              {c.motivo_sugerido && <span className="text-muted-foreground">: {c.motivo_sugerido}</span>}
+            </dd>
+            {souResponsavel && !concluido && !c.prioridade && (
+              <dd>
+                <Button size="xs" variant="outline" onClick={() => acao('', { prioridade: c.prioridade_sugerida }, 'PATCH')} disabled={enviando}>
+                  Confirmar {PRIORIDADES[c.prioridade_sugerida]?.toLowerCase()}
+                </Button>
+              </dd>
+            )}
+          </div>
+        )}
         <div className="flex items-center justify-between gap-3">
           <dt className="text-muted-foreground">Responsável</dt>
           <dd className="flex items-center gap-2">

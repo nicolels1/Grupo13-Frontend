@@ -13,7 +13,7 @@ import { Prioridade } from './Fila'
 import { PainelDoChamado } from './PainelDoChamado'
 import { comoChamar, nomeDoCanalExterno, origemDoChamado, quemAbriu, respostaNaoChega, respostaPorEmail, semCadastro } from './regrasChamado'
 
-type Chamado = Esquema<'ChamadoSaida'>
+type Chamado = Esquema<'ChamadoEquipe'>
 type Mensagem = Esquema<'MensagemSaida'>
 type Historico = Esquema<'Lista_HistoricoSaida_'>
 
@@ -60,7 +60,7 @@ export function ChamadoAberto({ idChamado, aoMudar }: { idChamado: string; aoMud
             </p>
           )}
         </div>
-        <Prioridade valor={c.prioridade} />
+        <Prioridade chamado={c} />
       </div>
 
       <div className="grid gap-8 xl:grid-cols-[minmax(0,1fr)_17rem]">

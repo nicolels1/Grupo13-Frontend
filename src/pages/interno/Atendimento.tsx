@@ -45,12 +45,12 @@ export function Atendimento() {
   const marca = filtroMarca.marca
 
   const lista = useCarregar(
-    () => api<Esquema<'Pagina_ChamadoSaida_'>>('/atendimento/chamados', { params: { ...filtros, categoria, id_unidade: unidade, marca, limit: POR_PAGINA, offset } }),
+    () => api<Esquema<'Pagina_ChamadoEquipe_'>>('/atendimento/chamados', { params: { ...filtros, categoria, id_unidade: unidade, marca, limit: POR_PAGINA, offset } }),
     [filtros, categoria, unidade, marca, offset],
   )
   // contagem de cada fila (só o total, uma linha por consulta)
   const contagens = useCarregar(
-    () => Promise.all(FILAS.map((f) => api<Esquema<'Pagina_ChamadoSaida_'>>('/atendimento/chamados', { params: { ...f.filtros, id_unidade: unidade, marca, limit: 1 } }).then((r) => r.total))),
+    () => Promise.all(FILAS.map((f) => api<Esquema<'Pagina_ChamadoEquipe_'>>('/atendimento/chamados', { params: { ...f.filtros, id_unidade: unidade, marca, limit: 1 } }).then((r) => r.total))),
     [unidade, marca],
   )
   const { recarregar: recarregarLista } = lista
