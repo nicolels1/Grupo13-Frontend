@@ -34,8 +34,9 @@ Frontend da plataforma da Casa Lorenzi, desenvolvida no Case Tech da Trainee Ins
 - página do produto com fotos por cor, tamanhos esgotados riscados e avaliações com fotos, filtro "Com fotos", voto útil e denúncia;
 - um carrinho só para a Casa Lorenzi e a Vulto, salvo no navegador (gaveta e página), com as peças separadas por marca e uma barra de frete grátis só, que conta as duas marcas juntas;
 - checkout em uma página: entrega em casa (CEP preenchido pelo ViaCEP) ou retirada grátis numa loja (só com peças de uma marca), reserva de 15 minutos e um pagamento simulado por Pix ou cartão de teste para a compra inteira; com as duas marcas, o backend faz um pedido por marca; os pontos de cada marca viram desconto nas peças dela;
-- área "Minha conta": pedidos com linha do tempo, avaliação da peça recebida, compra feita na loja ligada à conta pelo código da notinha, chamados com conversa e anexos, endereços e os pontos das duas lojas lado a lado (o programa da Vulto é o Vulto+), com o extrato de cada uma em **Meus pontos**;
-- cadastro, login por e-mail ou CPF e recuperação de senha por e-mail.
+- área "Minha conta": pedidos com linha do tempo, avaliação da peça recebida, compra feita na loja ligada à conta pelo código da notinha, chamados com conversa e anexos, endereços e os pontos das duas lojas lado a lado (o programa da Vulto é o Vulto+), com o extrato de cada uma em **Meus pontos**; o lembrete por e-mail antes de os pontos vencerem liga e desliga em Meus pontos e em "Seus dados", na visão geral da conta;
+- cadastro (com a caixinha do lembrete de pontos, desmarcada), login por e-mail ou CPF e recuperação de senha por e-mail;
+- política de privacidade (`/loja/privacidade`), no rodapé e no cadastro: o que é guardado, por quanto tempo (a conversa com o assistente fica 90 dias) e com quem.
 
 **Plataforma interna (`/interno`)**
 

@@ -446,6 +446,7 @@ function Rodape({ categorias }: { categorias: Esquema<'CategoriaSaida'>[] }) {
           <Link to="/loja/ajuda#trocas-e-devolucoes">Trocas e devoluções</Link>
           <Link to="/loja/ajuda#pedidos-e-entrega">Prazos de entrega</Link>
           <Link to="/loja/chamados/novo">Fale com a gente</Link>
+          <Link to="/loja/privacidade">Política de privacidade</Link>
         </ColunaRodape>
         <ColunaRodape titulo="Atendimento">
           <span className="text-white/70">

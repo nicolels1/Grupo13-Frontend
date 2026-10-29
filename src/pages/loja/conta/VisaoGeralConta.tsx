@@ -4,12 +4,15 @@ import { Link } from 'react-router'
 import { cn } from 'cn'
 
 import { useAuth } from '@/auth/contexto'
+import { Aviso } from '@/components/Estados'
+import { Checkbox } from '@/components/ui/checkbox'
 import { api, type Esquema } from '@/lib/api'
 import { plural } from '@/lib/formato'
 import { useCarregar } from '@/lib/useCarregar'
 import { CartoesDePontos } from './CartoesDePontos'
 import { pedidosDoCliente, resumoDosPedidos } from './pedidosDaConta'
 import { useChamadosDaConta } from './useChamadosDaConta'
+import { useLembreteDePontos } from './useLembreteDePontos'
 
 // visão geral da conta: um cartão para cada seção, com o ícone na cor dela e o que importa de relance
 export function VisaoGeralConta() {
@@ -82,7 +85,33 @@ export function VisaoGeralConta() {
             <dd className="font-medium break-all">{perfil?.email}</dd>
           </div>
         </dl>
+        <EmailsQueVoceRecebe />
       </section>
+    </div>
+  )
+}
+
+// configurações dos e-mails: hoje só o lembrete de pontos tem aceite (o código do assistente é pedido pelo
+// próprio cliente). A caixinha salva na hora, sem botão de salvar
+function EmailsQueVoceRecebe() {
+  const { aceita, ocupado, erro, mudar } = useLembreteDePontos()
+
+  return (
+    <div className="mt-6 border-t pt-5">
+      <h3 className="mb-3 text-sm font-medium">E-mails que você recebe</h3>
+      <label className="flex items-start gap-3 text-sm">
+        <Checkbox
+          checked={aceita ?? false}
+          disabled={aceita === undefined || ocupado}
+          onCheckedChange={(marcado) => void mudar(Boolean(marcado))}
+          className="mt-0.5"
+        />
+        <span>
+          Lembrete de pontos
+          <span className="block text-muted-foreground">Um e-mail duas semanas antes de os seus pontos vencerem.</span>
+        </span>
+      </label>
+      {erro && <div className="mt-3"><Aviso mensagem={erro} /></div>}
     </div>
   )
 }

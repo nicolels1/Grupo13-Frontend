@@ -18,6 +18,7 @@ export const EsqueciSenha = lazy(() => import('@/pages/acesso/EsqueciSenha').the
 export const MeusPontosLoja = lazy(() => import('@/pages/loja/conta/MeusPontos').then((m) => ({ default: m.MeusPontos })))
 export const MeusPedidos = lazy(() => import('@/pages/loja/MeusPedidos').then((m) => ({ default: m.MeusPedidos })))
 export const NovoChamadoCliente = lazy(() => import('@/pages/loja/chamados/NovoChamadoCliente').then((m) => ({ default: m.NovoChamadoCliente })))
+export const Privacidade = lazy(() => import('@/pages/loja/Privacidade').then((m) => ({ default: m.Privacidade })))
 export const ProdutoLoja = lazy(() => import('@/pages/loja/Produto').then((m) => ({ default: m.ProdutoLoja })))
 export const ProdutosLoja = lazy(() => import('@/pages/loja/Produtos').then((m) => ({ default: m.ProdutosLoja })))
 export const RedefinirSenha = lazy(() => import('@/pages/acesso/RedefinirSenha').then((m) => ({ default: m.RedefinirSenha })))
