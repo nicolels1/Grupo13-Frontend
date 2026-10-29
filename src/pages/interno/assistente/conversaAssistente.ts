@@ -4,14 +4,16 @@ import { api, ErroApi, type Esquema } from '@/lib/api'
 
 type Resposta = Esquema<'RespostaAssistente'>
 export type Avaliacao = Esquema<'AvaliacaoEntrada'>['avaliacao']
+export type Tabela = Esquema<'Tabela'>
 
-// uma fala da conversa na tela. "montada" = a conferência dos números barrou o texto do modelo e veio a
+// uma fala da conversa na tela. "tabelas" vêm direto do banco (podem ter o nome do cliente, que não passa pelo
+// modelo). "montada" = a conferência dos números barrou o texto do modelo e veio a
 // resposta fixa do backend; "erro" = a pergunta não teve resposta (assistente fora do ar, sem conexão)
 // O id só serve para a tela (chave da lista e a resposta que já apareceu animada). A pergunta guarda a unidade
 // do topo que valia quando foi feita, para a tela mostrar (a pessoa pode trocar no meio da conversa)
-export type Fala = { id: number } & (
+export type Fala = { id: number; hora: string } & (
   | { papel: 'usuario'; texto: string; unidade: UnidadeEmFoco | null }
-  | { papel: 'assistente'; texto: string; links: Resposta['links']; montada: boolean }
+  | { papel: 'assistente'; texto: string; links: Resposta['links']; tabelas: Tabela[]; montada: boolean }
   | { papel: 'erro'; texto: string; pergunta: string; unidade: UnidadeEmFoco | null }
 )
 
@@ -20,6 +22,8 @@ export type UnidadeEmFoco = { id_unidade: number; nome: string }
 
 let ultimoId = 0
 const novoId = () => ++ultimoId
+// a hora que aparece no balão, como num app de mensagens
+const agora = () => new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
 
 export const TAMANHO_MAXIMO = 1000
 export const SUGESTOES = [
@@ -37,7 +41,8 @@ export function semATentativaQueFalhou(falas: Fala[], pergunta: string): Fala[] 
 }
 
 export function falaDaResposta(r: Resposta): Fala {
-  return { id: novoId(), papel: 'assistente', texto: r.resposta, links: r.links, montada: r.numeros_conferidos === false }
+  return { id: novoId(), hora: agora(), papel: 'assistente', texto: r.resposta, links: r.links, tabelas: r.tabelas ?? [],
+    montada: r.numeros_conferidos === false }
 }
 
 // a conversa com o assistente interno (POST /assistente/interno/mensagens). Fica no layout, então continua
@@ -54,7 +59,7 @@ export function useConversaAssistente() {
     if (!pergunta || enviando) return
     // uma pergunta que falhou e é refeita sai da lista (ela e o erro): fica só a nova tentativa
     setFalas((atuais) => [...semATentativaQueFalhou(atuais, pergunta),
-      { id: novoId(), papel: 'usuario', texto: pergunta, unidade }])
+      { id: novoId(), hora: agora(), papel: 'usuario', texto: pergunta, unidade }])
     setEnviando(true)
     try {
       const r = await api<Resposta>('/assistente/interno/mensagens', {
@@ -66,7 +71,7 @@ export function useConversaAssistente() {
       setFalas((atuais) => [...atuais, falaDaResposta(r)])
     } catch (falha) {
       const motivo = falha instanceof ErroApi ? falha.message : 'Não foi possível falar com o assistente.'
-      setFalas((atuais) => [...atuais, { id: novoId(), papel: 'erro', texto: motivo, pergunta, unidade }])
+      setFalas((atuais) => [...atuais, { id: novoId(), hora: agora(), papel: 'erro', texto: motivo, pergunta, unidade }])
     } finally {
       setEnviando(false)
     }

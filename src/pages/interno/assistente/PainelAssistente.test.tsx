@@ -159,6 +159,33 @@ describe('PainelAssistente', () => {
     expect(corpo(1).id_conversa).toBeNull()
   })
 
+  it('a tabela do sistema mostra o nome do cliente com o link da ficha', async () => {
+    api.mockResolvedValue(resposta({
+      resposta: 'O 1º cliente comprou R$ 1.739,40 em 5 pedidos. Os nomes estão na tabela.', links: [],
+      tabelas: [{
+        titulo: 'Maiores clientes na marca Vulto', colunas: ['Posição', 'Cliente', 'Total', 'Pedidos'],
+        linhas: [{ celulas: ['1º', 'Maria Souza', 'R$ 1.739,40', '5'], url: '/interno/clientes/sem-conta/9' }],
+      }],
+    }))
+    abrir()
+    escrever('qual cliente mais comprou?')
+    fireEvent.click(screen.getByRole('button', { name: 'Enviar' }))
+
+    const tabela = await screen.findByRole('table', { name: 'Maiores clientes na marca Vulto' })
+    expect(tabela.textContent).toContain('R$ 1.739,40')
+    expect(screen.getByRole('link', { name: 'Maria Souza' }).getAttribute('href')).toBe('/interno/clientes/sem-conta/9')
+  })
+
+  it('resposta sem tabela não mostra tabela', async () => {
+    api.mockResolvedValue(resposta())
+    abrir()
+    escrever('quanto vendemos?')
+    fireEvent.click(screen.getByRole('button', { name: 'Enviar' }))
+
+    await screen.findByText('A Savassi vendeu R$ 2.569,00 em 6 pedidos.')
+    expect(screen.queryByRole('table')).toBeNull()
+  })
+
   it('com animação, a resposta aparece aos poucos e o link só no fim', async () => {
     vi.stubGlobal('matchMedia', () => ({ matches: false }))
     try {
@@ -196,7 +223,7 @@ describe('PainelAssistente', () => {
     }
   })
 
-  it('mostra a unidade selecionada no topo, manda junto da pergunta e marca cada pergunta', async () => {
+  it('mostra a unidade selecionada no topo e manda junto da pergunta', async () => {
     api.mockResolvedValue(resposta())
     const tela = abrir({ id_unidade: 45, nome: 'Vulto Savassi' })
     expect((screen.getByLabelText('Unidade selecionada') as HTMLSelectElement).value).toBe('45')
@@ -207,9 +234,10 @@ describe('PainelAssistente', () => {
 
     await screen.findByText('A Savassi vendeu R$ 2.569,00 em 6 pedidos.')
     expect(corpo(0)).toEqual({ texto: 'quanto vendemos?', id_conversa: null, id_unidade_em_foco: 45 })
-    expect(screen.getByText('com Vulto Savassi selecionada')).toBeTruthy()
+    // a unidade fica só no topo do painel, não embaixo de cada pergunta
+    expect(screen.queryByText('com Vulto Savassi selecionada')).toBeNull()
 
-    // trocou o topo para todas: o aviso muda, e a pergunta anterior continua marcada com a unidade dela
+    // trocou o topo para todas: o aviso muda
     tela.rerender(<MemoryRouter><Painel unidade={null} /></MemoryRouter>)
     expect((screen.getByLabelText('Unidade selecionada') as HTMLSelectElement).value).toBe('')
     expect(screen.getByTestId('unidade-em-foco').textContent).toBe('Perguntas sem unidade valem para a rede inteira.')
