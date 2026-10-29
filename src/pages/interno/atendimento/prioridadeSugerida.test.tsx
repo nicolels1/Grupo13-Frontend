@@ -66,7 +66,10 @@ describe('prioridade sugerida', () => {
     api.mockResolvedValue(chamado({ prioridade: 'alta' }))
     const aoMudar = painel(chamado())
 
-    expect(screen.getByTestId('prioridade-sugerida').textContent).toContain('Alta: cobrança em dobro')
+    const quadro = screen.getByTestId('prioridade-sugerida')
+    expect(quadro.textContent).toContain('Prioridade sugerida pela IA')
+    expect(quadro.textContent).toContain('Alta')
+    expect(quadro.textContent).toContain('cobrança em dobro')
     fireEvent.click(screen.getByRole('button', { name: 'Confirmar alta' }))
 
     await waitFor(() => expect(aoMudar).toHaveBeenCalled())
@@ -77,6 +80,7 @@ describe('prioridade sugerida', () => {
     painel(chamado(), 'outra-pessoa')
     expect(screen.getByTestId('prioridade-sugerida')).toBeTruthy()
     expect(screen.queryByRole('button', { name: /Confirmar/ })).toBeNull()
+    expect(screen.getByText('Quem assumir o chamado confirma ou escolhe outra.')).toBeTruthy()
   })
 
   it('com a prioridade já definida, não há o que confirmar', () => {
