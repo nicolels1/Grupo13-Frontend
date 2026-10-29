@@ -40,7 +40,6 @@ describe('nomeDoCanalExterno', () => {
   it('escreve o canal como a equipe fala', () => {
     expect(nomeDoCanalExterno('whatsapp')).toBe('WhatsApp')
     expect(nomeDoCanalExterno('email')).toBe('e-mail')
-    expect(nomeDoCanalExterno('chat')).toBe('chat')
     expect(nomeDoCanalExterno('telegram')).toBe('Telegram')
   })
 })
@@ -54,20 +53,6 @@ describe('chamado aberto pelo assistente no Telegram', () => {
   })
 
   it('a resposta chega por e-mail', () => {
-    expect(respostaPorEmail(c)).toBe(true)
-  })
-})
-
-describe('chamado aberto pelo assistente no chat', () => {
-  const c = chamadoVultoDeTeste({ id_cliente: 'b5d1c0de', cliente: 'Bruna Teixeira', canal_externo: 'chat', contato_externo: null })
-
-  it('não aparece como vindo da Vulto', () => {
-    expect(veioDoAssistente(c)).toBe(true)
-    expect(origemDoChamado(c)).toBe('Aberto pelo assistente no chat')
-  })
-
-  it('a resposta chega por e-mail', () => {
-    expect(respostaNaoChega(c)).toBe(false)
     expect(respostaPorEmail(c)).toBe(true)
   })
 })

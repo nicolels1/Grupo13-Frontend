@@ -2780,7 +2780,7 @@ export interface components {
             concluido_em: string | null;
             /**
              * Canal Externo
-             * @description Atendimento migrado da Vulto (whatsapp, instagram ou email) ou aberto pelo assistente (whatsapp, telegram ou chat)
+             * @description Atendimento migrado da Vulto (whatsapp, instagram ou email) ou aberto pelo assistente (whatsapp ou telegram)
              */
             canal_externo: string | null;
             /**
@@ -2870,7 +2870,7 @@ export interface components {
             concluido_em: string | null;
             /**
              * Canal Externo
-             * @description Atendimento migrado da Vulto (whatsapp, instagram ou email) ou aberto pelo assistente (whatsapp, telegram ou chat)
+             * @description Atendimento migrado da Vulto (whatsapp, instagram ou email) ou aberto pelo assistente (whatsapp ou telegram)
              */
             canal_externo: string | null;
             /**
@@ -3073,7 +3073,7 @@ export interface components {
              * Canal
              * @enum {string}
              */
-            canal: "whatsapp" | "telegram" | "chat";
+            canal: "whatsapp" | "telegram";
             /** Id Externo */
             id_externo: string;
             /** Codigo */
@@ -3216,7 +3216,7 @@ export interface components {
              * Canal
              * @enum {string}
              */
-            canal: "whatsapp" | "telegram" | "chat";
+            canal: "whatsapp" | "telegram";
             /** Id Externo */
             id_externo: string;
         };
@@ -3240,7 +3240,7 @@ export interface components {
              * Canal
              * @enum {string}
              */
-            canal: "whatsapp" | "telegram" | "chat";
+            canal: "whatsapp" | "telegram";
             /** Id Externo */
             id_externo: string;
             /**
@@ -3666,7 +3666,7 @@ export interface components {
              * Canal
              * @enum {string}
              */
-            canal: "whatsapp" | "telegram" | "chat";
+            canal: "whatsapp" | "telegram";
             /** Id Externo */
             id_externo: string;
             /**
@@ -5010,7 +5010,7 @@ export interface components {
              * Canal
              * @enum {string}
              */
-            canal: "whatsapp" | "telegram" | "chat";
+            canal: "whatsapp" | "telegram";
             /** Id Externo */
             id_externo: string;
             /**
@@ -5455,7 +5455,7 @@ export interface components {
              * Canal
              * @enum {string}
              */
-            canal: "whatsapp" | "telegram" | "chat";
+            canal: "whatsapp" | "telegram";
             /** Id Externo */
             id_externo: string;
             /**
@@ -13594,9 +13594,9 @@ export interface operations {
             };
             header?: {
                 "x-assistente-chave"?: string | null;
-                /** @description whatsapp, telegram ou chat */
+                /** @description whatsapp ou telegram */
                 "x-canal"?: string | null;
-                /** @description Telefone, chat_id do Telegram ou sessão do chat */
+                /** @description Telefone ou chat_id do Telegram */
                 "x-id-externo"?: string | null;
             };
             path?: never;
@@ -13647,9 +13647,9 @@ export interface operations {
             };
             header?: {
                 "x-assistente-chave"?: string | null;
-                /** @description whatsapp, telegram ou chat */
+                /** @description whatsapp ou telegram */
                 "x-canal"?: string | null;
-                /** @description Telefone, chat_id do Telegram ou sessão do chat */
+                /** @description Telefone ou chat_id do Telegram */
                 "x-id-externo"?: string | null;
             };
             path?: never;
@@ -13705,9 +13705,9 @@ export interface operations {
             };
             header?: {
                 "x-assistente-chave"?: string | null;
-                /** @description whatsapp, telegram ou chat */
+                /** @description whatsapp ou telegram */
                 "x-canal"?: string | null;
-                /** @description Telefone, chat_id do Telegram ou sessão do chat */
+                /** @description Telefone ou chat_id do Telegram */
                 "x-id-externo"?: string | null;
             };
             path?: never;
@@ -13759,9 +13759,9 @@ export interface operations {
             query?: never;
             header?: {
                 "x-assistente-chave"?: string | null;
-                /** @description whatsapp, telegram ou chat */
+                /** @description whatsapp ou telegram */
                 "x-canal"?: string | null;
-                /** @description Telefone, chat_id do Telegram ou sessão do chat */
+                /** @description Telefone ou chat_id do Telegram */
                 "x-id-externo"?: string | null;
             };
             path?: never;
