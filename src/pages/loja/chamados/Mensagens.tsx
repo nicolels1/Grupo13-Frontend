@@ -12,7 +12,7 @@ type Mensagem = Esquema<'MensagemSaida'>
 // um balão da conversa: os do cliente à direita em marinho, os da equipe à esquerda em branco, com a
 // inicial de quem atendeu num círculo aço. Mensagens seguidas da mesma pessoa (continuacao) ficam
 // coladas, sem repetir nome e inicial. O horário fica embaixo do balão; nas do cliente, com ✓ (enviada)
-// ou ✓✓ em aço (a equipe já leu)
+// ou ✓✓ em aço (a equipe já leu). Sem criadoEm (a conversa com o assistente), o balão fica sem horário
 export function Balao({
   minha,
   continuacao = false,
@@ -26,7 +26,7 @@ export function Balao({
   continuacao?: boolean
   autor: string
   texto: string | null
-  criadoEm: string
+  criadoEm?: string
   lidaEm?: string | null
   anexo?: { idChamado: number; idMensagem: number; nome: string } | null
 }) {
@@ -56,15 +56,17 @@ export function Balao({
           {anexo && <AnexoDaMensagem {...anexo} minha={minha} />}
           {texto && <p className="whitespace-pre-line">{texto}</p>}
         </div>
-        <p className="flex items-center gap-1 px-1 text-[0.7rem] text-muted-foreground tabular-nums">
-          {hora(criadoEm)}
-          {minha &&
-            (lidaEm ? (
-              <CheckCheck className="size-4 text-aco" aria-label="Lida pela equipe" />
-            ) : (
-              <Check className="size-3.5" aria-label="Enviada" />
-            ))}
-        </p>
+        {criadoEm && (
+          <p className="flex items-center gap-1 px-1 text-[0.7rem] text-muted-foreground tabular-nums">
+            {hora(criadoEm)}
+            {minha &&
+              (lidaEm ? (
+                <CheckCheck className="size-4 text-aco" aria-label="Lida pela equipe" />
+              ) : (
+                <Check className="size-3.5" aria-label="Enviada" />
+              ))}
+          </p>
+        )}
       </div>
     </li>
   )

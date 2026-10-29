@@ -7,11 +7,12 @@ import { Abas } from '@/components/Navegacao'
 import { Etiqueta } from '@/components/Peca'
 import { Button } from '@/components/ui/button'
 import { api, ErroApi, type Esquema } from '@/lib/api'
+import { separarConversa, type Fala } from '@/lib/conversaDoAssistente'
 import { CATEGORIAS_CHAMADO, dataHora, dataLonga, hora, tamanhoArquivo } from '@/lib/formato'
 import { useCarregar, useEnviar, useIntervalo } from '@/lib/useCarregar'
 import { Prioridade } from './Fila'
 import { PainelDoChamado } from './PainelDoChamado'
-import { comoChamar, nomeDoCanalExterno, origemDoChamado, quemAbriu, respostaNaoChega, respostaPorEmail, semCadastro } from './regrasChamado'
+import { comoChamar, nomeDoCanalExterno, origemDoChamado, quemAbriu, respostaNaConversa, respostaNaoChega, semCadastro } from './regrasChamado'
 
 type Chamado = Esquema<'ChamadoEquipe'>
 type Mensagem = Esquema<'MensagemSaida'>
@@ -33,6 +34,8 @@ export function ChamadoAberto({ idChamado, aoMudar }: { idChamado: string; aoMud
   if (chamado.erro || !chamado.dados) return <Aviso mensagem={chamado.erro ?? 'Chamado não encontrado.'} />
   const c = chamado.dados
   const concluido = c.status === 'concluido'
+  // chamado aberto pelo assistente virtual: o resumo que o cliente confirmou e, à parte, a conversa com o assistente
+  const { resumo, conversa } = separarConversa(c.descricao)
 
   function atualizarTudo() {
     chamado.recarregar()
@@ -66,7 +69,8 @@ export function ChamadoAberto({ idChamado, aoMudar }: { idChamado: string; aoMud
       <div className="grid gap-8 xl:grid-cols-[minmax(0,1fr)_17rem]">
         <div className="min-w-0 space-y-6">
           <ol aria-label="Mensagens" className="space-y-5">
-            <Mensagem mensagem={{ conteudo: c.descricao, autor: quemAbriu(c), criado_em: c.criado_em }} />
+            {conversa.length > 0 && <ConversaComAssistente conversa={conversa} cliente={comoChamar(c)} />}
+            <Mensagem mensagem={{ conteudo: resumo, autor: quemAbriu(c), criado_em: c.criado_em }} />
             {mensagens.dados?.items.map((m) => <Mensagem key={m.id_mensagem} mensagem={m} />)}
           </ol>
           {mensagens.erro && <Aviso mensagem={mensagens.erro} />}
@@ -78,6 +82,27 @@ export function ChamadoAberto({ idChamado, aoMudar }: { idChamado: string; aoMud
 
       </div>
     </>
+  )
+}
+
+// o que o cliente já falou com o assistente antes de pedir uma pessoa, recolhido para não empurrar a conversa
+// com a equipe para baixo
+function ConversaComAssistente({ conversa, cliente }: { conversa: Fala[]; cliente: string }) {
+  return (
+    <li>
+      <details className="border bg-background text-sm">
+        <summary className="cursor-pointer px-4 py-3 font-medium">
+          Conversa com o assistente virtual antes do chamado ({conversa.length} {conversa.length === 1 ? 'mensagem' : 'mensagens'})
+        </summary>
+        <ol className="space-y-2 border-t px-4 py-3">
+          {conversa.map((fala, i) => (
+            <li key={i} className="whitespace-pre-line">
+              <span className="font-medium">{fala.de === 'cliente' ? cliente : 'Assistente virtual'}:</span> {fala.texto}
+            </li>
+          ))}
+        </ol>
+      </details>
+    </li>
   )
 }
 
@@ -240,10 +265,9 @@ function Responder({ chamado: c, aoEnviar }: { chamado: Chamado; aoEnviar: () =>
       </div>
       {(erroArquivo || erro) && <div className="border-t p-3"><Aviso mensagem={erroArquivo || erro} /></div>}
       </form>
-      {!interna && respostaPorEmail(c) && (
+      {!interna && respostaNaConversa(c) && (
         <p className="text-xs text-muted-foreground">
-          {comoChamar(c)} recebe esta resposta por e-mail: a conversa do assistente no {nomeDoCanalExterno(c.canal_externo ?? '')} não
-          recebe mensagens da equipe.
+          {comoChamar(c)} recebe esta resposta também na conversa com o assistente virtual, com o seu primeiro nome na frente.
         </p>
       )}
     </div>

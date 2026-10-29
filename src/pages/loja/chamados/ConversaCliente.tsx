@@ -1,5 +1,5 @@
 import { useEffect, useRef, type ReactNode } from 'react'
-import { CircleCheck, Package } from 'lucide-react'
+import { Bot, CircleCheck, Package } from 'lucide-react'
 import { Link, useParams } from 'react-router'
 import { cn } from 'cn'
 
@@ -7,6 +7,7 @@ import { Aviso, Carregando } from '@/components/Estados'
 import { Status } from '@/components/Status'
 import { buttonVariants } from '@/components/ui/button'
 import { api, type Esquema } from '@/lib/api'
+import { separarConversa, type Fala } from '@/lib/conversaDoAssistente'
 import { CATEGORIAS_CHAMADO, dataCurta, dataLonga } from '@/lib/formato'
 import { useCarregar, useIntervalo } from '@/lib/useCarregar'
 import { CabecalhoDoLado } from './CabecalhoDoLado'
@@ -56,6 +57,10 @@ export function ConversaCliente() {
   const c = chamado.dados
   const concluido = c.status === 'concluido'
   const lista = mensagens.dados?.items ?? []
+  // aberto pelo assistente virtual: o resumo que a pessoa confirmou é a primeira mensagem; a conversa com o
+  // assistente fica à parte, recolhida, para ficar claro o que foi dito pelo assistente e o que é da equipe
+  const doAssistente = c.aberto_pelo_assistente
+  const { resumo, conversa } = separarConversa(c.descricao)
 
   // separador de dia: aparece quando a mensagem é de um dia diferente da anterior
   const diaDe = (iso: string) => new Date(iso).toDateString()
@@ -72,6 +77,12 @@ export function ConversaCliente() {
           <span>{CATEGORIAS_CHAMADO[c.categoria]}</span>
           <span>Aberto em {dataCurta(c.criado_em)}</span>
           {c.responsavel && <span>Atendimento com {c.responsavel.split(' ')[0]}</span>}
+          {doAssistente && (
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-superficie px-2.5 py-0.5 font-medium text-aco">
+              <Bot className="size-4" aria-hidden="true" />
+              Aberto pelo assistente virtual
+            </span>
+          )}
           {pedido.dados && (
             <Link
               to="/loja/pedidos"
@@ -86,7 +97,8 @@ export function ConversaCliente() {
 
       <ol ref={rolagem} aria-label="Mensagens" aria-live="polite" className="min-h-0 flex-1 space-y-1 overflow-y-auto bg-ardosia-clara px-4 py-5 sm:px-6">
         <SeparadorDeDia criadoEm={c.criado_em} />
-        <Balao minha autor="Você" texto={c.descricao} criadoEm={c.criado_em} />
+        {conversa.length > 0 && <ConversaComAssistente conversa={conversa} />}
+        <Balao minha autor="Você" texto={resumo} criadoEm={c.criado_em} />
         {lista.map((m, i) => {
           const anterior = i === 0 ? null : lista[i - 1]!
           const novoDia = diaDe(m.criado_em) !== diaDe(anterior?.criado_em ?? c.criado_em)
@@ -120,9 +132,42 @@ export function ConversaCliente() {
           </Link>
         </div>
       ) : (
-        <Compositor idChamado={c.id_chamado} aoEnviar={() => recarregarMensagens()} />
+        <>
+          {doAssistente && (
+            <p className="shrink-0 border-t px-5 pt-3 text-xs text-muted-foreground">
+              A resposta da equipe também chega na sua conversa com o assistente virtual.
+            </p>
+          )}
+          <Compositor idChamado={c.id_chamado} aoEnviar={() => recarregarMensagens()} />
+        </>
       )}
     </div>
+  )
+}
+
+// o que a pessoa falou com o assistente antes de pedir uma pessoa: as falas do assistente aparecem como as da
+// equipe, mas com o nome "Assistente virtual", para não parecer que foi alguém da loja. Sem horário: o
+// assistente não guarda a hora de cada fala, só a do chamado
+function ConversaComAssistente({ conversa }: { conversa: Fala[] }) {
+  return (
+    <li className="pt-3">
+      <details className="rounded-2xl bg-background/60 px-4 py-3 text-sm">
+        <summary className="cursor-pointer font-medium text-marinho">
+          Sua conversa com o assistente virtual ({conversa.length} {conversa.length === 1 ? 'mensagem' : 'mensagens'})
+        </summary>
+        <ol className="space-y-1 pt-2">
+          {conversa.map((fala, i) => (
+            <Balao
+              key={i}
+              minha={fala.de === 'cliente'}
+              continuacao={i > 0 && conversa[i - 1]!.de === fala.de}
+              autor={fala.de === 'cliente' ? 'Você' : 'Assistente virtual'}
+              texto={fala.texto}
+            />
+          ))}
+        </ol>
+      </details>
+    </li>
   )
 }
 

@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 
 import { chamadoVultoDeTeste } from '@/lib/vultoDeTeste'
 import {
-  comoChamar, nomeDoCanalExterno, origemDoChamado, quemAbriu, respostaNaoChega, respostaPorEmail, semCadastro, veioDoAssistente,
+  comoChamar, nomeDoCanalExterno, origemDoChamado, quemAbriu, respostaNaoChega, respostaNaConversa, semCadastro, veioDoAssistente,
 } from './regrasChamado'
 
 describe('chamado migrado sem cadastro', () => {
@@ -44,23 +44,23 @@ describe('nomeDoCanalExterno', () => {
   })
 })
 
-describe('chamado aberto pelo assistente no Telegram', () => {
-  const c = chamadoVultoDeTeste({ id_cliente: 'b5d1c0de', cliente: 'Bruna Teixeira', canal_externo: 'telegram', contato_externo: null })
+describe('chamado aberto pelo assistente virtual', () => {
+  const c = chamadoVultoDeTeste({ id_cliente: 'b5d1c0de', cliente: 'Bruna Teixeira', canal_externo: 'telegram', contato_externo: null, aberto_pelo_assistente: true })
 
   it('não aparece como vindo da Vulto', () => {
     expect(veioDoAssistente(c)).toBe(true)
-    expect(origemDoChamado(c)).toBe('Aberto pelo assistente no Telegram')
+    expect(origemDoChamado(c)).toBe('Aberto pelo assistente virtual')
   })
 
-  it('a resposta chega por e-mail', () => {
-    expect(respostaPorEmail(c)).toBe(true)
+  it('a resposta também chega na conversa com o assistente', () => {
+    expect(respostaNaConversa(c)).toBe(true)
   })
 })
 
 describe('chamado migrado da Vulto', () => {
-  it('continua dizendo de onde veio, e a resposta não vai por e-mail', () => {
+  it('continua dizendo de onde veio, e a resposta não vai para a conversa do assistente', () => {
     const c = chamadoVultoDeTeste({ id_cliente: 'b5d1c0de', cliente: 'Bruna Teixeira' })
     expect(origemDoChamado(c)).toBe(`Veio da Vulto pelo ${nomeDoCanalExterno(c.canal_externo!)}`)
-    expect(respostaPorEmail(c)).toBe(false)
+    expect(respostaNaConversa(c)).toBe(false)
   })
 })

@@ -92,13 +92,12 @@ function AbasDasLojas({ loja }: { loja: Loja }) {
 // Fica abaixo da gaveta do carrinho (z-50), que a cobre quando aberta
 function BolinhaDoAssistente() {
   if (!LINK_ASSISTENTE) return null
-  const canal = LINK_ASSISTENTE.includes('t.me/') ? 'Telegram' : 'WhatsApp'
   return (
     <a
       href={LINK_ASSISTENTE}
       target="_blank"
       rel="noopener noreferrer"
-      aria-label={`Tirar dúvidas com o assistente no ${canal} (abre fora do site)`}
+      aria-label="Tirar dúvidas com o assistente virtual (abre fora do site)"
       className="fixed right-4 bottom-4 z-40 flex items-center gap-2 rounded-full bg-marinho p-3.5 text-white shadow-lg transition-colors hover:bg-marinho-escuro focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-none sm:right-6 sm:bottom-6 sm:px-5"
     >
       <MessageCircle className="size-6 sm:size-5" aria-hidden="true" />
