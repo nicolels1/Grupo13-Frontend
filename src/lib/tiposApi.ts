@@ -2319,7 +2319,7 @@ export interface paths {
         get?: never;
         /**
          * Mudar Etapa
-         * @description Põe a conversa esperando o CPF (o cliente pediu pontos ou pedidos) ou a devolve para a IA.
+         * @description Põe a conversa esperando o CPF (o cliente pediu pontos ou pedidos) ou a devolve para a IA (desistiu, ou apertou [Corrigir] no resumo do chamado, que é desfeito).
          */
         put: operations["mudar_etapa_assistente_conversa_etapa_put"];
         post?: never;
@@ -2429,6 +2429,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/assistente/chamado/rascunho": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Rascunhar Chamado
+         * @description Guarda o resumo que a IA montou e põe a conversa em confirmando_chamado. A mensagem volta pronta para mostrar com os botões [Enviar] [Corrigir]; [Corrigir] devolve a conversa para a IA (PUT /conversa/etapa livre). Chamar de novo troca o rascunho.
+         */
+        put: operations["rascunhar_chamado_assistente_chamado_rascunho_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/assistente/chamado": {
         parameters: {
             query?: never;
@@ -2440,7 +2460,7 @@ export interface paths {
         put?: never;
         /**
          * Abrir Chamado
-         * @description Abre o chamado depois do botão [Enviar], com o resumo confirmado e a conversa. Daqui em diante a conversa fica em_chamado: cada mensagem do cliente vai também para o chamado.
+         * @description Abre o chamado depois do botão [Enviar], com o rascunho guardado e a conversa. Daqui em diante a conversa fica em_chamado: cada mensagem do cliente vai também para o chamado.
          */
         post: operations["abrir_chamado_assistente_chamado_post"];
         delete?: never;
@@ -2775,23 +2795,6 @@ export interface components {
             canal: "whatsapp" | "telegram";
             /** Id Externo */
             id_externo: string;
-            /**
-             * Categoria
-             * @enum {string}
-             */
-            categoria: "entrega" | "troca_devolucao" | "estorno" | "duvida" | "pagamento" | "outros";
-            /** Assunto */
-            assunto: string;
-            /**
-             * Resumo
-             * @description O resumo que o cliente confirmou
-             */
-            resumo: string;
-            /**
-             * Id Pedido
-             * @description Pedido do próprio cliente de que o chamado trata
-             */
-            id_pedido?: number | null;
             /**
              * Conversa
              * @description As últimas mensagens, da mais antiga para a mais nova
@@ -5304,6 +5307,41 @@ export interface components {
              * @description Na ordem de exibição
              */
             imagens?: components["schemas"]["ImagemSaida"][];
+        };
+        /** RascunhoDoChamadoEntrada */
+        RascunhoDoChamadoEntrada: {
+            /**
+             * Canal
+             * @enum {string}
+             */
+            canal: "whatsapp" | "telegram";
+            /** Id Externo */
+            id_externo: string;
+            /**
+             * Categoria
+             * @enum {string}
+             */
+            categoria: "entrega" | "troca_devolucao" | "estorno" | "duvida" | "pagamento" | "outros";
+            /** Assunto */
+            assunto: string;
+            /**
+             * Resumo
+             * @description O que vai para a equipe, para o cliente conferir
+             */
+            resumo: string;
+            /**
+             * Id Pedido
+             * @description Pedido do próprio cliente de que o chamado trata
+             */
+            id_pedido?: number | null;
+        };
+        /** RascunhoSaida */
+        RascunhoSaida: {
+            /**
+             * Mensagem
+             * @description Texto pronto para mostrar com os botões [Enviar] [Corrigir]
+             */
+            mensagem: string;
         };
         /** RedeAgora */
         RedeAgora: {
@@ -14353,6 +14391,67 @@ export interface operations {
             };
         };
     };
+    rascunhar_chamado_assistente_chamado_rascunho_put: {
+        parameters: {
+            query?: never;
+            header?: {
+                "x-assistente-chave"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RascunhoDoChamadoEntrada"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RascunhoSaida"];
+                };
+            };
+            /** @description Conta não confirmada nesta conversa: pedir o CPF */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Pedido não encontrado */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description A conversa já tem um chamado aberto */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Cliente sem conta no site (a mensagem traz o link de cadastro) */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Assistente indisponível */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     abrir_chamado_assistente_chamado_post: {
         parameters: {
             query?: never;
@@ -14384,13 +14483,6 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description Pedido não encontrado */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
             /** @description A conversa já tem um chamado aberto */
             409: {
                 headers: {
@@ -14398,7 +14490,7 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description Cliente sem conta no site (a mensagem traz o link de cadastro) */
+            /** @description Sem resumo esperando o [Enviar], ou cliente sem conta no site */
             422: {
                 headers: {
                     [name: string]: unknown;
