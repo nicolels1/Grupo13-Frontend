@@ -73,4 +73,38 @@ describe('AdicionarAoCarrinho', () => {
     expect(await screen.findByText('Peça indisponível')).toBeTruthy()
     expect(api).not.toHaveBeenCalled()
   })
+
+  it('link com várias peças põe todas no carrinho e consulta cada produto uma vez', async () => {
+    const calca = { ...PRODUTO, id_produto: 7, nome: 'Calça', variantes: [{ ...variante(71), id_produto: 7 }] }
+    api.mockImplementation((caminho: string) => Promise.resolve(caminho === '/produtos/7' ? calca : PRODUTO))
+
+    const carrinho = abrir('/loja/carrinho/adicionar?produto=5&variante=50&produto=7&variante=71&produto=5&variante=50')
+
+    expect(await screen.findByText('tela do carrinho')).toBeTruthy()
+    expect(api).toHaveBeenCalledTimes(2)
+    expect(vi.mocked(carrinho.adicionar).mock.calls).toEqual([
+      [{ id_variante: 50, id_produto: 5 }],
+      [{ id_variante: 71, id_produto: 7 }],
+      [{ id_variante: 50, id_produto: 5 }],
+    ])
+  })
+
+  it('peça que esgotou fica de fora e as outras entram no carrinho', async () => {
+    api.mockResolvedValue(PRODUTO)
+
+    const carrinho = abrir('/loja/carrinho/adicionar?produto=5&variante=50&produto=5&variante=51')
+
+    expect(await screen.findByText('Algumas peças ficaram de fora')).toBeTruthy()
+    expect(screen.getByText(/Camisa \(Azul, M\)/)).toBeTruthy()
+    expect(screen.getByRole('link', { name: 'Ir para o carrinho' }).getAttribute('href')).toBe('/loja/carrinho')
+    expect(carrinho.adicionar).toHaveBeenCalledTimes(1)
+    expect(carrinho.adicionar).toHaveBeenCalledWith({ id_variante: 50, id_produto: 5 })
+  })
+
+  it('par de produto e variante incompleto quebra o link', async () => {
+    abrir('/loja/carrinho/adicionar?produto=5&variante=50&produto=7')
+
+    expect(await screen.findByText('Peça indisponível')).toBeTruthy()
+    expect(api).not.toHaveBeenCalled()
+  })
 })
