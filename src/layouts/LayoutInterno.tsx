@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { ChevronDown, MessageSquare, Store } from 'lucide-react'
+import { ChevronDown, Sparkles, Store } from 'lucide-react'
 import { NavLink, Outlet, useNavigate } from 'react-router'
 import { cn } from 'cn'
 
@@ -108,22 +108,33 @@ export function LayoutInterno() {
                 ))}
               </select>
             </label>
-            <button
-              type="button"
-              onClick={() => setAssistenteAberto(true)}
-              className="flex items-center gap-1.5 text-sm whitespace-nowrap outline-none hover:underline focus-visible:ring-2 focus-visible:ring-ring"
-            >
-              <MessageSquare className="size-4" aria-hidden="true" />
-              {/* no celular só o ícone, com o nome para o leitor de tela */}
-              <span className="sr-only sm:not-sr-only">Assistente</span>
-            </button>
             <MenuDaPessoa />
           </div>
         </div>
       </header>
-      <PainelAssistente aberto={assistenteAberto} aoMudar={setAssistenteAberto} conversa={conversa} unidadeEmFoco={emFoco} />
+      <PainelAssistente
+        aberto={assistenteAberto}
+        aoMudar={setAssistenteAberto}
+        conversa={conversa}
+        unidadeEmFoco={emFoco}
+        unidades={ativas.map((u) => ({ id_unidade: u.id_unidade, nome: u.nome }))}
+        aoTrocarUnidade={(id) => setUnidade(id === null ? '' : String(id))}
+      />
+      {/* fixo no canto em todas as telas (no topo ficava escondido); some com o painel aberto */}
+      {!assistenteAberto && (
+        <button
+          type="button"
+          onClick={() => setAssistenteAberto(true)}
+          className="fixed right-4 bottom-4 z-40 flex items-center gap-2 rounded-full bg-terracota p-3.5 text-white shadow-lg transition-colors hover:bg-terracota/90 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-none sm:right-6 sm:bottom-6 sm:px-5"
+        >
+          <Sparkles className="size-6 sm:size-5" aria-hidden="true" />
+          {/* no celular só o ícone, com o nome para o leitor de tela */}
+          <span className="sr-only text-sm font-medium sm:not-sr-only">Assistente</span>
+        </button>
+      )}
 
-      <main className="mx-auto max-w-7xl px-4 py-10 sm:px-6">
+      {/* pb-24: o fim da página (paginação, botões) não fica embaixo do botão do assistente */}
+      <main className="mx-auto max-w-7xl px-4 pt-10 pb-24 sm:px-6">
         {erroUnidades && (
           <div className="mb-6">
             <Aviso

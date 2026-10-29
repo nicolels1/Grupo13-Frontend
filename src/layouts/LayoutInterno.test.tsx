@@ -93,7 +93,7 @@ describe('LayoutInterno: unidade em foco', () => {
     expect(screen.queryByRole('alert')).toBeNull()
   })
 
-  it('o botão Assistente do topo abre o painel', async () => {
+  it('o botão flutuante Assistente abre o painel e some enquanto ele está aberto', async () => {
     api.mockReturnValue(lista(unidade(3, 'Jardins')))
     abrir()
     expect(screen.queryByRole('dialog')).toBeNull()
@@ -103,7 +103,21 @@ describe('LayoutInterno: unidade em foco', () => {
     expect(await screen.findByRole('dialog')).toBeTruthy()
     expect(screen.getByText(/Os números vêm do sistema\./)).toBeTruthy()
     // a unidade do topo (Jardins, a da conta) aparece no painel
-    expect(screen.getByTestId('unidade-em-foco').textContent).toContain('Unidade selecionada: Jardins.')
+    expect(screen.getByTestId('unidade-em-foco').textContent).toBe('Perguntas sem unidade usam Jardins.')
+    expect(screen.queryByRole('button', { name: 'Assistente' })).toBeNull()
+  })
+
+  it('trocar a unidade no painel do assistente troca a do topo', async () => {
+    api.mockReturnValue(lista(unidade(3, 'Jardins'), unidade(4, 'Moema')))
+    abrir()
+    fireEvent.click(screen.getByRole('button', { name: 'Assistente' }))
+    await screen.findByRole('dialog')
+    await screen.findByRole('option', { name: 'Moema' })
+
+    fireEvent.change(screen.getByLabelText('Unidade selecionada'), { target: { value: '4' } })
+
+    expect(screen.getByText('filtro: 4')).toBeTruthy()
+    expect(screen.getByTestId('unidade-em-foco').textContent).toBe('Perguntas sem unidade usam Moema.')
   })
 
   it('unidade de uma marca que a conta não vê aparece como indisponível', async () => {

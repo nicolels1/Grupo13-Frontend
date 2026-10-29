@@ -23,6 +23,9 @@ const resposta = (dados: Record<string, unknown> = {}) => ({
 const aoMudar = vi.fn()
 type UnidadeEmFoco = { id_unidade: number; nome: string } | null
 
+const aoTrocarUnidade = vi.fn()
+const UNIDADES = [{ id_unidade: 45, nome: 'Vulto Savassi' }, { id_unidade: 46, nome: 'Vulto Pinheiros' }]
+
 function Painel({ unidade = null }: { unidade?: UnidadeEmFoco }) {
   const conversa = useConversaAssistente()
   const [aberto, setAberto] = useState(true)
@@ -30,7 +33,12 @@ function Painel({ unidade = null }: { unidade?: UnidadeEmFoco }) {
     setAberto(valor)
     aoMudar(valor)
   }
-  return <PainelAssistente aberto={aberto} aoMudar={mudar} conversa={conversa} unidadeEmFoco={unidade} />
+  return (
+    <PainelAssistente
+      aberto={aberto} aoMudar={mudar} conversa={conversa} unidadeEmFoco={unidade}
+      unidades={UNIDADES} aoTrocarUnidade={aoTrocarUnidade}
+    />
+  )
 }
 
 function abrir(unidade: UnidadeEmFoco = null) {
@@ -191,8 +199,8 @@ describe('PainelAssistente', () => {
   it('mostra a unidade selecionada no topo, manda junto da pergunta e marca cada pergunta', async () => {
     api.mockResolvedValue(resposta())
     const tela = abrir({ id_unidade: 45, nome: 'Vulto Savassi' })
-    expect(screen.getByTestId('unidade-em-foco').textContent).toBe(
-      'Unidade selecionada: Vulto Savassi. Perguntas sem unidade usam essa.')
+    expect((screen.getByLabelText('Unidade selecionada') as HTMLSelectElement).value).toBe('45')
+    expect(screen.getByTestId('unidade-em-foco').textContent).toBe('Perguntas sem unidade usam Vulto Savassi.')
 
     escrever('quanto vendemos?')
     fireEvent.click(screen.getByRole('button', { name: 'Enviar' }))
@@ -203,8 +211,18 @@ describe('PainelAssistente', () => {
 
     // trocou o topo para todas: o aviso muda, e a pergunta anterior continua marcada com a unidade dela
     tela.rerender(<MemoryRouter><Painel unidade={null} /></MemoryRouter>)
-    expect(screen.getByTestId('unidade-em-foco').textContent).toBe(
-      'Todas as unidades selecionadas. Perguntas sem unidade valem para a rede.')
+    expect((screen.getByLabelText('Unidade selecionada') as HTMLSelectElement).value).toBe('')
+    expect(screen.getByTestId('unidade-em-foco').textContent).toBe('Perguntas sem unidade valem para a rede inteira.')
+  })
+
+  it('o seletor do painel troca a unidade selecionada', () => {
+    abrir({ id_unidade: 45, nome: 'Vulto Savassi' })
+    const seletor = screen.getByLabelText('Unidade selecionada')
+
+    fireEvent.change(seletor, { target: { value: '46' } })
+    expect(aoTrocarUnidade).toHaveBeenLastCalledWith(46)
+    fireEvent.change(seletor, { target: { value: '' } })
+    expect(aoTrocarUnidade).toHaveBeenLastCalledWith(null)
   })
 
   it('a pergunta refeita depois de um erro usa a unidade de quando foi feita', async () => {
