@@ -64,8 +64,9 @@ describe('Atendimento: ordem e chamados do assistente', () => {
 
   it('"Abertos pelo assistente" mostra os chamados do chatbot, o último primeiro', async () => {
     abrir()
-    const [fila] = await screen.findAllByRole('button', { name: /Abertos pelo assistente/ })
-    fireEvent.click(fila)
+    // a fila aparece duas vezes (abas do celular e menu do computador): qualquer uma serve
+    const filas = await screen.findAllByRole('button', { name: /Abertos pelo assistente/ })
+    fireEvent.click(filas[0] as HTMLElement)
 
     await waitFor(() => expect(ultimaLista()).toMatchObject({ aberto_pelo_assistente: true, ordem: 'recentes' }))
     expect(ultimaLista()?.status).toBeUndefined()
