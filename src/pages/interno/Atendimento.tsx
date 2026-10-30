@@ -15,7 +15,8 @@ import { ItemDaFila } from './atendimento/Fila'
 import { SeletorDeMarca } from './componentes/FiltroDeMarca'
 import { useFiltroDeMarca } from './componentes/useFiltroDeMarca'
 
-type Fila = 'sem' | 'meus' | 'respondeu' | 'andamento' | 'concluidos'
+type Fila = 'sem' | 'meus' | 'respondeu' | 'andamento' | 'concluidos' | 'assistente'
+type Ordem = 'prioridade' | 'recentes'
 
 const POR_PAGINA = 25
 
@@ -26,6 +27,8 @@ const FILAS: { valor: Fila; rotulo: string; filtros: Record<string, string | boo
   { valor: 'respondeu', rotulo: 'Cliente respondeu', filtros: { meus: true, com_mensagem_nova: true } },
   { valor: 'andamento', rotulo: 'Todos em andamento', filtros: { status: 'em_andamento' } },
   { valor: 'concluidos', rotulo: 'Concluídos', filtros: { status: 'concluido' } },
+  // os que vieram do chatbot (WhatsApp ou Telegram), de qualquer status: o último que chegou aparece primeiro
+  { valor: 'assistente', rotulo: 'Abertos pelo assistente', filtros: { aberto_pelo_assistente: true } },
 ]
 
 // filtros de cada fila, montados uma vez: a lista recarrega só quando a fila muda
@@ -41,14 +44,16 @@ export function Atendimento() {
   const [categoria, setCategoria] = useState('')
   // a prioridade que vale: a definida por quem assumiu ou, sem ela, a sugerida pela IA
   const [prioridade, setPrioridade] = useState('')
+  // prioridade (padrão): o urgente e quem espera há mais tempo primeiro; recentes: o que acabou de chegar
+  const [ordem, setOrdem] = useState<Ordem>('prioridade')
   const [offset, setOffset] = useState(0)
   const filtros = FILTROS_DA_FILA[fila]
   const filtroMarca = useFiltroDeMarca(() => setOffset(0))
   const marca = filtroMarca.marca
 
   const lista = useCarregar(
-    () => api<Esquema<'Pagina_ChamadoEquipe_'>>('/atendimento/chamados', { params: { ...filtros, categoria, prioridade, id_unidade: unidade, marca, limit: POR_PAGINA, offset } }),
-    [filtros, categoria, prioridade, unidade, marca, offset],
+    () => api<Esquema<'Pagina_ChamadoEquipe_'>>('/atendimento/chamados', { params: { ...filtros, categoria, prioridade, ordem, id_unidade: unidade, marca, limit: POR_PAGINA, offset } }),
+    [filtros, categoria, prioridade, ordem, unidade, marca, offset],
   )
   // contagem de cada fila (só o total, uma linha por consulta)
   const contagens = useCarregar(
@@ -64,12 +69,13 @@ export function Atendimento() {
 
   function mudarFila(valor: Fila) {
     setFila(valor)
+    setOrdem(valor === 'assistente' ? 'recentes' : 'prioridade')
     setOffset(0)
   }
 
   return (
     <>
-      <Cabecalho titulo="Atendimento" subtitulo="Chamados abertos pelos clientes no site." />
+      <Cabecalho titulo="Atendimento" subtitulo="Chamados abertos pelos clientes no site e pelo assistente do cliente." />
       <div className="grid gap-6 lg:grid-cols-[11rem_17rem_minmax(0,1fr)]">
         <nav aria-label="Filas" className={cn('lg:hidden', idChamado && 'hidden')}>
           <Abas
@@ -103,6 +109,10 @@ export function Atendimento() {
             <option value="">Todas as prioridades</option>
             {Object.entries(PRIORIDADES).reverse().map(([v, r]) => <option key={v} value={v}>{r} (definida ou sugerida)</option>)}
             <option value="sem">Sem prioridade</option>
+          </Select>
+          <Select aria-label="Ordem" value={ordem} onChange={(e) => { setOrdem(e.target.value as Ordem); setOffset(0) }} className="mb-2">
+            <option value="prioridade">Por prioridade e espera</option>
+            <option value="recentes">Mais recentes primeiro</option>
           </Select>
           <SeletorDeMarca filtro={filtroMarca} className="mb-2" />
           {lista.erro && <Aviso mensagem={lista.erro} />}
