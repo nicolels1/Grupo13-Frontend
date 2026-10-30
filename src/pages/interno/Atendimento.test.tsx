@@ -47,3 +47,27 @@ describe('Atendimento: filtro de prioridade', () => {
     await waitFor(() => expect(ultimaLista()?.prioridade).toBe('sem'))
   })
 })
+
+describe('Atendimento: ordem e chamados do assistente', () => {
+  afterEach(() => {
+    cleanup()
+    api.mockReset()
+  })
+
+  it('a fila começa pela prioridade e pode mostrar os mais recentes primeiro', async () => {
+    abrir()
+    await waitFor(() => expect(ultimaLista()?.ordem).toBe('prioridade'))
+
+    fireEvent.change(await screen.findByRole('combobox', { name: 'Ordem' }), { target: { value: 'recentes' } })
+    await waitFor(() => expect(ultimaLista()?.ordem).toBe('recentes'))
+  })
+
+  it('"Abertos pelo assistente" mostra os chamados do chatbot, o último primeiro', async () => {
+    abrir()
+    const [fila] = await screen.findAllByRole('button', { name: /Abertos pelo assistente/ })
+    fireEvent.click(fila)
+
+    await waitFor(() => expect(ultimaLista()).toMatchObject({ aberto_pelo_assistente: true, ordem: 'recentes' }))
+    expect(ultimaLista()?.status).toBeUndefined()
+  })
+})

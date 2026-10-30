@@ -9334,6 +9334,10 @@ export interface operations {
                 id_cliente?: string | null;
                 /** @description Chamados de um cliente da Vulto sem conta */
                 id_cliente_sem_conta?: number | null;
+                /** @description true: só os chamados que o assistente do cliente abriu (WhatsApp ou Telegram) */
+                aberto_pelo_assistente?: boolean | null;
+                /** @description prioridade (padrão): abertos, prioridade e quem espera há mais tempo; recentes: o que chegou por último primeiro */
+                ordem?: "prioridade" | "recentes";
                 /** @description lorenzi ou vulto. Vazio: as marcas que a pessoa vê */
                 marca?: ("lorenzi" | "vulto") | null;
                 limit?: number;
